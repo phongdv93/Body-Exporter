@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app import config
 from app.auth import get_db, login_session, logout_session, require_admin, verify_admin
 from app.database import get_content
-from app.sepay import pg_checkout_available
+from app.sepay import pg_checkout_available_for_content
 
 router = APIRouter(prefix="/admin")
 templates = Jinja2Templates(directory=str(config.TEMPLATES_DIR))
@@ -51,7 +51,8 @@ def dashboard(request: Request, db: Session = Depends(get_db), _user=Depends(req
         {
             "request": request,
             "content": content,
-            "pg_available": pg_checkout_available(),
+            "pg_available": pg_checkout_available_for_content(content),
+            "site_url": config.SITE_URL.rstrip("/"),
         },
     )
 
@@ -78,7 +79,13 @@ def save_content(
     buy_footer: str = Form(""),
     sepay_qr_base_url: str = Form(""),
     license_price_vnd: int = Form(1590000),
+    license_term_days: int = Form(365),
     support_email: str = Form(""),
+    sepay_pg_merchant_id: str = Form(""),
+    sepay_pg_secret_key: str = Form(""),
+    sepay_pg_env: str = Form("sandbox"),
+    sepay_webhook_secret: str = Form(""),
+    sepay_webhook_api_key: str = Form(""),
     db: Session = Depends(get_db),
     _user=Depends(require_admin),
 ):
@@ -94,7 +101,20 @@ def save_content(
     c.buy_footer = buy_footer.strip()
     c.sepay_qr_base_url = sepay_qr_base_url.strip()
     c.license_price_vnd = max(1, license_price_vnd)
+    c.license_term_days = max(1, int(license_term_days))
     c.support_email = support_email.strip() or config.SUPPORT_EMAIL
+    c.sepay_pg_merchant_id = sepay_pg_merchant_id.strip()
+    if sepay_pg_secret_key.strip():
+        c.sepay_pg_secret_key = sepay_pg_secret_key.strip()
+    env_pg = (sepay_pg_env or "sandbox").strip().lower()
+    if env_pg in ("sandbox", "production"):
+        c.sepay_pg_env = env_pg
+    wh = sepay_webhook_secret.strip()
+    if wh:
+        c.sepay_webhook_secret = wh
+    wh_api = sepay_webhook_api_key.strip()
+    if wh_api:
+        c.sepay_webhook_api_key = wh_api
     db.commit()
     return templates.TemplateResponse(
         "admin/content.html",

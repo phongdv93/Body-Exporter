@@ -42,18 +42,37 @@ def parse_qr_base(base_url: str) -> dict:
     }
 
 
+def pg_credentials_for_content(content) -> tuple[str, str, str]:
+    """Merchant id, secret key, env — site row overrides env."""
+    from app import config
+
+    mid = (getattr(content, "sepay_pg_merchant_id", None) or "").strip() or config.SEPAY_PG_MERCHANT_ID
+    sk = (getattr(content, "sepay_pg_secret_key", None) or "").strip() or config.SEPAY_PG_SECRET_KEY
+    envname = (getattr(content, "sepay_pg_env", None) or "").strip().lower() or config.SEPAY_PG_ENV
+    return mid, sk, envname
+
+
+def pg_checkout_available_for_content(content) -> bool:
+    mid, sk, _ = pg_credentials_for_content(content)
+    return bool(mid and sk)
+
+
 def pg_checkout_available() -> bool:
     from app import config
 
     return bool(config.SEPAY_PG_MERCHANT_ID and config.SEPAY_PG_SECRET_KEY)
 
 
+def pg_checkout_init_url_for_env(env_name: str) -> str:
+    if (env_name or "").lower() == "production":
+        return "https://pay.sepay.vn/v1/checkout/init"
+    return "https://pay-sandbox.sepay.vn/v1/checkout/init"
+
+
 def pg_checkout_init_url() -> str:
     from app import config
 
-    if config.SEPAY_PG_ENV == "production":
-        return "https://pay.sepay.vn/v1/checkout/init"
-    return "https://pay-sandbox.sepay.vn/v1/checkout/init"
+    return pg_checkout_init_url_for_env(config.SEPAY_PG_ENV)
 
 
 def sign_checkout_fields(fields: dict[str, str], secret_key: str) -> str:
@@ -85,6 +104,8 @@ def sign_checkout_fields(fields: dict[str, str], secret_key: str) -> str:
 
 def build_pg_checkout_fields(
     *,
+    merchant_id: str,
+    secret_key: str,
     email: str,
     amount_vnd: int,
     invoice: str,
@@ -93,10 +114,8 @@ def build_pg_checkout_fields(
     error_url: str,
     cancel_url: str,
 ) -> dict[str, str]:
-    from app import config
-
     fields = {
-        "merchant": config.SEPAY_PG_MERCHANT_ID,
+        "merchant": merchant_id,
         "currency": "VND",
         "order_amount": str(amount_vnd),
         "operation": "PURCHASE",
@@ -107,7 +126,7 @@ def build_pg_checkout_fields(
         "error_url": error_url,
         "cancel_url": cancel_url,
     }
-    fields["signature"] = sign_checkout_fields(fields, config.SEPAY_PG_SECRET_KEY)
+    fields["signature"] = sign_checkout_fields(fields, secret_key)
     return fields
 
 

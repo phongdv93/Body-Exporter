@@ -1,13 +1,63 @@
 import logging
 import re
 
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, inspect, select, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from app import config
 from app.models import AdminUser, Base, SiteContent
 
 log = logging.getLogger("uvicorn.error")
+
+_LEGACY_TABLE_RENAMES = (
+    ("site_content", "be_site_content"),
+    ("admin_users", "be_admin_users"),
+    ("licenses", "be_licenses"),
+)
+
+_SITE_CONTENT_ALTER = [
+    ("sepay_pg_merchant_id", "VARCHAR(120) DEFAULT ''"),
+    ("sepay_pg_secret_key", "VARCHAR(300) DEFAULT ''"),
+    ("sepay_pg_env", "VARCHAR(20) DEFAULT 'sandbox'"),
+    ("sepay_webhook_secret", "VARCHAR(300) DEFAULT ''"),
+    ("sepay_webhook_api_key", "VARCHAR(300) DEFAULT ''"),
+    ("license_term_days", "INTEGER DEFAULT 365"),
+]
+
+
+def rename_legacy_tables() -> None:
+    """One-time rename from unprefixed tables (older installs)."""
+    try:
+        insp = inspect(engine)
+        names = set(insp.get_table_names())
+    except Exception as ex:
+        log.warning("rename_legacy_tables: inspect failed: %s", ex)
+        return
+
+    for old, new in _LEGACY_TABLE_RENAMES:
+        if old not in names or new in names:
+            continue
+        stmt = f"ALTER TABLE {old} RENAME TO {new}"
+        log.info("DB migrate: %s", stmt)
+        with engine.begin() as conn:
+            conn.execute(text(stmt))
+        names.discard(old)
+        names.add(new)
+
+
+def ensure_schema() -> None:
+    insp = inspect(engine)
+    names = insp.get_table_names()
+    if "be_site_content" not in names:
+        return
+    have = {c["name"] for c in insp.get_columns("be_site_content")}
+    for col, ddl in _SITE_CONTENT_ALTER:
+        if col in have:
+            continue
+        stmt = f"ALTER TABLE be_site_content ADD COLUMN {col} {ddl}"
+        log.info("DB migrate: %s", stmt)
+        with engine.begin() as conn:
+            conn.execute(text(stmt))
 
 config.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -40,7 +90,9 @@ SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
 
 def init_db() -> None:
+    rename_legacy_tables()
     Base.metadata.create_all(bind=engine)
+    ensure_schema()
     with SessionLocal() as db:
         if not db.get(SiteContent, 1):
             db.add(
@@ -75,6 +127,12 @@ def init_db() -> None:
                     sepay_qr_base_url=config.SEPAY_QR_BASE_URL,
                     license_price_vnd=config.LICENSE_PRICE_VND,
                     support_email=config.SUPPORT_EMAIL,
+                    sepay_pg_merchant_id=config.SEPAY_PG_MERCHANT_ID,
+                    sepay_pg_secret_key=config.SEPAY_PG_SECRET_KEY,
+                    sepay_pg_env=config.SEPAY_PG_ENV or "sandbox",
+                    sepay_webhook_secret=config.SEPAY_WEBHOOK_SECRET,
+                    sepay_webhook_api_key=config.SEPAY_WEBHOOK_API_KEY,
+                    license_term_days=max(1, config.SEPAY_LICENSE_DAYS),
                 )
             )
             db.commit()

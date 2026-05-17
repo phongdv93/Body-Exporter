@@ -7,7 +7,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app import config
 from app.database import init_db
-from app.routers import admin_routes, public
+from app.routers import admin_routes, licenses_admin, public, sepay_webhook
 
 app = FastAPI(title="Body Exporter", docs_url=None, redoc_url=None)
 
@@ -24,7 +24,9 @@ static_dir = Path(__file__).resolve().parents[1] / "static"
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 app.include_router(public.router)
+app.include_router(sepay_webhook.router)
 app.include_router(admin_routes.router)
+app.include_router(licenses_admin.router)
 
 
 @app.on_event("startup")

@@ -11,6 +11,9 @@
   <div class="admin-wrap">
     <nav class="admin-nav">
       <a href="/admin">Dashboard</a>
+      <a href="/admin/content">Chỉnh nội dung &amp; thanh toán</a>
+      <a href="/admin/licenses">Danh sách license</a>
+      <a href="/buy" target="_blank" rel="noopener">Trang bán (/buy) ↗</a>
       <a href="/admin/logout">Đăng xuất</a>
       <a href="/">Xem site</a>
     </nav>
@@ -42,8 +45,29 @@
       <textarea name="buy_footer">{{ content.buy_footer }}</textarea>
       <label>Giá (VND)</label>
       <input type="number" name="license_price_vnd" value="{{ content.license_price_vnd }}" min="1">
+      <label>Số ngày license khi bán (SePay / tạo tay)</label>
+      <input type="number" name="license_term_days" value="{{ content.license_term_days or 365 }}" min="1">
       <label>URL gốc QR Sepay (qr.sepay.vn/img?bank=…&amp;amount=…)</label>
       <input type="url" name="sepay_qr_base_url" value="{{ content.sepay_qr_base_url }}">
+      <p class="muted" style="font-size:13px;margin:12px 0">
+        Webhook chuyển khoản: <code>/webhook/sepay</code> — đặt URL đầy đủ trên SePay.
+        Bí mật HMAC (khuyến nghị) hoặc API key Authorization <code>Apikey …</code>.
+      </p>
+      <label>SePay webhook HMAC secret (để trống = giữ nguyên)</label>
+      <input type="password" name="sepay_webhook_secret" autocomplete="new-password" placeholder="••••">
+      <label>SePay webhook API key (để trống = giữ nguyên)</label>
+      <input type="password" name="sepay_webhook_api_key" autocomplete="new-password" placeholder="••••">
+      <h3 style="margin-top:1.5rem">SePay cổng thẻ (PG)</h3>
+      <p class="muted" style="font-size:13px">Merchant / secret lưu DB ghi đè .env. Secret để trống khi lưu = không đổi.</p>
+      <label>PG merchant id</label>
+      <input type="text" name="sepay_pg_merchant_id" value="{{ content.sepay_pg_merchant_id }}" autocomplete="off">
+      <label>PG secret key (để trống = giữ nguyên)</label>
+      <input type="password" name="sepay_pg_secret_key" autocomplete="new-password" placeholder="••••">
+      <label>Môi trường PG</label>
+      <select name="sepay_pg_env">
+        <option value="sandbox" {% if (content.sepay_pg_env or 'sandbox') == 'sandbox' %}selected{% endif %}>sandbox</option>
+        <option value="production" {% if content.sepay_pg_env == 'production' %}selected{% endif %}>production</option>
+      </select>
       <label>Email hỗ trợ</label>
       <input type="email" name="support_email" value="{{ content.support_email }}">
 

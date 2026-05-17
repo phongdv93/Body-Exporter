@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
@@ -7,7 +6,6 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using Microsoft.Win32;
 using SolidWorksBodyExporter.AddIn.Services;
 using SolidWorksBodyExporter.AddIn.Services.Api;
@@ -18,15 +16,10 @@ namespace SolidWorksBodyExporter.AddIn.Ui
     [System.Reflection.Obfuscation(Feature = "renaming", Exclude = true, ApplyToMembers = true)]
     public partial class LicenseWindow : Window
     {
+        private const string DefaultBuyUrl = "https://bodyexporter.com/buy";
+
         private ClientRemoteConfig _remote = new ClientRemoteConfig();
         private bool _purchaseSectionExpanded;
-        private bool _vnPaymentExpanded;
-        private bool _intlPaymentExpanded;
-        private string _intlCheckoutUrl = string.Empty;
-        private string _paymentWebUrl = string.Empty;
-
-        private bool _paymentEmailUpdating;
-        private string _sepayBaseUrl = string.Empty;
 
         public LicenseWindow()
         {
@@ -37,92 +30,8 @@ namespace SolidWorksBodyExporter.AddIn.Ui
         private void ApplyLocalizedStaticText()
         {
             PaymentSectionHintText.Text = LicenseUiText.PaymentSectionHint;
-            OpenPaymentWebButton.Content = LicenseUiText.OpenPaymentWeb;
-            ToggleVnPaymentButton.Content = LicenseUiText.ToggleVnPayment;
-            ToggleIntlPaymentButton.Content = LicenseUiText.ToggleIntlPayment;
-            PaymentEmailLabel.Text = LicenseUiText.PaymentEmailLabel;
+            OpenBuyWebButton.Content = LicenseUiText.OpenBuyOnWeb;
             LicenseFooterNoteText.Text = LicenseUiText.FooterNote;
-        }
-
-        private void PrefillPaymentEmail()
-        {
-            var settings = AppSettings.LoadOrCreate();
-            string email = null;
-            if (!string.IsNullOrWhiteSpace(settings.PaymentEmail))
-            {
-                email = settings.PaymentEmail.Trim();
-            }
-            else
-            {
-                email = ResolveLicenseEmail();
-            }
-
-            if (string.IsNullOrEmpty(email))
-            {
-                return;
-            }
-
-            _paymentEmailUpdating = true;
-            try
-            {
-                PaymentEmailBox.Text = email;
-            }
-            finally
-            {
-                _paymentEmailUpdating = false;
-            }
-        }
-
-        private static string ResolveLicenseEmail()
-        {
-            var settings = AppSettings.LoadOrCreate();
-            if (LooksLikeEmail(settings.OnlineOwner))
-            {
-                return settings.OnlineOwner.Trim();
-            }
-
-            var owner = LicenseManager.Current.GetStatus().Owner;
-            if (LooksLikeEmail(owner))
-            {
-                return owner.Trim();
-            }
-
-            return string.Empty;
-        }
-
-        private static bool LooksLikeEmail(string value)
-        {
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                return false;
-            }
-
-            var trimmed = value.Trim();
-            var at = trimmed.IndexOf('@');
-            return at > 0 && at < trimmed.Length - 1 && trimmed.IndexOf('@', at + 1) < 0;
-        }
-
-        private void PersistPaymentEmail()
-        {
-            var email = PaymentEmailBox.Text?.Trim() ?? string.Empty;
-            var settings = AppSettings.LoadOrCreate();
-            settings.PaymentEmail = email;
-            settings.Save();
-        }
-
-        private void PaymentEmailBox_LostFocus(object sender, RoutedEventArgs e)
-        {
-            PersistPaymentEmail();
-        }
-
-        private void PaymentEmailBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
-        {
-            if (_paymentEmailUpdating || !_vnPaymentExpanded)
-            {
-                return;
-            }
-
-            LoadSepayQrPanel();
         }
 
         public bool LicenseChanged { get; private set; }
@@ -133,7 +42,6 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             try
             {
                 ApplyLocalizedStaticText();
-                PrefillPaymentEmail();
                 RefreshAppliedKeysList();
                 RefreshStatus();
             }
@@ -181,47 +89,18 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             var hasUrl = !string.IsNullOrWhiteSpace(cfg.SupportUrl);
             OpenSupportUrlButton.Visibility = hasUrl ? Visibility.Visible : Visibility.Collapsed;
 
-            PurchaseVnBodyText.Text = TextEncodingHelper.NormalizeRemote(cfg.PaymentVnBody ?? string.Empty);
+            var buyUrl = ResolveBuyWebUrl(cfg);
+            OpenBuyWebButton.ToolTip = buyUrl;
+        }
 
-            _paymentWebUrl = ResolvePaymentWebUrl(cfg);
-            var hasWeb = !string.IsNullOrWhiteSpace(_paymentWebUrl);
-            OpenPaymentWebButton.Visibility = hasWeb ? Visibility.Visible : Visibility.Collapsed;
-            if (!string.IsNullOrWhiteSpace(cfg.PaymentWebTitle))
+        private static string ResolveBuyWebUrl(ClientRemoteConfig cfg)
+        {
+            if (cfg != null && !string.IsNullOrWhiteSpace(cfg.PaymentWebUrl))
             {
-                OpenPaymentWebButton.Content = TextEncodingHelper.NormalizeRemote(cfg.PaymentWebTitle);
-            }
-            else
-            {
-                OpenPaymentWebButton.Content = LicenseUiText.OpenPaymentWeb;
+                return cfg.PaymentWebUrl.Trim();
             }
 
-            var webBody = TextEncodingHelper.NormalizeRemote(cfg.PaymentWebBody ?? string.Empty);
-            PaymentWebBodyText.Text = webBody;
-            PaymentWebBodyText.Visibility = hasWeb && webBody.Length > 0
-                ? Visibility.Visible
-                : Visibility.Collapsed;
-
-            PurchaseIntlBodyText.Text = TextEncodingHelper.NormalizeRemote(cfg.PaymentIntlBody ?? string.Empty);
-            _intlCheckoutUrl = !string.IsNullOrWhiteSpace(cfg.PaymentIntlLemonsqueezyUrl)
-                ? cfg.PaymentIntlLemonsqueezyUrl.Trim()
-                : (cfg.PaymentIntlTripleUrl ?? string.Empty).Trim();
-            var hasIntl = !hasWeb && !string.IsNullOrWhiteSpace(_intlCheckoutUrl);
-            ToggleIntlPaymentButton.Visibility = hasIntl ? Visibility.Visible : Visibility.Collapsed;
-            if (!hasIntl)
-            {
-                _intlPaymentExpanded = false;
-                PurchaseIntlDetails.Visibility = Visibility.Collapsed;
-            }
-
-            PurchaseIntlCheckoutButton.Visibility = hasIntl ? Visibility.Visible : Visibility.Collapsed;
-            PurchaseIntlCheckoutButton.Content = !string.IsNullOrWhiteSpace(cfg.PaymentIntlLemonsqueezyUrl)
-                ? "Open Lemon Squeezy checkout"
-                : "Open payment page";
-
-            if (_vnPaymentExpanded)
-            {
-                LoadSepayQrPanel();
-            }
+            return DefaultBuyUrl;
         }
 
         private void OpenSupportUrl_Click(object sender, RoutedEventArgs e)
@@ -229,135 +108,55 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             TryOpenUrl(_remote?.SupportUrl);
         }
 
-        private string GetSepayQrUrlForCurrentEmail()
+        private void OpenBuyWeb_Click(object sender, RoutedEventArgs e)
         {
-            var baseUrl = !string.IsNullOrWhiteSpace(_sepayBaseUrl)
-                ? _sepayBaseUrl
-                : _remote?.PaymentVnSepayUrl;
-            return SepayQrHelper.BuildQrImageUrl(baseUrl, PaymentEmailBox.Text);
+            var url = ResolveBuyWebUrl(_remote)?.Trim() ?? DefaultBuyUrl;
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                url = DefaultBuyUrl;
+            }
+
+            var email = ResolveLicenseEmail();
+            if (!string.IsNullOrWhiteSpace(email) && url.IndexOf('?') < 0)
+            {
+                url = url + "?email=" + Uri.EscapeDataString(email.Trim());
+            }
+
+            TryOpenUrl(url);
         }
 
-        private static string ResolvePaymentWebUrl(ClientRemoteConfig cfg)
+        private static string ResolveLicenseEmail()
         {
-            if (cfg == null)
+            var settings = AppSettings.LoadOrCreate();
+            if (!string.IsNullOrWhiteSpace(settings.PaymentEmail) && LooksLikeEmail(settings.PaymentEmail))
             {
-                return string.Empty;
+                return settings.PaymentEmail.Trim();
             }
 
-            if (!string.IsNullOrWhiteSpace(cfg.PaymentWebUrl))
+            if (LooksLikeEmail(settings.OnlineOwner))
             {
-                return cfg.PaymentWebUrl.Trim();
+                return settings.OnlineOwner.Trim();
             }
 
-            if (!string.IsNullOrWhiteSpace(cfg.PaymentIntlTripleUrl))
+            var owner = LicenseManager.Current.GetStatus().Owner;
+            if (LooksLikeEmail(owner))
             {
-                return cfg.PaymentIntlTripleUrl.Trim();
-            }
-
-            if (!string.IsNullOrWhiteSpace(cfg.SupportUrl))
-            {
-                return cfg.SupportUrl.Trim();
+                return owner.Trim();
             }
 
             return string.Empty;
         }
 
-        private void OpenPaymentWeb_Click(object sender, RoutedEventArgs e)
+        private static bool LooksLikeEmail(string value)
         {
-            if (string.IsNullOrWhiteSpace(_paymentWebUrl))
+            if (string.IsNullOrWhiteSpace(value))
             {
-                ShowResult(
-                    "Chưa có link trang thanh toán. Cấu hình paymentWebUrl trong client-config.",
-                    isError: true);
-                return;
+                return false;
             }
 
-            TryOpenUrl(_paymentWebUrl);
-        }
-
-        private void IntlCheckoutButton_Click(object sender, RoutedEventArgs e)
-        {
-            TryOpenUrl(_intlCheckoutUrl);
-        }
-
-        private void ToggleVnPaymentPanel()
-        {
-            if (string.IsNullOrWhiteSpace(_remote?.PaymentVnSepayUrl))
-            {
-                PurchaseVnDetails.Visibility = Visibility.Visible;
-                ShowResult(
-                    "Chưa có link Sepay trên server. Cấu hình paymentVnSepayUrl trong client-config.",
-                    isError: true);
-                return;
-            }
-
-            _vnPaymentExpanded = !_vnPaymentExpanded;
-            PurchaseVnDetails.Visibility = _vnPaymentExpanded ? Visibility.Visible : Visibility.Collapsed;
-            if (_vnPaymentExpanded)
-            {
-                if (string.IsNullOrWhiteSpace(PaymentEmailBox.Text))
-                {
-                    PrefillPaymentEmail();
-                }
-
-                LoadSepayQrPanel();
-            }
-        }
-
-        private void ToggleIntlPaymentPanel()
-        {
-            if (string.IsNullOrWhiteSpace(_intlCheckoutUrl))
-            {
-                PurchaseIntlDetails.Visibility = Visibility.Visible;
-                ShowResult(
-                    "Chưa có link Lemon/Triple trên server. Cấu hình paymentIntlLemonsqueezyUrl trong client-config.",
-                    isError: true);
-                return;
-            }
-
-            _intlPaymentExpanded = !_intlPaymentExpanded;
-            PurchaseIntlDetails.Visibility = _intlPaymentExpanded ? Visibility.Visible : Visibility.Collapsed;
-        }
-
-        private void LoadSepayQrPanel()
-        {
-            SepayQrPanel.Visibility = Visibility.Collapsed;
-            SepayQrImage.Source = null;
-            PurchaseVnTransferDetails.Visibility = Visibility.Collapsed;
-            PurchaseVnTransferDetails.Text = string.Empty;
-
-            _sepayBaseUrl = _remote?.PaymentVnSepayUrl?.Trim() ?? string.Empty;
-            if (string.IsNullOrEmpty(_sepayBaseUrl))
-            {
-                return;
-            }
-
-            var email = PaymentEmailBox.Text?.Trim() ?? string.Empty;
-            if (SepayQrHelper.TryParse(_sepayBaseUrl, out var info))
-            {
-                PurchaseVnTransferDetails.Text = SepayQrHelper.FormatTransferDetails(info, email);
-                PurchaseVnTransferDetails.Visibility = Visibility.Visible;
-            }
-
-            var url = GetSepayQrUrlForCurrentEmail();
-            if (url.IndexOf("qr.sepay.vn", StringComparison.OrdinalIgnoreCase) >= 0)
-            {
-                try
-                {
-                    var bitmap = new BitmapImage();
-                    bitmap.BeginInit();
-                    bitmap.UriSource = new Uri(url, UriKind.Absolute);
-                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                    bitmap.EndInit();
-                    SepayQrImage.Source = bitmap;
-                    SepayQrPanel.Visibility = Visibility.Visible;
-                }
-                catch (Exception ex)
-                {
-                    DiagnosticLog.Warn("LicenseWindow: Sepay QR load - " + ex.Message);
-                    ShowResult(LicenseUiText.QrLoadFailed, isError: true);
-                }
-            }
+            var trimmed = value.Trim();
+            var at = trimmed.IndexOf('@');
+            return at > 0 && at < trimmed.Length - 1 && trimmed.IndexOf('@', at + 1) < 0;
         }
 
         private static void TryOpenUrl(string url)
@@ -394,23 +193,6 @@ namespace SolidWorksBodyExporter.AddIn.Ui
         {
             _purchaseSectionExpanded = !_purchaseSectionExpanded;
             PurchaseSection.Visibility = _purchaseSectionExpanded ? Visibility.Visible : Visibility.Collapsed;
-            if (!_purchaseSectionExpanded)
-            {
-                _vnPaymentExpanded = false;
-                _intlPaymentExpanded = false;
-                PurchaseVnDetails.Visibility = Visibility.Collapsed;
-                PurchaseIntlDetails.Visibility = Visibility.Collapsed;
-            }
-        }
-
-        private void ToggleVnPayment_Click(object sender, RoutedEventArgs e)
-        {
-            ToggleVnPaymentPanel();
-        }
-
-        private void ToggleIntlPayment_Click(object sender, RoutedEventArgs e)
-        {
-            ToggleIntlPaymentPanel();
         }
 
         private void ApplyLicense_Click(object sender, RoutedEventArgs e)
@@ -596,10 +378,6 @@ namespace SolidWorksBodyExporter.AddIn.Ui
                 : LicenseUiText.EmptyField;
 
             ApplyBadge(status);
-            if (string.IsNullOrWhiteSpace(PaymentEmailBox.Text))
-            {
-                PrefillPaymentEmail();
-            }
         }
 
         private void ApplyBadge(LicenseStatus status)

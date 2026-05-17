@@ -287,115 +287,18 @@
                                         ToolTip="Re-sum expiry from keys in the list (use if you have multiple keys but days look wrong)." />
                             </StackPanel>
 
-                            <TextBlock Text="Payment" Style="{StaticResource SectionTitle}" Margin="0,16,0,0" />
+                            <TextBlock Text="Thanh toán" Style="{StaticResource SectionTitle}" Margin="0,16,0,0" />
                             <TextBlock x:Name="PaymentSectionHintText"
                                        Foreground="#FF64748B"
                                        FontSize="11"
                                        TextWrapping="Wrap"
-                                       Margin="0,0,0,8" />
-
-                            <TextBlock x:Name="PaymentWebBodyText"
-                                       TextWrapping="Wrap"
-                                       Foreground="#FF475569"
-                                       FontSize="12"
-                                       Margin="0,0,0,8"
-                                       Visibility="Collapsed" />
-                            <Button x:Name="OpenPaymentWebButton"
-                                    Content="Mở trang thanh toán"
+                                       Margin="0,0,0,10" />
+                            <Button x:Name="OpenBuyWebButton"
+                                    Content="Mua license trên web"
                                     Style="{StaticResource PrimaryButton}"
                                     HorizontalAlignment="Stretch"
-                                    Margin="0,0,0,10"
-                                    Visibility="Collapsed"
-                                    Click="OpenPaymentWeb_Click" />
-
-                            <Button x:Name="ToggleVnPaymentButton"
-                                    Style="{StaticResource PrimaryButton}"
-                                    HorizontalAlignment="Stretch"
-                                    Margin="0,0,0,6"
-                                    Click="ToggleVnPayment_Click" />
-                            <Border x:Name="PurchaseVnDetails"
-                                    Visibility="Collapsed"
-                                    Background="#FFF8FAFC"
-                                    BorderBrush="#FFE2E8F0"
-                                    BorderThickness="1"
-                                    CornerRadius="6"
-                                    Padding="12,10"
-                                    Margin="0,0,0,10">
-                                <StackPanel>
-                                    <TextBlock x:Name="PurchaseVnBodyText"
-                                               TextWrapping="Wrap"
-                                               Foreground="#FF475569"
-                                               FontSize="12"
-                                               Margin="0,0,0,8" />
-                                    <TextBlock x:Name="PaymentEmailLabel"
-                                               Foreground="#FF64748B"
-                                               FontSize="11"
-                                               Margin="0,0,0,4" />
-                                    <TextBox x:Name="PaymentEmailBox"
-                                             MinHeight="28"
-                                             Padding="8,4"
-                                             FontSize="12"
-                                             BorderBrush="#FFD1D9E6"
-                                             BorderThickness="1"
-                                             ToolTip="Email nhan license. Ghi dung noi dung CK khi chuyen khoan."
-                                             LostFocus="PaymentEmailBox_LostFocus"
-                                             TextChanged="PaymentEmailBox_TextChanged" />
-                                    <Border x:Name="SepayQrPanel"
-                                            Visibility="Collapsed"
-                                            Background="White"
-                                            BorderBrush="#FFE2E8F0"
-                                            BorderThickness="1"
-                                            CornerRadius="6"
-                                            Padding="10"
-                                            HorizontalAlignment="Center"
-                                            Margin="0,0,0,10">
-                                        <Image x:Name="SepayQrImage"
-                                               Width="220"
-                                               Height="220"
-                                               Stretch="Uniform"
-                                               SnapsToDevicePixels="True"
-                                               RenderOptions.BitmapScalingMode="NearestNeighbor" />
-                                    </Border>
-                                    <TextBlock x:Name="PurchaseVnTransferDetails"
-                                               Visibility="Collapsed"
-                                               TextWrapping="Wrap"
-                                               Foreground="#FF334155"
-                                               FontSize="12"
-                                               FontFamily="Segoe UI"
-                                               Margin="0,0,0,0" />
-                                </StackPanel>
-                            </Border>
-
-                            <Button x:Name="ToggleIntlPaymentButton"
-                                    Content="International payment (Lemon)"
-                                    Style="{StaticResource PrimaryButton}"
-                                    HorizontalAlignment="Stretch"
-                                    Margin="0,0,0,6"
-                                    Click="ToggleIntlPayment_Click" />
-                            <Border x:Name="PurchaseIntlDetails"
-                                    Visibility="Collapsed"
-                                    Background="#FFF8FAFC"
-                                    BorderBrush="#FFE2E8F0"
-                                    BorderThickness="1"
-                                    CornerRadius="6"
-                                    Padding="12,10"
-                                    Margin="0,0,0,0">
-                                <StackPanel>
-                                    <TextBlock x:Name="PurchaseIntlBodyText"
-                                               TextWrapping="Wrap"
-                                               Foreground="#FF475569"
-                                               FontSize="12"
-                                               Margin="0,0,0,8" />
-                                    <Button x:Name="PurchaseIntlCheckoutButton"
-                                            Content="Open Lemon Squeezy checkout"
-                                            Style="{StaticResource SecondaryButton}"
-                                            MinWidth="260"
-                                            Padding="18,0"
-                                            HorizontalAlignment="Left"
-                                            Visibility="Collapsed"
-                                            Click="IntlCheckoutButton_Click" />
-                                </StackPanel>
-                            </Border>
+                                    Margin="0,0,0,0"
+                                    Click="OpenBuyWeb_Click" />
                         </StackPanel>
                     </Border>
 

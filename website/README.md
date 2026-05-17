@@ -157,7 +157,7 @@ DATABASE_URL=postgresql://user:pass@ep-xxx.region.aws.neon.tech/neondb?sslmode=r
 
 - App tự thêm driver `psycopg2`; nếu host đưa `postgres://` cũng được.
 - **Không set** `DATABASE_URL` → dev local vẫn dùng **SQLite** `data/site.db`.
-- Lần chạy đầu: `init_db()` gọi `create_all` + seed `site_content` + admin (nếu bảng trống).
+- Lần chạy đầu: `init_db()` gọi `create_all` + seed `be_site_content` + admin (nếu bảng trống). Bản cũ tự đổi tên `site_content` → `be_site_content`, v.v.
 
 **Lưu ý:** Đừng commit file `.env` có thật `DATABASE_URL` lên GitHub — chỉ lưu trong secrets của Railway/Fly/GitHub Actions.
 

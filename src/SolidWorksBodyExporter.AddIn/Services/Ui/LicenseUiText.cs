@@ -5,13 +5,10 @@ namespace SolidWorksBodyExporter.AddIn.Services.Ui
     {
         public const string EmptyField = "-";
         public const string PaymentSectionHint =
-            "M\u1edf trang thanh to\u00e1n tr\u00ean web v\u00e0 ch\u1ecdn ph\u01b0\u01a1ng th\u1ee9c (QR, th\u1ebb, ...). License g\u1eedi email sau khi thanh to\u00e1n th\u00e0nh c\u00f4ng.";
-        public const string OpenPaymentWeb = "M\u1edf trang thanh to\u00e1n";
-        public const string ToggleVnPayment = "QR chuy\u1ec3n kho\u1ea3n (trong app)";
-        public const string ToggleIntlPayment = "International payment";
-        public const string PaymentEmailLabel = "Email nh\u1eadn license (ghi \u0111\u00fang v\u00e0o n\u1ed9i dung CK)";
+            "Thanh toán thực hiện trên website (QR, thẻ SePay). Sau khi thanh toán, license được gửi qua email.";
+        public const string OpenBuyOnWeb = "Mua license trên web (bodyexporter.com)";
         public const string FooterNote =
-            "Th\u00f4ng tin CK t\u1ea3i t\u1eeb server. Chuy\u1ec3n \u0111\u00fang s\u1ed1 ti\u1ec1n v\u00e0 n\u1ed9i dung CK \u0111\u1ec3 nh\u1eadn license qua email.";
+            "Mua license tr\u00ean bodyexporter.com/buy. Nh\u1eadn key qua email sau khi thanh to\u00e1n.";
         public const string BankLabel = "Ng\u00e2n h\u00e0ng: ";
         public const string AccountLabel = "S\u1ed1 t\u00e0i kho\u1ea3n: ";
         public const string AmountLabel = "S\u1ed1 ti\u1ec1n: ";

@@ -51,5 +51,13 @@ SEPAY_PG_MERCHANT_ID = os.getenv("SEPAY_PG_MERCHANT_ID", "").strip()
 SEPAY_PG_SECRET_KEY = os.getenv("SEPAY_PG_SECRET_KEY", "").strip()
 SEPAY_PG_ENV = os.getenv("SEPAY_PG_ENV", "sandbox").strip().lower()
 
+# Cloudflare Worker — mint licenses for online validation (POST /admin/license/issue)
+WORKER_API_BASE_URL = os.getenv("WORKER_API_BASE_URL", "").strip().rstrip("/")
+WORKER_ADMIN_TOKEN = os.getenv("WORKER_ADMIN_TOKEN", "").strip()
+SEPAY_LICENSE_DAYS = int(os.getenv("SEPAY_LICENSE_DAYS", "365"))
+
+SEPAY_WEBHOOK_SECRET = os.getenv("SEPAY_WEBHOOK_SECRET", "").strip()
+SEPAY_WEBHOOK_API_KEY = os.getenv("SEPAY_WEBHOOK_API_KEY", "").strip()
+
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "").strip()
 RESEND_FROM = os.getenv("RESEND_FROM", "Body Exporter <noreply@bodyexporter.com>").strip()

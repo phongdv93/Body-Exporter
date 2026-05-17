@@ -14,8 +14,9 @@ from app.sepay import (
     build_transfer_memo,
     new_invoice_number,
     parse_qr_base,
-    pg_checkout_available,
-    pg_checkout_init_url,
+    pg_checkout_available_for_content,
+    pg_checkout_init_url_for_env,
+    pg_credentials_for_content,
 )
 
 router = APIRouter()
@@ -106,7 +107,7 @@ def buy_post(
     db: Session = Depends(get_db),
 ):
     email = email.strip()
-    if pay_method == "card" and pg_checkout_available():
+    if pay_method == "card" and pg_checkout_available_for_content(get_content(db)):
         return _redirect_pg_checkout(email, db)
     return _render_buy(request, db, email=email)
 
@@ -119,7 +120,10 @@ def _redirect_pg_checkout(email: str, db: Session):
     amount = content.license_price_vnd or config.LICENSE_PRICE_VND
     invoice = new_invoice_number()
     email_q = quote(email, safe="")
+    mid, sk, envn = pg_credentials_for_content(content)
     fields = build_pg_checkout_fields(
+        merchant_id=mid,
+        secret_key=sk,
         email=email,
         amount_vnd=amount,
         invoice=invoice,
@@ -134,13 +138,13 @@ def _redirect_pg_checkout(email: str, db: Session):
         f'<input type="hidden" name="{html.escape(k)}" value="{html.escape(v)}">'
         for k, v in fields.items()
     )
-    action = pg_checkout_init_url()
-    html = f"""<!DOCTYPE html><html><head><meta charset="utf-8"><title>Redirect…</title>
+    action = pg_checkout_init_url_for_env(envn)
+    page = f"""<!DOCTYPE html><html><head><meta charset="utf-8"><title>Redirect…</title>
     <link rel="stylesheet" href="/static/css/site.css"></head>
     <body class="redirect-page"><p>Đang chuyển sang SePay…</p>
     <form id="f" method="POST" action="{action}">{inputs}</form>
     <script>document.getElementById('f').submit();</script></body></html>"""
-    return HTMLResponse(html)
+    return HTMLResponse(page)
 
 
 def _render_buy(request: Request, db: Session, email: str = ""):
@@ -163,7 +167,7 @@ def _render_buy(request: Request, db: Session, email: str = ""):
             memo=memo,
             bank=bank,
             amount_vnd=amount,
-            pg_available=pg_checkout_available(),
+            pg_available=pg_checkout_available_for_content(content),
         ),
     )
 

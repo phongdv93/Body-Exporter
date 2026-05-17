@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>License — Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/site.css">
+</head>
+<body>
+  <div class="admin-wrap">
+    <nav class="admin-nav">
+      <a href="/admin">Dashboard</a>
+      <a href="/admin/content">Chỉnh nội dung &amp; thanh toán</a>
+      <a href="/admin/licenses">Danh sách license</a>
+      <a href="/buy" target="_blank" rel="noopener">Trang bán (/buy) ↗</a>
+      <a href="/admin/logout">Đăng xuất</a>
+      <a href="/">Xem site</a>
+    </nav>
+    <h1>Danh sách license (Postgres)</h1>
+    {% if saved %}<p class="flash-ok">Đã lưu / đã tạo.</p>{% endif %}
+    {% if error %}<p class="flash-err">Lỗi: {{ error }}</p>{% endif %}
+
+    <section class="card" style="margin-bottom:1.5rem">
+      <h2>Tạo license thủ công</h2>
+      <p class="muted" style="margin-top:0">Gọi Worker để mint key (online validation). Cần <code>WORKER_API_BASE_URL</code> + <code>WORKER_ADMIN_TOKEN</code> trên server. Email gửi qua Resend nếu có API key.</p>
+      <form method="post" action="/admin/licenses" class="admin-form">
+        <label>Email khách</label>
+        <input type="email" name="buyer_email" required placeholder="a@b.com">
+        <label>Plan</label>
+        <input type="text" name="plan" value="personal">
+        <label>Số ngày</label>
+        <input type="number" name="days" value="{{ content.license_term_days or 365 }}" min="1">
+        <label>Ghi chú</label>
+        <input type="text" name="notes" placeholder="Hỗ trợ / CK tay…">
+        <p><button type="submit" class="btn btn-primary">Tạo + gửi mail</button></p>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Đã cấp ({{ licenses|length }})</h2>
+      {% for lic in licenses %}
+      <div class="card" style="margin:12px 0;padding:16px;background:#1a1d23;border:1px solid #2d3340">
+        <p style="margin:0 0 8px"><strong>Key</strong> <code style="font-size:12px;word-break:break-all">{{ lic.license_key }}</code></p>
+        <p class="muted" style="font-size:12px;margin:0 0 12px">
+          Mua (UTC): {% if lic.purchased_at %}{{ lic.purchased_at.strftime('%Y-%m-%d %H:%M') }}{% else %}—{% endif %}
+          · Hết hạn: {% if lic.expires_at %}{{ lic.expires_at.strftime('%Y-%m-%d %H:%M') }}{% else %}—{% endif %}
+          · SePay tx: {{ lic.sepay_transaction_id or '—' }}
+        </p>
+        <form method="post" action="/admin/licenses/edit" class="admin-form">
+          <input type="hidden" name="license_id" value="{{ lic.id }}">
+          <label>Email</label>
+          <input type="email" name="buyer_email" value="{{ lic.buyer_email }}">
+          <label>Fingerprint máy (khách gửi)</label>
+          <input type="text" name="machine_fingerprint" value="{{ lic.machine_fingerprint or '' }}">
+          <label>Ghi chú</label>
+          <input type="text" name="notes" value="{{ lic.notes or '' }}">
+          <label>Trạng thái</label>
+          <select name="revoked">
+            <option value="0" {% if not lic.revoked %}selected{% endif %}>Hoạt động</option>
+            <option value="1" {% if lic.revoked %}selected{% endif %}>Revoked (ghi DB)*</option>
+          </select>
+          <p style="margin-top:12px"><button type="submit" class="btn btn-secondary">Lưu</button></p>
+        </form>
+      </div>
+      {% else %}
+      <p class="muted">Chưa có license.</p>
+      {% endfor %}
+      <p class="muted" style="font-size:12px;margin-top:16px">* Revoked trên DB chưa tự xóa key khỏi Worker KV.</p>
+    </section>
+  </div>
+</body>
+</html>
