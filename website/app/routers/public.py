@@ -25,14 +25,26 @@ templates = Jinja2Templates(directory=str(config.TEMPLATES_DIR))
 
 
 def _dedupe_title(title: str) -> str:
-    """e.g. 'SolidWorks Body Exporter — SolidWorks Body Exporter' → single segment."""
+    """Collapse duplicated or redundant suffixes in titles (browser tab + og:title)."""
     t = (title or "").strip()
-    if " — " not in t:
+    if not t or " — " not in t:
         return t
     left, _, right = t.partition(" — ")
-    if left.strip().lower() == right.strip().lower():
-        return left.strip()
+    l, r = left.strip(), right.strip()
+    if l.lower() == r.lower():
+        return l
+    if r.lower() == "body exporter" and "body exporter" in l.lower():
+        return l
+    if r.lower() == "solidworks body exporter" and "solidworks" in l.lower():
+        return l
     return t
+
+
+def _og_image_url() -> str:
+    if config.SEO_OG_IMAGE:
+        return config.SEO_OG_IMAGE
+    base = config.SITE_URL.rstrip("/")
+    return f"{base}/static/og.png?v=3"
 
 
 def _ctx(request: Request, db: Session, page_title: str | None = None, **extra):
@@ -76,7 +88,7 @@ def _ctx(request: Request, db: Session, page_title: str | None = None, **extra):
         "meta_description": meta_desc,
         "meta_keywords": config.SEO_KEYWORDS,
         "canonical_url": canonical,
-        "seo_og_image": (config.SEO_OG_IMAGE or f"{config.SITE_URL.rstrip('/')}/static/og-card.png"),
+        "seo_og_image": _og_image_url(),
         "schema_website_json": schema_web,
         "schema_app_json": schema_app,
         **extra,

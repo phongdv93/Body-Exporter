@@ -13,14 +13,18 @@
   <meta name="robots" content="index, follow">
   <meta property="og:type" content="website">
   <meta property="og:url" content="{{ canonical_url | default(site_url) }}">
+  <meta property="og:site_name" content="Body Exporter">
   <meta property="og:title" content="{{ page_title | default('Body Exporter') | e }}">
   <meta property="og:description" content="{{ meta_description | default('') | e }}">
   <meta property="og:locale" content="vi_VN">
-  <meta property="og:image" content="{{ seo_og_image | default(site_url ~ '/static/og-card.png') | e }}">
-  <meta property="og:image:width" content="1200">
-  <meta property="og:image:height" content="630">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:image" content="{{ seo_og_image | default(site_url ~ '/static/og-card.png') | e }}">
+  <meta property="og:image" content="{{ seo_og_image | e }}">
+  <meta property="og:image:secure_url" content="{{ seo_og_image | e }}">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="512">
+  <meta property="og:image:height" content="512">
+  <meta property="og:image:alt" content="Body Exporter">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="{{ seo_og_image | e }}">
   <meta name="twitter:title" content="{{ page_title | default('Body Exporter') | e }}">
   <meta name="twitter:description" content="{{ meta_description | default('') | e }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
