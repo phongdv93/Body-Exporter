@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="/static/css/site.css">
 </head>
 <body>
-  <div class="admin-wrap">
+  <div class="admin-wrap admin-wide">
     <nav class="admin-nav">
       <a href="/admin">Dashboard</a>
       <a href="/admin/content">Chỉnh nội dung &amp; thanh toán</a>
@@ -36,6 +36,53 @@
         <a class="btn btn-primary" href="/admin/licenses">Quản lý license (email, key, ngày, fingerprint…)</a>
       </p>
       <p class="muted" style="font-size:13px;margin-bottom:0">Trang <code>/buy</code> là nơi có QR SePay + form email. Danh sách key đã cấp nằm ở <strong>Danh sách license</strong>.</p>
+    </section>
+
+    <section class="card admin-machines-section" style="margin-bottom:1.25rem">
+      <h2 style="margin-top:0;font-size:1rem">Máy đã cài plugin ({{ machine_count }})</h2>
+      <p class="muted fine-print" style="margin-top:0">
+        Nguồn: heartbeat plugin (sau khi khách đồng ý policy trên <a href="/download">/download</a>).
+        Đang dùng = ping trong {{ telemetry_active_days }} ngày;
+        có thể đã gỡ = không ping &gt; {{ telemetry_inactive_days }} ngày.
+      </p>
+      {% if machines %}
+      <div class="machines-table-wrap">
+        <table class="machines-table">
+          <thead>
+            <tr>
+              <th>Tên máy</th>
+              <th>Fingerprint</th>
+              <th>Cài / dùng gần nhất</th>
+              <th>IP</th>
+              <th>Vị trí</th>
+              <th>Trạng thái</th>
+              <th>License</th>
+              <th>Đã mua</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in machines %}
+            {% set m = row.machine %}
+            <tr>
+              <td>{{ m.hostname or '—' }}</td>
+              <td><code class="fp-cell" title="{{ m.machine_id }}">{{ m.machine_id[:14] }}…</code></td>
+              <td class="muted">
+                {{ m.first_seen_at.strftime('%d/%m/%Y %H:%M') if m.first_seen_at else '—' }}
+                <br>→ {{ m.last_seen_at.strftime('%d/%m/%Y %H:%M') if m.last_seen_at else '—' }}
+              </td>
+              <td>{{ m.last_ip or '—' }}</td>
+              <td>{{ row.location }}</td>
+              <td><span class="usage-badge usage-{{ row.usage }}">{{ row.usage_label }}</span></td>
+              <td>{{ row.license_label }}</td>
+              <td>{% if m.has_purchased_license %}<span class="ok">Có</span>{% else %}<span class="muted">Chưa</span>{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="muted">Chưa có máy nào gửi heartbeat. Khách cần tải từ /download (đồng ý policy), cài plugin và mở SolidWorks.</p>
+      {% endif %}
     </section>
 
     <section class="card">

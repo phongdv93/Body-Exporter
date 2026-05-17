@@ -100,6 +100,11 @@ if (Test-Path $installCmd) {
     Copy-Item -Path $installCmd -Destination (Join-Path $stage "Install-BodyExporter.cmd") -Force
 }
 
+$consentBundle = Join-Path $PSScriptRoot "telemetry-consent.bundle.json"
+if (Test-Path $consentBundle) {
+    Copy-Item -Path $consentBundle -Destination (Join-Path $stage "telemetry-consent.bundle.json") -Force
+}
+
 $customReadme = Join-Path $repoRoot "dist\BodyExporter-v0.7.5-client\HUONG-DAN-CAI-DAT.txt"
 $readmeDest = Join-Path $stage "HUONG-DAN-CAI-DAT.txt"
 if (Test-Path -LiteralPath $customReadme) {

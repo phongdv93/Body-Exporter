@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using Microsoft.Win32;
@@ -136,6 +137,9 @@ namespace SolidWorksBodyExporter.AddIn
             // command back to the UI thread that owns BodyExportWindow.
             EnsureWpfApplication();
             StartIpcServer();
+
+            var installRoot = Path.GetDirectoryName(asmPath);
+            TelemetryReporter.TrySendConnectPing(_solidWorks, installRoot);
 
             return true;
         }

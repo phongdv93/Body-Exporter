@@ -119,6 +119,22 @@ if (-not (Test-Path $settingsPath)) {
     Set-Content -Path $settingsPath -Value $settings -Encoding UTF8
 }
 
+# 3b. Ghi nhan dong y telemetry (khach da chap nhan tren bodyexporter.com/download).
+Write-Host "[3b/5] Ghi telemetry-consent.json..." -ForegroundColor Yellow
+$consentBundle = Join-Path $source 'telemetry-consent.bundle.json'
+$consentPath = Join-Path $settingsDir 'telemetry-consent.json'
+if (Test-Path $consentBundle) {
+    Copy-Item -Path $consentBundle -Destination $consentPath -Force
+} else {
+    $consent = @{
+        accepted    = $true
+        version     = 1
+        source      = 'installer'
+        acceptedUtc = (Get-Date).ToUniversalTime().ToString('o')
+    } | ConvertTo-Json
+    Set-Content -Path $consentPath -Value $consent -Encoding UTF8
+}
+
 # 4. Tao desktop shortcut.
 Write-Host "[4/5] Tao desktop shortcut..." -ForegroundColor Yellow
 $desktop = [Environment]::GetFolderPath('Desktop')

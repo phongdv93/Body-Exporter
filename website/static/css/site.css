@@ -354,6 +354,62 @@ body {
   min-height: 100vh;
   color: var(--muted);
 }
-.install-notes{
+.install-notes {
   margin-top: 10px;
 }
+
+.policy-card h2 { margin-top: 0; font-size: 1.1rem; }
+.policy-text ul { margin: 0.5rem 0 1rem; padding-left: 1.25rem; color: var(--muted); }
+.policy-text li { margin-bottom: 0.35rem; }
+.consent-form { margin-top: 1.25rem; }
+.consent-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+.consent-check input { margin-top: 0.25rem; flex-shrink: 0; }
+.flash-err {
+  color: #ffb4b4;
+  background: rgba(255, 80, 80, 0.12);
+  border: 1px solid rgba(255, 120, 120, 0.35);
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.machines-table-wrap { overflow-x: auto; margin-top: 0.75rem; }
+.machines-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+.machines-table th,
+.machines-table td {
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+.machines-table th {
+  color: var(--muted);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.machines-table .fp-cell { font-size: 0.72rem; }
+.usage-badge {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.usage-active { background: rgba(61, 214, 198, 0.15); color: var(--accent); }
+.usage-inactive { background: rgba(244, 162, 97, 0.15); color: var(--warn); }
+.usage-likely_removed { background: rgba(139, 155, 180, 0.2); color: var(--muted); }
+.env-strip .ok { color: var(--accent); }
+.env-strip .bad { color: #f3a8a8; }

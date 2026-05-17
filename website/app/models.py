@@ -53,6 +53,28 @@ class License(Base):
     notes: Mapped[str] = mapped_column(Text, default="")
 
 
+class ClientMachine(Base):
+    """Plugin install / heartbeat — one row per machine fingerprint."""
+
+    __tablename__ = "be_client_machines"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    machine_id: Mapped[str] = mapped_column(String(128), unique=True, index=True)
+    hostname: Mapped[str] = mapped_column(String(128), default="")
+    plugin_version: Mapped[str] = mapped_column(String(40), default="")
+    sw_version: Mapped[str] = mapped_column(String(40), default="")
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    last_ip: Mapped[str | None] = mapped_column(String(45), nullable=True)
+    country_code: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    country_name: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    region: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    city: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    license_status: Mapped[str] = mapped_column(String(32), default="unknown")
+    has_purchased_license: Mapped[bool] = mapped_column(Boolean, default=False)
+    last_event: Mapped[str] = mapped_column(String(32), default="ping")
+
+
 class AdminUser(Base):
     __tablename__ = "be_admin_users"
 

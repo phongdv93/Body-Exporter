@@ -5,12 +5,44 @@
   <h1>Tải plugin</h1>
   <p class="muted">Phiên bản <strong>{{ content.download_version }}</strong></p>
 </section>
-<section class="card">
-  {% if content.download_url %}
-  <a class="btn btn-primary btn-lg" href="{{ content.download_url }}" download>Tải bản {{ content.download_version }}</a>
-  {% else %}
-  <p class="warn">Chưa cấu hình link tải — vào <a href="/admin/content">Admin</a> dán URL file ZIP.</p>
+
+<section class="card policy-card">
+  <h2>Chính sách thu thập dữ liệu</h2>
+  <div class="prose policy-text">
+    <p>Body Exporter thu thập một số thông tin kỹ thuật để <strong>cải thiện phần mềm</strong>, hỗ trợ kích hoạt license và theo dõi lỗi. Dữ liệu không dùng để quảng cáo.</p>
+    <p><strong>Chúng tôi có thể thu thập:</strong></p>
+    <ul>
+      <li>Mã định danh máy (fingerprint) và tên máy tính (hostname)</li>
+      <li>Phiên bản plugin / SolidWorks</li>
+      <li>Thời điểm cài đặt và lần sử dụng gần nhất (heartbeat)</li>
+      <li>Địa chỉ IP và vị trí ước lượng (thành phố / quốc gia) từ IP</li>
+      <li>Trạng thái license (trial, đã mua, hết hạn — không gửi nội dung file CAD)</li>
+    </ul>
+    <p><strong>Chúng tôi không thu thập:</strong> nội dung model SolidWorks, tên part riêng tư, hay file bạn export.</p>
+    <p>Bạn có thể từ chối: không tải plugin trên trang này. Sau khi cài, plugin chỉ gửi dữ liệu nếu bạn đã đồng ý khi tải.</p>
+    <p>Liên hệ: <a href="mailto:{{ support_email }}">{{ support_email }}</a></p>
+  </div>
+  {% if policy_error %}<p class="flash-err">{{ policy_error }}</p>{% endif %}
+  <form method="post" action="/download/accept" class="consent-form">
+    <label class="consent-check">
+      <input type="checkbox" name="agree_policy" value="1" required {% if download_consent %}checked{% endif %}>
+      <span>Tôi đã đọc và <strong>đồng ý</strong> với chính sách thu thập dữ liệu ở trên.</span>
+    </label>
+    {% if content.download_url %}
+    <button type="submit" class="btn btn-primary btn-lg">Tải bản {{ content.download_version }}</button>
+    {% else %}
+    <p class="warn">Chưa cấu hình link tải — vào <a href="/admin/content">Admin</a> dán URL file ZIP.</p>
+    {% endif %}
+  </form>
+  {% if download_consent and content.download_url %}
+  <p class="muted fine-print" style="margin-top:1rem">
+    Đã đồng ý trên trình duyệt này.
+    <a href="/download/go">Tải lại</a> (không cần tick lại trong 2 năm).
+  </p>
   {% endif %}
+</section>
+
+<section class="card">
   <div class="install-notes prose">
     {{ content.download_notes | safe }}
   </div>

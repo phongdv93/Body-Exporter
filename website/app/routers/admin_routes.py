@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app import config
 from app.auth import get_db, login_session, logout_session, require_admin, verify_admin
+from app.client_telemetry import list_machines_for_admin
 from app.database import get_content
 from app.sepay import pg_checkout_available_for_content
 from app.template_response import html_response
@@ -57,15 +58,20 @@ def _env_status(content) -> dict:
 @router.get("")
 def dashboard(request: Request, db: Session = Depends(get_db), _user=Depends(require_admin)):
     content = get_content(db)
+    machines = list_machines_for_admin(db)
     return html_response(
         templates,
         "admin/dashboard.html",
         {
             "request": request,
             "content": content,
+            "machines": machines,
+            "machine_count": len(machines),
             "pg_available": pg_checkout_available_for_content(content),
             "site_url": config.SITE_URL.rstrip("/"),
             "env": _env_status(content),
+            "telemetry_active_days": config.TELEMETRY_ACTIVE_DAYS,
+            "telemetry_inactive_days": config.TELEMETRY_INACTIVE_DAYS,
         },
     )
 

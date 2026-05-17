@@ -111,13 +111,77 @@ def home(request: Request, db: Session = Depends(get_db)):
     )
 
 
+def _download_consent_ok(request: Request) -> bool:
+    return request.cookies.get(config.DOWNLOAD_CONSENT_COOKIE) == config.DOWNLOAD_CONSENT_VALUE
+
+
 @router.get("/download")
 def download_page(request: Request, db: Session = Depends(get_db)):
     return html_response(
         templates,
         "download.html",
-        _ctx(request, db, page_title="Tải plugin Body Exporter"),
+        _ctx(
+            request,
+            db,
+            page_title="Tải plugin Body Exporter",
+            download_consent=_download_consent_ok(request),
+        ),
     )
+
+
+@router.post("/download/accept")
+def download_accept(
+    request: Request,
+    agree_policy: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    if agree_policy != "1":
+        return html_response(
+            templates,
+            "download.html",
+            _ctx(
+                request,
+                db,
+                page_title="Tải plugin Body Exporter",
+                download_consent=False,
+                policy_error="Bạn cần đồng ý chính sách thu thập dữ liệu để tải plugin.",
+            ),
+            status_code=400,
+        )
+    if not get_content(db).download_url:
+        return html_response(
+            templates,
+            "download.html",
+            _ctx(
+                request,
+                db,
+                page_title="Tải plugin Body Exporter",
+                download_consent=False,
+                policy_error="Chưa cấu hình link tải — liên hệ admin.",
+            ),
+            status_code=503,
+        )
+    resp = RedirectResponse("/download/go", status_code=303)
+    resp.set_cookie(
+        config.DOWNLOAD_CONSENT_COOKIE,
+        config.DOWNLOAD_CONSENT_VALUE,
+        max_age=config.DOWNLOAD_CONSENT_MAX_AGE,
+        httponly=True,
+        samesite="lax",
+        secure=config.SITE_URL.startswith("https://"),
+    )
+    return resp
+
+
+@router.get("/download/go")
+def download_go(request: Request, db: Session = Depends(get_db)):
+    content = get_content(db)
+    url = (content.download_url or "").strip()
+    if not url:
+        return RedirectResponse("/download", status_code=303)
+    if not _download_consent_ok(request):
+        return RedirectResponse("/download", status_code=303)
+    return RedirectResponse(url, status_code=302)
 
 
 @router.get("/buy")

@@ -97,6 +97,12 @@ namespace SolidWorksBodyExporter.AddIn.Services.Api
         /// <summary>HMAC over sensitive fields; tampering clears online license cache.</summary>
         public string SettingsHmac { get; set; }
 
+        /// <summary>User accepted data policy on bodyexporter.com/download (required for telemetry).</summary>
+        public DateTime? TelemetryConsentAcceptedUtc { get; set; }
+
+        /// <summary>Policy version accepted (default 1).</summary>
+        public int? TelemetryConsentVersion { get; set; }
+
         public static AppSettings LoadOrCreate()
         {
             try

@@ -73,3 +73,12 @@ SEPAY_LEGACY_AMOUNTS_VND = os.getenv("SEPAY_LEGACY_AMOUNTS_VND", "").strip()
 
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "").strip()
 RESEND_FROM = os.getenv("RESEND_FROM", "Body Exporter <noreply@bodyexporter.com>").strip()
+
+# Admin dashboard: machine "still in use" vs "likely removed" (days since last ping)
+TELEMETRY_ACTIVE_DAYS = max(1, int(os.getenv("TELEMETRY_ACTIVE_DAYS", "14")))
+TELEMETRY_INACTIVE_DAYS = max(TELEMETRY_ACTIVE_DAYS + 1, int(os.getenv("TELEMETRY_INACTIVE_DAYS", "90")))
+
+# Cookie set after user accepts data policy on /download (required before ZIP)
+DOWNLOAD_CONSENT_COOKIE = "be_dl_consent"
+DOWNLOAD_CONSENT_VALUE = "v1"
+DOWNLOAD_CONSENT_MAX_AGE = 60 * 60 * 24 * 730  # ~2 years

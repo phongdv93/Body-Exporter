@@ -1,0 +1,194 @@
+"""Record plugin installs / heartbeats for admin dashboard."""
+
+from __future__ import annotations
+
+import logging
+from datetime import datetime, timedelta
+from typing import Any
+
+import httpx
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
+from app import config
+from app.models import ClientMachine, License
+
+log = logging.getLogger("uvicorn.error")
+
+LICENSE_STATUS_VALUES = frozenset({"trial", "licensed", "expired", "none", "unknown", "error"})
+
+
+def _client_ip(request) -> str | None:
+    if request is None:
+        return None
+    forwarded = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+    if forwarded:
+        return forwarded[:45]
+    if request.client and request.client.host:
+        return str(request.client.host)[:45]
+    return None
+
+
+def _is_private_ip(ip: str) -> bool:
+    if not ip:
+        return True
+    if ip in ("127.0.0.1", "::1", "localhost"):
+        return True
+    if ip.startswith("10.") or ip.startswith("192.168.") or ip.startswith("172."):
+        return True
+    return False
+
+
+def lookup_geo(ip: str | None) -> dict[str, str | None]:
+    if not ip or _is_private_ip(ip):
+        return {}
+    try:
+        r = httpx.get(
+            f"http://ip-api.com/json/{ip}",
+            params={"fields": "status,country,countryCode,regionName,city"},
+            timeout=2.5,
+        )
+        if not r.is_success:
+            return {}
+        data = r.json()
+        if data.get("status") != "success":
+            return {}
+        return {
+            "country_code": (data.get("countryCode") or "")[:8] or None,
+            "country_name": (data.get("country") or "")[:80] or None,
+            "region": (data.get("regionName") or "")[:80] or None,
+            "city": (data.get("city") or "")[:80] or None,
+        }
+    except Exception as ex:
+        log.debug("GeoIP lookup failed for %s: %s", ip, ex)
+        return {}
+
+
+def _machine_has_purchased_license(db: Session, machine_id: str) -> bool:
+    mid = (machine_id or "").strip()
+    if not mid:
+        return False
+    q = (
+        select(func.count())
+        .select_from(License)
+        .where(
+            License.revoked.is_(False),
+            func.lower(License.machine_fingerprint) == mid.lower(),
+        )
+    )
+    return (db.scalar(q) or 0) > 0
+
+
+def record_client_ping(
+    db: Session,
+    *,
+    machine_id: str,
+    hostname: str = "",
+    plugin_version: str = "",
+    sw_version: str = "",
+    license_status: str = "unknown",
+    event: str = "ping",
+    client_ip: str | None = None,
+) -> ClientMachine:
+    mid = (machine_id or "").strip()
+    if not mid or len(mid) < 8:
+        raise ValueError("invalid machine_id")
+
+    status = (license_status or "unknown").strip().lower()
+    if status not in LICENSE_STATUS_VALUES:
+        status = "unknown"
+
+    now = datetime.utcnow()
+    row = db.scalar(select(ClientMachine).where(ClientMachine.machine_id == mid))
+    geo = lookup_geo(client_ip)
+
+    purchased = _machine_has_purchased_license(db, mid)
+    if status == "licensed":
+        purchased = True
+
+    if row is None:
+        row = ClientMachine(
+            machine_id=mid,
+            hostname=(hostname or "")[:128],
+            plugin_version=(plugin_version or "")[:40],
+            sw_version=(sw_version or "")[:40],
+            first_seen_at=now,
+            last_seen_at=now,
+            last_ip=client_ip,
+            license_status=status,
+            has_purchased_license=purchased,
+            last_event=(event or "ping")[:32],
+            **{k: v for k, v in geo.items() if v},
+        )
+        db.add(row)
+    else:
+        if hostname:
+            row.hostname = hostname[:128]
+        if plugin_version:
+            row.plugin_version = plugin_version[:40]
+        if sw_version:
+            row.sw_version = sw_version[:40]
+        row.last_seen_at = now
+        row.license_status = status
+        row.has_purchased_license = purchased or row.has_purchased_license
+        row.last_event = (event or "ping")[:32]
+        if client_ip:
+            row.last_ip = client_ip
+            if geo:
+                row.country_code = geo.get("country_code")
+                row.country_name = geo.get("country_name")
+                row.region = geo.get("region")
+                row.city = geo.get("city")
+
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def machine_usage_label(last_seen: datetime | None, now: datetime | None = None) -> str:
+    """active | inactive | likely_removed"""
+    if not last_seen:
+        return "unknown"
+    now = now or datetime.utcnow()
+    age = now - last_seen
+    active = timedelta(days=config.TELEMETRY_ACTIVE_DAYS)
+    inactive = timedelta(days=config.TELEMETRY_INACTIVE_DAYS)
+    if age <= active:
+        return "active"
+    if age <= inactive:
+        return "inactive"
+    return "likely_removed"
+
+
+def machine_usage_label_vi(label: str) -> str:
+    return {
+        "active": "Đang dùng",
+        "inactive": "Ít dùng",
+        "likely_removed": "Có thể đã gỡ",
+        "unknown": "—",
+    }.get(label, label)
+
+
+def list_machines_for_admin(db: Session) -> list[dict[str, Any]]:
+    rows = db.scalars(select(ClientMachine).order_by(ClientMachine.last_seen_at.desc())).all()
+    now = datetime.utcnow()
+    out: list[dict[str, Any]] = []
+    for m in rows:
+        usage = machine_usage_label(m.last_seen_at, now)
+        loc_parts = [p for p in (m.city, m.region, m.country_name) if p]
+        out.append(
+            {
+                "machine": m,
+                "usage": usage,
+                "usage_label": machine_usage_label_vi(usage),
+                "location": ", ".join(loc_parts) if loc_parts else "—",
+                "license_label": {
+                    "licensed": "Có license",
+                    "trial": "Trial",
+                    "expired": "Hết hạn",
+                    "none": "Chưa kích hoạt",
+                    "error": "Lỗi",
+                }.get(m.license_status, m.license_status),
+            }
+        )
+    return out
