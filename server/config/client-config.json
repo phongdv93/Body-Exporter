@@ -12,7 +12,7 @@
   "paymentIntlBody": "",
   "paymentIntlLemonsqueezyUrl": "",
   "paymentIntlTripleUrl": "",
-  "latestVersion": "0.7.5.1",
+  "latestVersion": "0.7.6",
   "updateManifestUrl": "https://bodyexporter-api.bodyexporter.workers.dev/v1/update-manifest",
   "downloadPageUrl": "https://bodyexporter.com/download",
   "entitlementPolicy": { "mode": "normal", "capDays": 14, "message": "" }

@@ -358,39 +358,160 @@ body {
   margin-top: 10px;
 }
 
-.policy-details { margin-bottom: 0.5rem; }
-.policy-details summary {
+/* Download page — policy + consent */
+.download-card {
+  padding: 0;
+  overflow: hidden;
+  border-color: rgba(61, 214, 198, 0.22);
+  background: linear-gradient(165deg, var(--bg-card) 0%, rgba(26, 34, 48, 0.95) 100%);
+}
+.policy-details { margin: 0; }
+.policy-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
   cursor: pointer;
-  font-weight: 600;
-  font-size: 1.05rem;
   list-style: none;
-  padding: 0.25rem 0;
+  padding: 1.1rem 1.25rem;
+  transition: background 0.15s ease;
 }
-.policy-details summary::-webkit-details-marker { display: none; }
-.policy-details summary::after {
-  content: " ▾";
+.policy-summary::-webkit-details-marker { display: none; }
+.policy-summary:hover { background: rgba(255, 255, 255, 0.03); }
+.policy-summary-icon {
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 10px;
+  background: rgba(61, 214, 198, 0.12);
+  border: 1px solid rgba(61, 214, 198, 0.28);
+  position: relative;
+}
+.policy-summary-icon::after {
+  content: "";
+  position: absolute;
+  inset: 0.55rem 0.7rem;
+  border: 2px solid var(--accent);
+  border-radius: 3px;
+  opacity: 0.85;
+}
+.policy-summary-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.policy-summary-title {
+  font-weight: 600;
+  font-size: 1.02rem;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.policy-summary-hint {
+  font-size: 0.8rem;
   color: var(--muted);
-  font-size: 0.85em;
+  font-weight: 400;
 }
-.policy-details[open] summary::after { content: " ▴"; }
-.policy-text {
-  margin-top: 0.75rem;
-  padding-top: 0.75rem;
+.policy-chevron {
+  flex-shrink: 0;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(45deg);
+  margin-right: 0.25rem;
+  transition: transform 0.2s ease;
+  opacity: 0.7;
+}
+.policy-details[open] .policy-chevron {
+  transform: rotate(-135deg);
+  margin-top: 0.35rem;
+}
+.policy-details[open] .policy-summary-hint { opacity: 0; height: 0; overflow: hidden; }
+.policy-body {
+  padding: 0 1.25rem 1.15rem 4.1rem;
+  font-size: 0.92rem;
+  line-height: 1.65;
+  color: var(--muted);
   border-top: 1px solid var(--border);
-  font-size: 0.9rem;
+  animation: policyFade 0.25s ease;
 }
-.policy-text p { margin: 0 0 0.5rem; }
-.consent-form { margin-top: 1.25rem; }
+@keyframes policyFade {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.policy-body p {
+  margin: 0 0 0.85rem;
+}
+.policy-body p:last-child { margin-bottom: 0; }
+.policy-lead { color: var(--text); font-size: 0.94rem; }
+.policy-safe {
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  background: rgba(61, 214, 198, 0.06);
+  border-left: 3px solid var(--accent-dim);
+  color: var(--text);
+}
+.policy-safe strong { color: var(--accent); font-weight: 600; }
+.policy-foot {
+  font-size: 0.86rem;
+  color: var(--muted);
+  opacity: 0.92;
+}
+.download-consent-panel {
+  padding: 1.15rem 1.25rem 1.25rem;
+  background: rgba(0, 0, 0, 0.18);
+  border-top: 1px solid var(--border);
+}
+.consent-form { margin: 0; }
 .consent-check {
   display: flex;
   align-items: flex-start;
-  gap: 0.65rem;
-  margin-bottom: 1rem;
+  gap: 0.75rem;
+  margin-bottom: 1.1rem;
   cursor: pointer;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
+  line-height: 1.5;
   color: var(--text);
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition: border-color 0.15s, background 0.15s;
 }
-.consent-check input { margin-top: 0.25rem; flex-shrink: 0; }
+.consent-check:hover {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: var(--border);
+}
+.consent-check input {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: var(--accent);
+}
+.btn-download {
+  width: 100%;
+  max-width: 22rem;
+  box-shadow: 0 4px 20px rgba(61, 214, 198, 0.2);
+}
+.download-unavailable {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  background: rgba(244, 162, 97, 0.08);
+  border: 1px solid rgba(244, 162, 97, 0.35);
+  color: var(--warn);
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+.download-unavailable a { color: var(--accent); }
+.download-again {
+  margin: 0.85rem 0 0;
+  text-align: center;
+}
+@media (max-width: 520px) {
+  .policy-body { padding-left: 1.25rem; }
+}
 .flash-err {
   color: #ffb4b4;
   background: rgba(255, 80, 80, 0.12);

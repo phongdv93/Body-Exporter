@@ -4,11 +4,11 @@
   Build Release + Obfuscar, copy Launcher, tao thu muc zip gui khach dung thu.
 
 .EXAMPLE
-  .\tools\Build-ClientPackage.ps1 -ApiBaseUrl "https://bodyexporter-api.bodyexporter.workers.dev" -Version "0.7.5.1" -CreateZip
+  .\tools\Build-ClientPackage.ps1 -ApiBaseUrl "https://bodyexporter-api.bodyexporter.workers.dev" -Version "0.7.6" -CreateZip
 #>
 param(
     [string]$ApiBaseUrl = "https://bodyexporter-api.bodyexporter.workers.dev",
-    [string]$Version = "0.7.5.1",
+    [string]$Version = "0.7.6",
     [switch]$SkipBuild,
     [switch]$CreateZip
 )

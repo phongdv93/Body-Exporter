@@ -6,34 +6,43 @@
   <p class="muted">Phiên bản <strong>{{ content.download_version }}</strong></p>
 </section>
 
-<section class="card policy-card">
+<section class="card policy-card download-card">
   <details class="policy-details">
-    <summary>Chính sách thu thập dữ liệu</summary>
-    <div class="prose policy-text">
-      <p>Thu thập thông tin kỹ thuật để <strong>cải thiện phần mềm</strong> và hỗ trợ license — không quảng cáo, không thu nội dung file CAD.</p>
-      <p><strong>Có thể thu thập:</strong> mã máy, tên máy, phiên bản plugin/SolidWorks, thời điểm dùng, IP và vị trí ước lượng, trạng thái license.</p>
-      <p><strong>Không thu thập:</strong> model, tên part, file export.</p>
-      <p>Từ chối: không tải trên trang này. Liên hệ: <a href="mailto:{{ support_email }}">{{ support_email }}</a></p>
+    <summary class="policy-summary">
+      <span class="policy-summary-icon" aria-hidden="true"></span>
+      <span class="policy-summary-text">
+        <span class="policy-summary-title">Chính sách dữ liệu</span>
+        <span class="policy-summary-hint">Bấm để xem chi tiết</span>
+      </span>
+      <span class="policy-chevron" aria-hidden="true"></span>
+    </summary>
+    <div class="policy-body">
+      <p class="policy-lead">Body Exporter thu thập một số thông tin kỹ thuật tối thiểu để plugin hoạt động ổn định — kích hoạt license, hỗ trợ khi có lỗi và cải thiện phần mềm theo thời gian.</p>
+      <p>Thông tin có thể được ghi nhận gồm: mã nhận diện máy (dùng để gắn license), phiên bản plugin và SolidWorks đang dùng, thời điểm cài đặt và lần dùng gần nhất, địa chỉ IP để ước lượng khu vực (thành phố/quốc gia), và trạng thái license hiện tại.</p>
+      <p class="policy-safe">Chúng tôi <strong>không đọc, không lưu và không gửi</strong> bất kỳ nội dung nào từ file SolidWorks của bạn — bao gồm model 3D, tên part hay file export.</p>
+      <p class="policy-foot">Dữ liệu thu thập chỉ dùng nội bộ, không phục vụ quảng cáo và không chia sẻ cho bên thứ ba.</p>
     </div>
   </details>
-  {% if policy_error %}<p class="flash-err">{{ policy_error }}</p>{% endif %}
-  <form method="post" action="/download/accept" class="consent-form">
-    <label class="consent-check">
-      <input type="checkbox" name="agree_policy" value="1" required {% if download_consent %}checked{% endif %}>
-      <span>Tôi đã đọc và <strong>đồng ý</strong> chính sách thu thập dữ liệu.</span>
-    </label>
-    {% if content.download_url %}
-    <button type="submit" class="btn btn-primary btn-lg">Tải bản {{ content.download_version }}</button>
-    {% else %}
-    <p class="warn">File đã được gỡ để gỡ lỗi. Vui lòng liên hệ <a href="mailto:{{ support_email }}">{{ support_email }}</a> để được hỗ trợ.</p>
+
+  <div class="download-consent-panel">
+    {% if policy_error %}<p class="flash-err">{{ policy_error }}</p>{% endif %}
+    <form method="post" action="/download/accept" class="consent-form">
+      <label class="consent-check">
+        <input type="checkbox" name="agree_policy" value="1" required {% if download_consent %}checked{% endif %}>
+        <span>Tôi đã đọc và đồng ý với <strong>Chính sách dữ liệu</strong>.</span>
+      </label>
+      {% if content.download_url %}
+      <button type="submit" class="btn btn-primary btn-lg btn-download">Tải bản {{ content.download_version }}</button>
+      {% else %}
+      <p class="download-unavailable">File đã được gỡ để gỡ lỗi. Vui lòng liên hệ <a href="mailto:{{ support_email }}">{{ support_email }}</a> để được hỗ trợ.</p>
+      {% endif %}
+    </form>
+    {% if download_consent and content.download_url %}
+    <p class="download-again muted fine-print">
+      Đã đồng ý trên trình duyệt này · <a href="/download/go">Tải lại</a>
+    </p>
     {% endif %}
-  </form>
-  {% if download_consent and content.download_url %}
-  <p class="muted fine-print" style="margin-top:1rem">
-    Đã đồng ý trên trình duyệt này.
-    <a href="/download/go">Tải lại</a> (không cần tick lại trong 2 năm).
-  </p>
-  {% endif %}
+  </div>
 </section>
 
 <section class="card">

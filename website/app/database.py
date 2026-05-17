@@ -5,7 +5,7 @@ from sqlalchemy import create_engine, inspect, select, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from app import config
-from app.models import AdminUser, Base, License, SiteContent
+from app.models import AdminUser, Base, ClientMachine, License, SiteContent
 
 _BE_LICENSES_REQUIRED_COLUMNS = frozenset(
     {
@@ -100,6 +100,18 @@ def rename_legacy_tables() -> None:
         names.add(new)
 
 
+def ensure_be_client_machines_table() -> None:
+    """Create be_client_machines if missing (model added after first deploy)."""
+    try:
+        insp = inspect(engine)
+        if "be_client_machines" in insp.get_table_names():
+            return
+        log.info("Creating be_client_machines table")
+        ClientMachine.__table__.create(engine, checkfirst=True)
+    except Exception:
+        log.exception("ensure_be_client_machines_table failed")
+
+
 def ensure_be_licenses_table() -> None:
     """Recreate be_licenses if it exists with wrong schema (shared DB / bad rename)."""
     try:
@@ -169,6 +181,7 @@ def init_db() -> None:
     rename_legacy_tables()
     Base.metadata.create_all(bind=engine)
     ensure_be_licenses_table()
+    ensure_be_client_machines_table()
     ensure_schema()
     with SessionLocal() as db:
         if not db.get(SiteContent, 1):

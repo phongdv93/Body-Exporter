@@ -65,7 +65,7 @@
             {% set m = row.machine %}
             <tr>
               <td>{{ m.hostname or '—' }}</td>
-              <td><code class="fp-cell" title="{{ m.machine_id }}">{{ m.machine_id[:14] }}…</code></td>
+              <td><code class="fp-cell" title="{{ m.machine_id }}">{% if m.machine_id|length > 16 %}{{ m.machine_id[:14] }}…{% else %}{{ m.machine_id }}{% endif %}</code></td>
               <td class="muted">
                 {{ m.first_seen_at.strftime('%d/%m/%Y %H:%M') if m.first_seen_at else '—' }}
                 <br>→ {{ m.last_seen_at.strftime('%d/%m/%Y %H:%M') if m.last_seen_at else '—' }}

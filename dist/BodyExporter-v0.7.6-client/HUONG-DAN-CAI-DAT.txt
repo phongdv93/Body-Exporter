@@ -1,0 +1,6 @@
+﻿SolidWorks Body Exporter v0.7.6
+============================================
+
+See bodyexporter.com/download for the latest package.
+Support: hotro@bodyexporter.com
+Buy license: https://bodyexporter.com/buy

@@ -64,7 +64,13 @@ def dashboard(request: Request, db: Session = Depends(get_db), _user=Depends(req
         import logging
 
         logging.getLogger("uvicorn.error").exception("CRM machine sync failed")
-    machines = list_machines_for_admin(db)
+    try:
+        machines = list_machines_for_admin(db)
+    except Exception:
+        import logging
+
+        logging.getLogger("uvicorn.error").exception("list_machines_for_admin failed")
+        machines = []
     return html_response(
         templates,
         "admin/dashboard.html",
