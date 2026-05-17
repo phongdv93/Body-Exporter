@@ -76,7 +76,7 @@ def _ctx(request: Request, db: Session, page_title: str | None = None, **extra):
         "meta_description": meta_desc,
         "meta_keywords": config.SEO_KEYWORDS,
         "canonical_url": canonical,
-        "seo_og_image": config.SEO_OG_IMAGE or None,
+        "seo_og_image": (config.SEO_OG_IMAGE or f"{config.SITE_URL.rstrip('/')}/static/og-card.png"),
         "schema_website_json": schema_web,
         "schema_app_json": schema_app,
         **extra,
