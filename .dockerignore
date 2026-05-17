@@ -1,0 +1,21 @@
+# Slim context for monorepo web image
+.git
+.github
+server
+src
+tools
+dist
+assets
+docs
+config
+*.md
+!website/README.md
+**/__pycache__
+*.SLDPRT
+drapf
+website/.env
+website/data
+*.db
+.vs
+SolidWorksBodyExporter.sln
+ARCHITECTURE.md

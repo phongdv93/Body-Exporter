@@ -131,9 +131,10 @@ Gắn domain: Fly dashboard → **Certificates** → add `bodyexporter.com`. Tr�
 
 ### B) Railway / Render
 
-- Repo chứa thư mục `website/` — set **root directory** = `website`.
-- **Start**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT` (Railway injects `PORT`; đã có `Procfile` mẫu).
-- Set biến môi trường giống `.env.example`.
+- Repo chứa thư mục `website/` — **Railway**: *Không* cần đổi Root Directory nếu đã có **`Dockerfile` ở root repo** (monorepo) — file đó copy từ `website/` và chạy uvicorn.
+- **Biến môi trường** (Variables): `PORT` do Railway tự set; bạn thêm `SECRET_KEY`, `SITE_URL`, `DATABASE_URL`, `ADMIN_PASSWORD`, v.v. (xem `website/.env.example`).
+- Nếu bạn xóa Dockerfile root và chỉ build từ `website/`: trong Railway → Service → **Root Directory** = `website`.
+- **Start command** trên Railway để trống khi dùng Docker (xem `railway.toml`).
 
 ### C) Cloudflare Tunnel → máy bạn / VPS
 
