@@ -33,9 +33,12 @@ def _timing_safe_eq(a: str, b: str) -> bool:
 
 def _verify_sepay_api_key_header(authorization: str, api_key: str) -> bool:
     auth = (authorization or "").strip()
-    if not auth.lower().startswith("apikey "):
+    if not auth:
         return False
-    got = auth[7:].strip()
+    prefix = "apikey "
+    if not auth.lower().startswith(prefix):
+        return False
+    got = auth[len(prefix) :].strip()
     return _timing_safe_eq(got, api_key)
 
 
@@ -43,8 +46,9 @@ def _verify_sepay_hmac(secret: str, raw_body: str, timestamp: str, signature_hea
     if not timestamp or not signature_header:
         return False
     sig_hex = signature_header.strip()
-    if sig_hex.lower().startswith("sha256="):
-        sig_hex = sig_hex[7:].strip()
+    prefix = "sha256="
+    if sig_hex.lower().startswith(prefix):
+        sig_hex = sig_hex[len(prefix) :].strip()
     sig_hex = sig_hex.lower()
     message = f"{timestamp}.{raw_body}"
     mac = hmac.new(secret.encode("utf-8"), message.encode("utf-8"), hashlib.sha256).hexdigest()
@@ -54,19 +58,45 @@ def _verify_sepay_hmac(secret: str, raw_body: str, timestamp: str, signature_hea
     )
 
 
-def _webhook_auth_ok(request: Request, raw_body: str, hmac_secret: str, api_key: str) -> bool:
+def _webhook_credentials(content) -> tuple[str, str]:
+    """Env wins over Postgres so Render secrets are not overridden by stale admin values."""
+    hmac_s = config.SEPAY_WEBHOOK_SECRET or (content.sepay_webhook_secret or "").strip()
+    api_k = config.SEPAY_WEBHOOK_API_KEY or (content.sepay_webhook_api_key or "").strip()
+    return hmac_s, api_k
+
+
+def _webhook_auth_ok(request: Request, raw_body: str, hmac_secret: str, api_key: str) -> tuple[bool, str]:
     if not hmac_secret and not api_key:
-        log.error("SePay webhook: set sepay_webhook_secret or sepay_webhook_api_key in admin / .env")
-        return False
+        return False, "no_credentials"
+
     sig = request.headers.get("X-SePay-Signature") or request.headers.get("X-Sepay-Signature") or ""
     ts = request.headers.get("X-SePay-Timestamp") or request.headers.get("X-Sepay-Timestamp") or ""
-    if sig and ts:
+    has_hmac_headers = bool(sig and ts)
+
+    if has_hmac_headers:
         if not hmac_secret:
-            return False
-        return _verify_sepay_hmac(hmac_secret, raw_body, ts, sig)
+            if api_key and _verify_sepay_api_key_header(
+                request.headers.get("Authorization") or "", api_key
+            ):
+                return True, ""
+            return False, "hmac_headers_but_no_secret"
+        if _verify_sepay_hmac(hmac_secret, raw_body, ts, sig):
+            return True, ""
+        log.warning(
+            "SePay webhook: HMAC mismatch (check SEPAY_WEBHOOK_SECRET on Render = Secret Key on my.sepay.vn)"
+        )
+        if api_key and _verify_sepay_api_key_header(
+            request.headers.get("Authorization") or "", api_key
+        ):
+            return True, ""
+        return False, "hmac_mismatch"
+
     if api_key and _verify_sepay_api_key_header(request.headers.get("Authorization") or "", api_key):
-        return True
-    return False
+        return True, ""
+
+    if has_hmac_headers:
+        return False, "hmac_mismatch"
+    return False, "missing_authorization"
 
 
 def extract_email_from_transfer_text(*parts: str | None) -> str | None:
@@ -95,6 +125,12 @@ def _allowed_amounts_vnd(content) -> list[int]:
     price = int(content.license_price_vnd or config.LICENSE_PRICE_VND or 0)
     if price > 0:
         amounts.add(price)
+    legacy = (config.SEPAY_LEGACY_AMOUNTS_VND or "").strip()
+    if legacy:
+        for part in legacy.split(","):
+            part = part.strip()
+            if part.isdigit():
+                amounts.add(int(part))
     if not amounts:
         amounts.add(990000)
     return sorted(amounts)
@@ -104,17 +140,44 @@ def _parse_payload(raw: str) -> dict[str, Any]:
     return json.loads(raw)
 
 
+def _unauthorized(reason: str, request: Request) -> Response:
+    has_sig = bool(
+        request.headers.get("X-SePay-Signature") or request.headers.get("X-Sepay-Signature")
+    )
+    log.error(
+        "SePay webhook 401: reason=%s has_hmac_sig=%s has_auth=%s",
+        reason,
+        has_sig,
+        bool(request.headers.get("Authorization")),
+    )
+    hints = {
+        "no_credentials": "Set SEPAY_WEBHOOK_SECRET (HMAC) or SEPAY_WEBHOOK_API_KEY on Render, or Admin → webhook fields.",
+        "hmac_headers_but_no_secret": "SePay uses HMAC — set SEPAY_WEBHOOK_SECRET on Render (same Secret Key as my.sepay.vn).",
+        "hmac_mismatch": "SEPAY_WEBHOOK_SECRET does not match SePay Secret Key. Re-copy from my.sepay.vn; clear wrong value in Admin if needed.",
+        "missing_authorization": "SePay uses API Key — set SEPAY_WEBHOOK_API_KEY on Render or Admin.",
+    }
+    body = json.dumps(
+        {
+            "success": False,
+            "error": "unauthorized",
+            "reason": reason,
+            "hint": hints.get(reason, "Check webhook security settings on SePay and Render."),
+        }
+    )
+    return Response(body, status_code=401, media_type="application/json")
+
+
 @router.post("/webhook/sepay")
 async def sepay_webhook(request: Request):
     raw_body = (await request.body()).decode("utf-8", errors="replace")
     db: Session = SessionLocal()
     try:
         content = get_content(db)
-        hmac_s = (content.sepay_webhook_secret or "").strip() or config.SEPAY_WEBHOOK_SECRET
-        api_k = (content.sepay_webhook_api_key or "").strip() or config.SEPAY_WEBHOOK_API_KEY
+        hmac_s, api_k = _webhook_credentials(content)
 
-        if not _webhook_auth_ok(request, raw_body, hmac_s, api_k):
-            return Response("Unauthorized", status_code=401)
+        ok, reason = _webhook_auth_ok(request, raw_body, hmac_s, api_k)
+        if not ok:
+            return _unauthorized(reason, request)
 
         try:
             payload = _parse_payload(raw_body)

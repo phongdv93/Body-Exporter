@@ -67,6 +67,8 @@ SEPAY_LICENSE_DAYS = int(os.getenv("SEPAY_LICENSE_DAYS", "365"))
 
 SEPAY_WEBHOOK_SECRET = os.getenv("SEPAY_WEBHOOK_SECRET", "").strip()
 SEPAY_WEBHOOK_API_KEY = os.getenv("SEPAY_WEBHOOK_API_KEY", "").strip()
+# Comma-separated VND amounts still accepted after a price change (e.g. 990000)
+SEPAY_LEGACY_AMOUNTS_VND = os.getenv("SEPAY_LEGACY_AMOUNTS_VND", "").strip()
 
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "").strip()
 RESEND_FROM = os.getenv("RESEND_FROM", "Body Exporter <noreply@bodyexporter.com>").strip()

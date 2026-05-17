@@ -43,12 +43,9 @@ def logout(request: Request):
 
 
 def _env_status(content) -> dict:
-    wh = bool(
-        (content.sepay_webhook_secret or "").strip()
-        or config.SEPAY_WEBHOOK_SECRET
-        or (content.sepay_webhook_api_key or "").strip()
-        or config.SEPAY_WEBHOOK_API_KEY
-    )
+    hmac_s = config.SEPAY_WEBHOOK_SECRET or (content.sepay_webhook_secret or "").strip()
+    api_k = config.SEPAY_WEBHOOK_API_KEY or (content.sepay_webhook_api_key or "").strip()
+    wh = bool(hmac_s or api_k)
     return {
         "worker": bool(config.WORKER_API_BASE_URL and config.WORKER_ADMIN_TOKEN),
         "resend": bool(config.RESEND_API_KEY),

@@ -60,12 +60,18 @@
       <label>URL gốc QR Sepay (qr.sepay.vn/img?bank=…&amp;amount=…)</label>
       <input type="url" name="sepay_qr_base_url" value="{{ content.sepay_qr_base_url }}">
       <p class="muted" style="font-size:13px;margin:12px 0">
-        Webhook chuyển khoản: <code>/webhook/sepay</code> — đặt URL đầy đủ trên SePay.
-        Bí mật HMAC (khuyến nghị) hoặc API key Authorization <code>Apikey …</code>.
+        Webhook CK (bắt buộc cho email sau chuyển khoản): trỏ SePay tới
+        <code>{{ site_url }}/webhook/sepay</code> — <strong>chỉ URL này</strong>, không trỏ Worker nữa.
       </p>
-      <label>SePay webhook HMAC secret (để trống = giữ nguyên)</label>
+      <p class="admin-notice" style="font-size:13px">
+        Nếu SePay báo <strong>401</strong>: Secret/API key trên Render (<code>SEPAY_WEBHOOK_SECRET</code>
+        hoặc <code>SEPAY_WEBHOOK_API_KEY</code>) phải <strong>trùng</strong> với my.sepay.vn (cùng loại bảo mật:
+        HMAC-SHA256 hoặc API Key). Render env được ưu tiên hơn giá trị cũ lưu trong form dưới.
+        Để trống ô dưới = dùng env Render.
+      </p>
+      <label>SePay webhook HMAC secret (để trống = giữ DB; ưu tiên env Render nếu có)</label>
       <input type="password" name="sepay_webhook_secret" autocomplete="new-password" placeholder="••••">
-      <label>SePay webhook API key (để trống = giữ nguyên)</label>
+      <label>SePay webhook API key (để trống = giữ DB; ưu tiên env Render nếu có)</label>
       <input type="password" name="sepay_webhook_api_key" autocomplete="new-password" placeholder="••••">
       <h3 style="margin-top:1.5rem">SePay cổng thẻ (PG)</h3>
       <p class="muted" style="font-size:13px">Merchant / secret lưu DB ghi đè .env. Secret để trống khi lưu = không đổi.</p>
