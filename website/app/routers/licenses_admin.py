@@ -1,6 +1,6 @@
 """Admin CRUD for issued licenses (Postgres)."""
 
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app import config
 from app.auth import get_db, require_admin
 from app.license_service import issue_license_record
+from app.license_sync import sync_fingerprints_from_worker
 from app.models import AdminUser, License
 from app.database import get_content
 from app.template_response import html_response
@@ -31,7 +32,14 @@ def _env_status(content) -> dict:
     }
 
 
-def _licenses_ctx(request: Request, db: Session, *, saved: bool, error: str | None):
+def _licenses_ctx(
+    request: Request,
+    db: Session,
+    *,
+    saved: bool,
+    error: str | None,
+    sync_msg: str | None = None,
+):
     rows = db.scalars(select(License).order_by(License.purchased_at.desc())).all()
     content = get_content(db)
     return {
@@ -40,8 +48,21 @@ def _licenses_ctx(request: Request, db: Session, *, saved: bool, error: str | No
         "content": content,
         "saved": saved,
         "error": error,
+        "sync_msg": sync_msg,
         "env": _env_status(content),
     }
+
+
+def _run_worker_fingerprint_sync(db: Session) -> str | None:
+    result = sync_fingerprints_from_worker(db)
+    if not result.get("ok"):
+        return f"Đồng bộ Worker thất bại: {result.get('error')}"
+    updated = int(result.get("updated") or 0)
+    matched = int(result.get("matched") or 0)
+    with_fp = int(result.get("with_fingerprint") or 0)
+    if updated:
+        return f"Đã đồng bộ {updated} fingerprint từ Worker ({with_fp} key đã kích hoạt máy / {matched} khớp Postgres)."
+    return f"Đã kiểm tra Worker — {with_fp} key có fingerprint, không có thay đổi mới."
 
 
 @router.get("")
@@ -49,14 +70,29 @@ def list_licenses(
     request: Request,
     saved: int = 0,
     err: str = "",
+    sync: str = "",
+    nosync: int = 0,
     db: Session = Depends(get_db),
     _user: AdminUser = Depends(require_admin),
 ):
+    sync_msg = unquote(sync).strip() if sync else None
+    if not sync_msg and not nosync and config.WORKER_API_BASE_URL and config.WORKER_ADMIN_TOKEN:
+        sync_msg = _run_worker_fingerprint_sync(db)
     return html_response(
         templates,
         "admin/licenses.html",
-        _licenses_ctx(request, db, saved=bool(saved), error=err or None),
+        _licenses_ctx(request, db, saved=bool(saved), error=err or None, sync_msg=sync_msg),
     )
+
+
+@router.post("/sync-worker")
+def sync_worker_fingerprints(
+    db: Session = Depends(get_db),
+    _user: AdminUser = Depends(require_admin),
+):
+    sync_msg = _run_worker_fingerprint_sync(db)
+    q = f"sync={quote(sync_msg or '', safe='')}"
+    return RedirectResponse(f"/admin/licenses?{q}&nosync=1", status_code=303)
 
 
 @router.post("")
@@ -84,7 +120,7 @@ def create_license(
             f"/admin/licenses?err={quote(str(ex), safe='')}",
             status_code=303,
         )
-    return RedirectResponse("/admin/licenses?saved=1", status_code=303)
+    return RedirectResponse("/admin/licenses?saved=1&nosync=1", status_code=303)
 
 
 @router.post("/edit")
@@ -106,4 +142,4 @@ def edit_license(
         lic.notes = notes.strip()
         lic.revoked = revoked == "1"
         db.commit()
-    return RedirectResponse("/admin/licenses?saved=1", status_code=303)
+    return RedirectResponse("/admin/licenses?saved=1&nosync=1", status_code=303)

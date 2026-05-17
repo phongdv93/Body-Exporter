@@ -124,6 +124,21 @@ def mint_license_via_worker(*, owner: str, plan: str, days: int) -> tuple[str, d
         raise
 
 
+def fetch_worker_license_records() -> list[dict[str, Any]]:
+    """GET /admin/license/list — keys + boundMachineId from Worker KV."""
+    base = _worker_base()
+    headers = {**_worker_admin_headers(), "Accept": "application/json"}
+    r = httpx.get(f"{base}/admin/license/list", headers=headers, timeout=60.0)
+    if not r.is_success:
+        log.error("Worker license list failed %s: %s", r.status_code, r.text[:500])
+        r.raise_for_status()
+    data = r.json()
+    records = data.get("records") if isinstance(data, dict) else data
+    if not isinstance(records, list):
+        return []
+    return [x for x in records if isinstance(x, dict)]
+
+
 def _parse_iso_to_naive_utc(s: str) -> datetime:
     if not s:
         return datetime.utcnow() + timedelta(days=365)
