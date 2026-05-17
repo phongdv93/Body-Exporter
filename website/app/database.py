@@ -25,8 +25,38 @@ _SITE_CONTENT_ALTER = [
 ]
 
 
+def _table_columns(insp, name: str) -> set[str]:
+    try:
+        return {c["name"] for c in insp.get_columns(name)}
+    except Exception:
+        return set()
+
+
+def _legacy_site_content_ours(insp, old: str) -> bool:
+    c = _table_columns(insp, old)
+    return "hero_title" in c and "download_version" in c
+
+
+def _legacy_admin_users_ours(insp, old: str) -> bool:
+    c = _table_columns(insp, old)
+    return "password_hash" in c and "username" in c
+
+
+def _legacy_licenses_ours(insp, old: str) -> bool:
+    """Avoid renaming another app's ``licenses`` table when sharing one Postgres."""
+    c = _table_columns(insp, old)
+    return "license_key" in c and "buyer_email" in c
+
+
+_LEGACY_RENAME_GUARDS = {
+    "site_content": _legacy_site_content_ours,
+    "admin_users": _legacy_admin_users_ours,
+    "licenses": _legacy_licenses_ours,
+}
+
+
 def rename_legacy_tables() -> None:
-    """One-time rename from unprefixed tables (older installs)."""
+    """One-time rename from unprefixed tables (older Body Exporter installs only)."""
     try:
         insp = inspect(engine)
         names = set(insp.get_table_names())
@@ -36,6 +66,15 @@ def rename_legacy_tables() -> None:
 
     for old, new in _LEGACY_TABLE_RENAMES:
         if old not in names or new in names:
+            continue
+        guard = _LEGACY_RENAME_GUARDS.get(old)
+        if guard and not guard(insp, old):
+            log.warning(
+                "Skip rename %s -> %s: table is not Body Exporter schema (shared DB?) — using %s as new table",
+                old,
+                new,
+                new,
+            )
             continue
         stmt = f"ALTER TABLE {old} RENAME TO {new}"
         log.info("DB migrate: %s", stmt)

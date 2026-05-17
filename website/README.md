@@ -157,7 +157,8 @@ DATABASE_URL=postgresql://user:pass@ep-xxx.region.aws.neon.tech/neondb?sslmode=r
 
 - App tự thêm driver `psycopg2`; nếu host đưa `postgres://` cũng được.
 - **Không set** `DATABASE_URL` → dev local vẫn dùng **SQLite** `data/site.db`.
-- Lần chạy đầu: `init_db()` gọi `create_all` + seed `be_site_content` + admin (nếu bảng trống). Bản cũ tự đổi tên `site_content` → `be_site_content`, v.v.
+- Lần chạy đầu: `init_db()` gọi `create_all` + seed `be_site_content` + admin (nếu bảng trống). Bản cũ tự đổi tên `site_content` → `be_site_content`, v.v. **chỉ khi** cột bảng khớp Body Exporter (tránh đụng bảng `licenses` của app khác khi dùng chung Postgres).
+- Nếu `/admin/licenses` lỗi 500 sau khi gộp DB: có thể bảng `be_licenses` sai schema — trong SQL (Postgres): `DROP TABLE IF EXISTS be_licenses;` rồi restart app để tạo lại bảng đúng (mất dòng CRM cũ nếu có).
 
 **Lưu ý:** Đừng commit file `.env` có thật `DATABASE_URL` lên GitHub — chỉ lưu trong secrets của Railway/Fly/GitHub Actions.
 
@@ -191,6 +192,7 @@ IPN for PG should still point to your Worker (configure in my.sepay.vn). Card pa
 
 - `/admin` — dashboard  
 - `/admin/content` — hero, download ZIP URL, prices, QR base URL  
+- `/admin/licenses` — danh sách license (Postgres), tạo tay
 
 Change `ADMIN_PASSWORD` in production; default is created on first boot from `.env`.
 

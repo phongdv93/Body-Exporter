@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from fastapi import FastAPI
-from fastapi.responses import PlainTextResponse, Response
+from fastapi.responses import FileResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -37,6 +37,14 @@ def startup():
 @app.get("/health")
 def health():
     return {"ok": True}
+
+
+@app.get("/favicon.ico")
+def favicon():
+    ico = static_dir / "favicon.ico"
+    if ico.is_file():
+        return FileResponse(ico, media_type="image/x-icon")
+    return Response(status_code=404)
 
 
 @app.get("/robots.txt", response_class=PlainTextResponse)

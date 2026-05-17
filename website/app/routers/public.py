@@ -81,7 +81,7 @@ def home(request: Request, db: Session = Depends(get_db)):
             request,
             db,
             bullets=bullets,
-            page_title=f"{content.hero_title} — SolidWorks Body Exporter",
+            page_title=f"{content.hero_title} — Body Exporter",
         ),
     )
 
