@@ -25,7 +25,7 @@
 
     <section class="card" style="margin-bottom:1.5rem">
       <h2>Tạo license thủ công</h2>
-      <p class="muted" style="margin-top:0">Gọi Worker để mint key (online validation). Cần <code>WORKER_API_BASE_URL</code> + <code>WORKER_ADMIN_TOKEN</code> trên server. Email gửi qua Resend nếu có API key.</p>
+      <p class="muted" style="margin-top:0">Cần trên Render: <code>WORKER_API_BASE_URL</code> (bắt đầu bằng <code>https://</code>), <code>WORKER_ADMIN_TOKEN</code>, <code>RESEND_API_KEY</code>. Thiếu <code>https://</code> sẽ lỗi khi tạo license / gửi mail.</p>
       <form method="post" action="/admin/licenses" class="admin-form">
         <label>Email khách</label>
         <input type="email" name="buyer_email" required placeholder="a@b.com">

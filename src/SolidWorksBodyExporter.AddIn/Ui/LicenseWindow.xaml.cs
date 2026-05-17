@@ -29,8 +29,8 @@ namespace SolidWorksBodyExporter.AddIn.Ui
 
         private void ApplyLocalizedStaticText()
         {
-            PaymentSectionHintText.Text = LicenseUiText.PaymentSectionHint;
             OpenBuyWebButton.Content = LicenseUiText.OpenBuyOnWeb;
+            ActivateSectionHintText.Text = LicenseUiText.ActivateSectionHint;
             LicenseFooterNoteText.Text = LicenseUiText.FooterNote;
         }
 
@@ -42,7 +42,7 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             try
             {
                 ApplyLocalizedStaticText();
-                RefreshAppliedKeysList();
+                RefreshLicenseKeysText();
                 RefreshStatus();
             }
             catch (Exception ex)
@@ -197,15 +197,14 @@ namespace SolidWorksBodyExporter.AddIn.Ui
 
         private void ApplyLicense_Click(object sender, RoutedEventArgs e)
         {
-            var raw = NewLicenseKeysEntry.Text ?? string.Empty;
+            var raw = LicenseKeysEntry.Text ?? string.Empty;
             if (raw.TrimStart().StartsWith("{", StringComparison.Ordinal))
             {
                 if (LicenseManager.Current.TryInstallLicenseContent(raw, out var licError))
                 {
                     LicenseChanged = true;
-                    NewLicenseKeysEntry.Clear();
                     ShowResult("License file installed successfully.", isError: false);
-                    RefreshAppliedKeysList();
+                    RefreshLicenseKeysText();
                     RefreshStatus();
                 }
                 else
@@ -230,8 +229,7 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             }
 
             LicenseChanged = true;
-            NewLicenseKeysEntry.Clear();
-            RefreshAppliedKeysList();
+            RefreshLicenseKeysText();
             RefreshStatus();
 
             if (summary.NewlyActivated == 0 && summary.SkippedAlreadyApplied > 0)
@@ -270,7 +268,7 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             }
 
             LicenseChanged = true;
-            RefreshAppliedKeysList();
+            RefreshLicenseKeysText();
             RefreshStatus();
             var status = LicenseManager.Current.GetStatus();
             var days = status.DaysRemaining.HasValue ? status.DaysRemaining.Value.ToString(CultureInfo.InvariantCulture) : "?";
@@ -298,20 +296,12 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             {
                 LicenseChanged = true;
                 ShowResult("License installed successfully.", isError: false);
-                RefreshAppliedKeysList();
+                RefreshLicenseKeysText();
                 RefreshStatus();
             }
             else
             {
                 ShowResult("Could not install license: " + (error ?? "(unknown error)"), isError: true);
-            }
-        }
-
-        private void AppliedLicenseKeysList_PreviewKeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Delete || e.Key == Key.Back)
-            {
-                e.Handled = true;
             }
         }
 
@@ -343,19 +333,16 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             ShowResult("Copy failed: " + (last?.Message ?? "(unknown)"), isError: true);
         }
 
-        private void RefreshAppliedKeysList()
+        private void RefreshLicenseKeysText()
         {
-            AppliedLicenseKeysList.Items.Clear();
             var settings = AppSettings.LoadOrCreate();
             settings.NormalizeAppliedLicenseKeys();
-            foreach (var key in settings.AppliedLicenseKeys ?? Enumerable.Empty<string>())
-            {
-                AppliedLicenseKeysList.Items.Add(key);
-            }
+            var keys = settings.AppliedLicenseKeys ?? Enumerable.Empty<string>();
+            LicenseKeysEntry.Text = string.Join(Environment.NewLine, keys);
 
             if (RecalculateStackButton != null)
             {
-                var count = settings.AppliedLicenseKeys?.Count ?? 0;
+                var count = keys.Count();
                 RecalculateStackButton.Visibility = count > 1 ? Visibility.Visible : Visibility.Collapsed;
             }
         }

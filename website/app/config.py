@@ -51,8 +51,17 @@ SEPAY_PG_MERCHANT_ID = os.getenv("SEPAY_PG_MERCHANT_ID", "").strip()
 SEPAY_PG_SECRET_KEY = os.getenv("SEPAY_PG_SECRET_KEY", "").strip()
 SEPAY_PG_ENV = os.getenv("SEPAY_PG_ENV", "sandbox").strip().lower()
 
+def _normalize_http_base_url(url: str) -> str:
+    u = (url or "").strip().rstrip("/")
+    if not u:
+        return ""
+    if not u.lower().startswith(("http://", "https://")):
+        u = "https://" + u
+    return u
+
+
 # Cloudflare Worker — mint licenses for online validation (POST /admin/license/issue)
-WORKER_API_BASE_URL = os.getenv("WORKER_API_BASE_URL", "").strip().rstrip("/")
+WORKER_API_BASE_URL = _normalize_http_base_url(os.getenv("WORKER_API_BASE_URL", ""))
 WORKER_ADMIN_TOKEN = os.getenv("WORKER_ADMIN_TOKEN", "").strip()
 SEPAY_LICENSE_DAYS = int(os.getenv("SEPAY_LICENSE_DAYS", "365"))
 

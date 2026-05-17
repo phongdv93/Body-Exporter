@@ -3,7 +3,7 @@
 param(
     [string]$ApiUrl = "https://bodyexporter-api.bodyexporter.workers.dev",
     [string]$AdminToken = $env:BODYEXPORTER_ADMIN_TOKEN,
-    [string]$Version = "0.7.3",
+    [string]$Version = "0.7.5",
     [string]$DownloadUrl = "",
     [string]$ReleaseNotes = "Tai zip moi, giai nen, chay Install-BodyExporter.cmd (Admin), khoi dong lai SolidWorks."
 )

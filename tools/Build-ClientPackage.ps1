@@ -4,11 +4,11 @@
   Build Release + Obfuscar, copy Launcher, tao thu muc zip gui khach dung thu.
 
 .EXAMPLE
-  .\tools\Build-ClientPackage.ps1 -ApiBaseUrl "https://bodyexporter-api.bodyexporter.workers.dev" -Version "0.7.3"
+  .\tools\Build-ClientPackage.ps1 -ApiBaseUrl "https://bodyexporter-api.bodyexporter.workers.dev" -Version "0.7.5" -CreateZip
 #>
 param(
     [string]$ApiBaseUrl = "https://bodyexporter-api.bodyexporter.workers.dev",
-    [string]$Version = "0.7.3",
+    [string]$Version = "0.7.5",
     [switch]$SkipBuild,
     [switch]$CreateZip
 )
@@ -124,7 +124,7 @@ Excel mau (template):
   - Export -> Choose default Excel template... (luu duong dan tren may).
   - Export -> Open Excel template / Fill Excel template / Open last filled export.
 
-Bao mat (v0.7.3+):
+Bao mat (v0.7.5+):
   - DLL Release da obfuscate (Obfuscar): ten method private bi doi ten; class public COM/XAML giu nguyen.
   - Trial 14 ngay: server /v1/trial/start (can deploy Worker).
   - settings.json: file settings.seal (DPAPI, gan user + may) - khong sua tay ApiBaseUrl/expiry.
@@ -134,7 +134,8 @@ KHONG gui lai cho khach:
   - Thu muc server/, drapf, source code, file .pdb
   - Admin token, JWT private key, Sepay secret
 
-Ho tro: hotro@nesting.click
+Ho tro: hotro@bodyexporter.com
+Mua license: https://bodyexporter.com/buy
 "@
 Set-Content -Path (Join-Path $stage "HUONG-DAN-CAI-DAT.txt") -Value $readme -Encoding UTF8
 

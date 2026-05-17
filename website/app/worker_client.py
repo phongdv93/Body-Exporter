@@ -15,7 +15,7 @@ log = logging.getLogger("uvicorn.error")
 
 def mint_license_via_worker(*, owner: str, plan: str, days: int) -> tuple[str, datetime]:
     """Return (license_key, expires_at_utc_naive). Falls back to local UUID if Worker not configured."""
-    base = config.WORKER_API_BASE_URL.strip().rstrip("/")
+    base = config.WORKER_API_BASE_URL
     token = config.WORKER_ADMIN_TOKEN.strip()
     if not base or not token:
         log.warning(
