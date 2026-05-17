@@ -1,9 +1,8 @@
-﻿SolidWorks Body Exporter v0.7.5 (dung thu)
+﻿SolidWorks Body Exporter v0.7.5
 ============================================
 
 Yeu cau:
-  - Windows 10/11, SolidWorks 2024 (hoac ban ban ho tro)
-  - .NET Framework 4.8
+  - Windows 10/11, SolidWorks
   - Quyen Administrator khi cai (chi lan dau)
 
 Cai dat:
@@ -21,15 +20,6 @@ Excel mau (template):
   - Export -> Choose default Excel template... (luu duong dan tren may).
   - Export -> Open Excel template / Fill Excel template / Open last filled export.
 
-Bao mat (v0.7.5+):
-  - DLL Release da obfuscate (Obfuscar): ten method private bi doi ten; class public COM/XAML giu nguyen.
-  - Trial 14 ngay: server /v1/trial/start (can deploy Worker).
-  - settings.json: file settings.seal (DPAPI, gan user + may) - khong sua tay ApiBaseUrl/expiry.
-  - License online re-check moi 7 ngay (offline toi da 7 ngay neu JWT hop le).
-
-KHONG gui lai cho khach:
-  - Thu muc server/, drapf, source code, file .pdb
-  - Admin token, JWT private key, Sepay secret
 
 Ho tro: hotro@bodyexporter.com
 Mua license: https://bodyexporter.com/buy
