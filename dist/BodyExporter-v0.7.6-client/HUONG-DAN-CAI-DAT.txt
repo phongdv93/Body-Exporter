@@ -1,6 +1,24 @@
 ﻿SolidWorks Body Exporter v0.7.6
 ============================================
 
-See bodyexporter.com/download for the latest package.
-Support: hotro@bodyexporter.com
-Buy license: https://bodyexporter.com/buy
+Yeu cau:
+  - Windows 10/11, SolidWorks
+
+1. Dong SolidWorks.
+2. Giai nen ZIP, chay Install-BodyExporter.cmd (Run as administrator).
+   Installer tu go COM/DLL cu, xoa cache (client-config, icons, log tam).
+   Giu license: settings.json, license.lic, trial.dat trong %APPDATA%\SolidWorksBodyExporter.
+3. Mo SolidWorks -> Tools -> Add-Ins -> bat SolidWorks Body Exporter.
+4. Mo Body Exporter tu shortcut Desktop.
+
+Excel template:
+  - Export -> Excel template panel... (Add new / Change to link your .xlsx).
+  - Export -> Fill Excel template to refresh data. Prepare your company file with {{Body Name}}, {{Length}}, ...
+
+Tai: https://bodyexporter.com/download
+Ho tro: hotro@bodyexporter.com
+Mua license: https://bodyexporter.com/buy
+
+
+
+

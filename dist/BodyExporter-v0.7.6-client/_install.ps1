@@ -28,6 +28,69 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+# Must match AddInIntegration.AddInGuid
+$AddInGuid = 'D61E8EAA-B7F1-4EE3-8B8A-9D6C673A7E1F'
+
+function Get-RegAsmPath {
+    $regasm = Join-Path $env:SystemRoot 'Microsoft.NET\Framework64\v4.0.30319\regasm.exe'
+    if (-not (Test-Path $regasm)) {
+        $regasm = Join-Path $env:SystemRoot 'Microsoft.NET\Framework\v4.0.30319\regasm.exe'
+    }
+    if (-not (Test-Path $regasm)) {
+        throw 'Khong tim thay regasm.exe. Khach can cai .NET Framework 4.8.'
+    }
+    return $regasm
+}
+
+function Test-SolidWorksRunning {
+    return $null -ne (Get-Process -Name 'SLDWORKS' -ErrorAction SilentlyContinue | Select-Object -First 1)
+}
+
+function Unregister-AddInDll {
+    param(
+        [Parameter(Mandatory = $true)][string]$DllPath,
+        [Parameter(Mandatory = $true)][string]$RegAsm
+    )
+    if (-not (Test-Path -LiteralPath $DllPath)) { return }
+    Write-Host "  Go dang ky COM: $DllPath" -ForegroundColor DarkGray
+    & $RegAsm /unregister $DllPath 2>$null | Out-Null
+}
+
+function Clear-BodyExporterCaches {
+    param([string]$AppDataDir, [string]$LocalAppDataDir)
+    $files = @(
+        (Join-Path $AppDataDir 'client-config-cache.json')
+    )
+    foreach ($path in $files) {
+        if (Test-Path -LiteralPath $path) {
+            Remove-Item -LiteralPath $path -Force
+            Write-Host "  Xoa cache: $(Split-Path $path -Leaf)" -ForegroundColor DarkGray
+        }
+    }
+    $iconDir = Join-Path $LocalAppDataDir 'icons'
+    if (Test-Path -LiteralPath $iconDir) {
+        Remove-Item -LiteralPath $iconDir -Recurse -Force
+        Write-Host '  Xoa cache: icons\' -ForegroundColor DarkGray
+    }
+    $tempDir = Join-Path $env:TEMP 'SolidWorksBodyExporter'
+    if (Test-Path -LiteralPath $tempDir) {
+        Get-ChildItem -LiteralPath $tempDir -Filter 'addin.log' -ErrorAction SilentlyContinue |
+            ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue }
+        Write-Host '  Xoa log tam: %TEMP%\SolidWorksBodyExporter\addin.log' -ForegroundColor DarkGray
+    }
+}
+
+function Remove-InstallRootBinaries {
+    param([string]$Root)
+    if (-not (Test-Path -LiteralPath $Root)) { return }
+    Get-ChildItem -LiteralPath $Root -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.Extension -match '^\.(dll|exe|tlb)$' } |
+        ForEach-Object {
+            Write-Host "  Xoa file cu: $($_.Name)" -ForegroundColor DarkGray
+            Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue
+        }
+}
+
 function Test-IsAdministrator
 {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -72,8 +135,30 @@ if (-not (Test-Path $launcher)) {
     throw "Khong tim thay $launcher. Hay copy ca DLL va EXE vao cung thu muc voi installer."
 }
 
-# 1. Tao install root + copy binary.
-Write-Host "[1/5] Copy binary toi $InstallRoot..." -ForegroundColor Yellow
+$regasm = Get-RegAsmPath
+$settingsDir = Join-Path $env:APPDATA 'SolidWorksBodyExporter'
+$oldInstalledDll = Join-Path $InstallRoot 'SolidWorksBodyExporter.AddIn.dll'
+
+if (Test-SolidWorksRunning) {
+    Write-Host ''
+    Write-Host 'CANH BAO: SolidWorks dang chay.' -ForegroundColor Yellow
+    Write-Host '  Dong SolidWorks truoc khi cai de tranh DLL bi khoa va add-in cu con trong bo nho.' -ForegroundColor Yellow
+    Write-Host ''
+}
+
+# 0. Go phien ban cu + cache (giu license: settings.json, license.lic, trial.dat).
+Write-Host '[0/6] Go phien ban cu va cache...' -ForegroundColor Yellow
+Unregister-AddInDll -DllPath $oldInstalledDll -RegAsm $regasm
+$legacyPf = 'C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\SolidWorksBodyExporter.AddIn.dll'
+if (Test-Path -LiteralPath $legacyPf) {
+    Write-Host '  Phat hien DLL cu trong Program Files (nen xoa thu cong neu SW van load ban cu):' -ForegroundColor Yellow
+    Write-Host "    $legacyPf" -ForegroundColor DarkGray
+}
+Clear-BodyExporterCaches -AppDataDir $settingsDir -LocalAppDataDir $InstallRoot
+Remove-InstallRootBinaries -Root $InstallRoot
+
+# 1. Copy binary moi.
+Write-Host "[1/6] Copy binary moi toi $InstallRoot..." -ForegroundColor Yellow
 if (-not (Test-Path $InstallRoot)) {
     New-Item -ItemType Directory -Path $InstallRoot -Force | Out-Null
 }
@@ -89,22 +174,14 @@ $installedDll = Join-Path $InstallRoot 'SolidWorksBodyExporter.AddIn.dll'
 $installedExe = Join-Path $InstallRoot 'SolidWorksBodyExporter.Launcher.exe'
 
 # 2. Dang ky COM (regasm /codebase).
-Write-Host "[2/5] Dang ky COM trong registry..." -ForegroundColor Yellow
-$regasm = Join-Path $env:SystemRoot 'Microsoft.NET\Framework64\v4.0.30319\regasm.exe'
-if (-not (Test-Path $regasm)) {
-    $regasm = Join-Path $env:SystemRoot 'Microsoft.NET\Framework\v4.0.30319\regasm.exe'
-}
-if (-not (Test-Path $regasm)) {
-    throw "Khong tim thay regasm.exe. Khach can cai .NET Framework 4.8."
-}
+Write-Host "[2/6] Dang ky COM trong registry..." -ForegroundColor Yellow
 & $regasm /codebase /tlb $installedDll | Out-Null
 if ($LASTEXITCODE -ne 0) {
     throw "regasm.exe loi exit code $LASTEXITCODE. Hay chac chan script chay voi quyen Administrator."
 }
 
-# 3. Tao settings.json mac dinh.
-Write-Host "[3/5] Ghi settings.json mac dinh..." -ForegroundColor Yellow
-$settingsDir = Join-Path $env:APPDATA 'SolidWorksBodyExporter'
+# 3. Tao settings.json mac dinh (neu chua co — giu license khi nang cap).
+Write-Host "[3/6] Kiem tra settings.json..." -ForegroundColor Yellow
 if (-not (Test-Path $settingsDir)) { New-Item -ItemType Directory -Path $settingsDir -Force | Out-Null }
 $settingsPath = Join-Path $settingsDir 'settings.json'
 if (-not (Test-Path $settingsPath)) {
@@ -120,7 +197,7 @@ if (-not (Test-Path $settingsPath)) {
 }
 
 # 3b. Ghi nhan dong y telemetry (khach da chap nhan tren bodyexporter.com/download).
-Write-Host "[3b/5] Ghi telemetry-consent.json..." -ForegroundColor Yellow
+Write-Host "[3b/6] Ghi telemetry-consent.json..." -ForegroundColor Yellow
 $consentBundle = Join-Path $source 'telemetry-consent.bundle.json'
 $consentPath = Join-Path $settingsDir 'telemetry-consent.json'
 if (Test-Path $consentBundle) {
@@ -136,7 +213,7 @@ if (Test-Path $consentBundle) {
 }
 
 # 4. Tao desktop shortcut.
-Write-Host "[4/5] Tao desktop shortcut..." -ForegroundColor Yellow
+Write-Host "[4/6] Tao desktop shortcut..." -ForegroundColor Yellow
 $desktop = [Environment]::GetFolderPath('Desktop')
 if ([string]::IsNullOrWhiteSpace($desktop)) { $desktop = Join-Path $env:USERPROFILE 'Desktop' }
 $lnkPath = Join-Path $desktop 'Body Exporter.lnk'
@@ -149,7 +226,11 @@ $lnk.Description      = 'Open the SolidWorks Body Exporter window.'
 $lnk.Save()
 
 # 5. Done.
-Write-Host "[5/5] Xong!" -ForegroundColor Green
+Write-Host "[5/6] Kiem tra phien ban..." -ForegroundColor Yellow
+$fileVer = (Get-Item $installedDll).VersionInfo.FileVersion
+Write-Host "  Phien ban DLL: $fileVer" -ForegroundColor Green
+
+Write-Host "[6/6] Xong!" -ForegroundColor Green
 Write-Host ""
 Write-Host "Cai dat thanh cong:" -ForegroundColor Green
 Write-Host "  DLL:      $installedDll"
@@ -157,8 +238,8 @@ Write-Host "  EXE:      $installedExe"
 Write-Host "  Settings: $settingsPath"
 Write-Host "  Shortcut: $lnkPath"
 Write-Host ""
-Write-Host "Khoi dong SolidWorks. Mo Tools -> Add-Ins de bat 'SolidWorks Body Exporter'."
-Write-Host "Lan dau bam icon Body Exporter, dan license key vao."
+Write-Host "Mo SolidWorks (dong het truoc khi cai neu chua). Tools -> Add-Ins -> bat 'SolidWorks Body Exporter'."
+Write-Host "Sau nang cap: cache client-config da xoa; license trong settings.json van giu."
 Write-Host ""
 Wait-ForKey
 
