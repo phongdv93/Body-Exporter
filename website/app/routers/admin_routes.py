@@ -57,19 +57,22 @@ def _env_status(content) -> dict:
 
 @router.get("")
 def dashboard(request: Request, db: Session = Depends(get_db), _user=Depends(require_admin)):
-    content = get_content(db)
     try:
         sync_known_machines_from_crm(db)
     except Exception:
         import logging
 
         logging.getLogger("uvicorn.error").exception("CRM machine sync failed")
+        db.rollback()
+
+    content = get_content(db)
     try:
         machines = list_machines_for_admin(db)
     except Exception:
         import logging
 
         logging.getLogger("uvicorn.error").exception("list_machines_for_admin failed")
+        db.rollback()
         machines = []
     return html_response(
         templates,

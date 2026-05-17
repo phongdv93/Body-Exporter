@@ -183,41 +183,49 @@ def _upsert_machine_from_crm(
     now = datetime.utcnow()
     row = db.scalar(select(ClientMachine).where(ClientMachine.machine_id == mid))
     if row is None:
-        db.add(
-            ClientMachine(
-                machine_id=mid,
-                first_seen_at=now,
-                last_seen_at=now,
-                license_status=license_status[:32],
-                has_purchased_license=has_purchased,
-                last_event=event[:32],
-            )
+        row = ClientMachine(
+            machine_id=mid,
+            first_seen_at=now,
+            last_seen_at=now,
+            license_status=license_status[:32],
+            has_purchased_license=has_purchased,
+            last_event=event[:32],
         )
+        db.add(row)
+        db.flush()
     else:
         if has_purchased:
             row.has_purchased_license = True
-        if license_status and row.license_status in ("unknown", "none"):
+        if license_status == "licensed":
+            row.license_status = "licensed"
+        elif license_status == "expired" and row.license_status not in ("licensed",):
+            row.license_status = "expired"
+        elif license_status and row.license_status in ("unknown", "none"):
             row.license_status = license_status[:32]
         row.last_event = event[:32]
 
 
 def sync_known_machines_from_crm(db: Session) -> int:
-    """Backfill dashboard from Postgres licenses + Worker KV (machines that activated a key)."""
-    added = 0
+    """Backfill dashboard from Postgres licenses + Worker KV (one row per machine_id)."""
     before = db.scalar(select(func.count()).select_from(ClientMachine)) or 0
+    # Dedupe trong một lần sync — tránh INSERT trùng machine_id trước khi flush.
+    pending: dict[str, dict[str, Any]] = {}
+
+    def _merge(mid: str, license_status: str, event: str) -> None:
+        if mid not in pending:
+            pending[mid] = {"license_status": license_status, "event": event}
+            return
+        cur = pending[mid]
+        if license_status == "licensed":
+            cur["license_status"] = "licensed"
+        elif license_status == "expired" and cur["license_status"] != "licensed":
+            cur["license_status"] = "expired"
 
     for lic in db.scalars(select(License).where(License.machine_fingerprint.isnot(None))).all():
         fp = (lic.machine_fingerprint or "").strip()
         if not fp:
             continue
-        status = "licensed" if not lic.revoked else "expired"
-        _upsert_machine_from_crm(
-            db,
-            machine_id=fp,
-            license_status=status,
-            has_purchased=True,
-            event="postgres_license",
-        )
+        _merge(fp, "licensed" if not lic.revoked else "expired", "postgres_license")
 
     try:
         from app.worker_client import fetch_worker_license_records
@@ -226,18 +234,25 @@ def sync_known_machines_from_crm(db: Session) -> int:
             fp = (rec.get("boundMachineId") or "").strip()
             if not fp:
                 continue
-            revoked = bool(rec.get("revoked"))
-            _upsert_machine_from_crm(
-                db,
-                machine_id=fp,
-                license_status="expired" if revoked else "licensed",
-                has_purchased=True,
-                event="worker_kv",
-            )
+            _merge(fp, "expired" if rec.get("revoked") else "licensed", "worker_kv")
     except Exception as ex:
         log.warning("sync_known_machines_from_crm: Worker list failed: %s", ex)
 
-    db.commit()
+    for mid, info in pending.items():
+        _upsert_machine_from_crm(
+            db,
+            machine_id=mid,
+            license_status=info["license_status"],
+            has_purchased=True,
+            event=info["event"],
+        )
+
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+
     after = db.scalar(select(func.count()).select_from(ClientMachine)) or 0
     return max(0, after - before)
 
