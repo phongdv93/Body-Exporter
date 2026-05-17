@@ -358,9 +358,28 @@ body {
   margin-top: 10px;
 }
 
-.policy-card h2 { margin-top: 0; font-size: 1.1rem; }
-.policy-text ul { margin: 0.5rem 0 1rem; padding-left: 1.25rem; color: var(--muted); }
-.policy-text li { margin-bottom: 0.35rem; }
+.policy-details { margin-bottom: 0.5rem; }
+.policy-details summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1.05rem;
+  list-style: none;
+  padding: 0.25rem 0;
+}
+.policy-details summary::-webkit-details-marker { display: none; }
+.policy-details summary::after {
+  content: " ▾";
+  color: var(--muted);
+  font-size: 0.85em;
+}
+.policy-details[open] summary::after { content: " ▴"; }
+.policy-text {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+.policy-text p { margin: 0 0 0.5rem; }
 .consent-form { margin-top: 1.25rem; }
 .consent-check {
   display: flex;

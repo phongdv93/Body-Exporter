@@ -25,7 +25,7 @@ namespace SolidWorksBodyExporter.AddIn.Services.Api
         public static string ConsentPathInAppData()
         {
             return Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData),
                 "SolidWorksBodyExporter",
                 ConsentFileName);
         }
@@ -37,6 +37,17 @@ namespace SolidWorksBodyExporter.AddIn.Services.Api
                 return true;
             }
 
+            if (HasConsentFile())
+            {
+                return true;
+            }
+
+            // Plugin installed before telemetry-consent bundle: already using product in AppData.
+            return HasLegacyInstallFootprint();
+        }
+
+        private static bool HasConsentFile()
+        {
             try
             {
                 var path = ConsentPathInAppData();
@@ -52,6 +63,51 @@ namespace SolidWorksBodyExporter.AddIn.Services.Api
             {
                 return false;
             }
+        }
+
+        private static bool HasLegacyInstallFootprint()
+        {
+            try
+            {
+                var dir = Path.Combine(
+                    System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData),
+                    "SolidWorksBodyExporter");
+                if (!Directory.Exists(dir))
+                {
+                    return false;
+                }
+
+                if (File.Exists(Path.Combine(dir, "trial.dat"))
+                    || File.Exists(Path.Combine(dir, "license.lic")))
+                {
+                    return true;
+                }
+
+                var settingsPath = Path.Combine(dir, "settings.json");
+                if (File.Exists(settingsPath) && new FileInfo(settingsPath).Length > 24)
+                {
+                    return true;
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+
+            return false;
+        }
+
+        public static void StampConsentInSettings(AppSettings settings, string source)
+        {
+            if (settings == null || settings.TelemetryConsentAcceptedUtc != null)
+            {
+                return;
+            }
+
+            settings.TelemetryConsentAcceptedUtc = DateTime.UtcNow;
+            settings.TelemetryConsentVersion = 1;
+            settings.Save();
+            DiagnosticLog.Info("TelemetryConsent: recorded (" + (source ?? "unknown") + ")");
         }
 
         /// <summary>Import bundle from install folder or promote existing consent file into settings.</summary>

@@ -14,28 +14,21 @@ namespace SolidWorksBodyExporter.AddIn.Services.Api
     internal static class TelemetryReporter
     {
         private static readonly TimeSpan MinInterval = TimeSpan.FromHours(20);
-        private static DateTime _lastAttemptUtc = DateTime.MinValue;
-        private static readonly object Gate = new object();
 
         public static void TrySendConnectPing(SldWorks sw, string installRoot)
         {
             try
             {
-                lock (Gate)
-                {
-                    if (DateTime.UtcNow - _lastAttemptUtc < MinInterval)
-                    {
-                        return;
-                    }
-
-                    _lastAttemptUtc = DateTime.UtcNow;
-                }
-
                 ThreadPool.QueueUserWorkItem(_ =>
                 {
                     try
                     {
                         SendPing(sw, installRoot, "connect");
+                    }
+                    catch (WebException wex)
+                    {
+                        var code = wex.Response is HttpWebResponse hr ? (int)hr.StatusCode : 0;
+                        DiagnosticLog.Warn("TelemetryReporter: ping failed HTTP " + code + " - " + wex.Message);
                     }
                     catch (Exception ex)
                     {
@@ -56,6 +49,16 @@ namespace SolidWorksBodyExporter.AddIn.Services.Api
             settings = AppSettings.LoadOrCreate();
 
             if (!TelemetryConsent.IsGranted(settings))
+            {
+                DiagnosticLog.Info("TelemetryReporter: skipped ping (no data-policy consent)");
+                return;
+            }
+
+            TelemetryConsent.StampConsentInSettings(settings, "ping");
+            settings = AppSettings.LoadOrCreate();
+
+            var lastPing = settings.LastTelemetryPingUtc;
+            if (lastPing.HasValue && DateTime.UtcNow - lastPing.Value < MinInterval)
             {
                 return;
             }

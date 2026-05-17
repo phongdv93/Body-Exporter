@@ -157,7 +157,10 @@ def download_accept(
                 db,
                 page_title="Tải plugin Body Exporter",
                 download_consent=False,
-                policy_error="Chưa cấu hình link tải — liên hệ admin.",
+                policy_error=(
+                    "File đã được gỡ để gỡ lỗi. Vui lòng liên hệ "
+                    f"{get_content(db).support_email or config.SUPPORT_EMAIL} để được hỗ trợ."
+                ),
             ),
             status_code=503,
         )

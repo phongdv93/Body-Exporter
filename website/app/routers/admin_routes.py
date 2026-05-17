@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app import config
 from app.auth import get_db, login_session, logout_session, require_admin, verify_admin
-from app.client_telemetry import list_machines_for_admin
+from app.client_telemetry import list_machines_for_admin, sync_known_machines_from_crm
 from app.database import get_content
 from app.sepay import pg_checkout_available_for_content
 from app.template_response import html_response
@@ -58,6 +58,12 @@ def _env_status(content) -> dict:
 @router.get("")
 def dashboard(request: Request, db: Session = Depends(get_db), _user=Depends(require_admin)):
     content = get_content(db)
+    try:
+        sync_known_machines_from_crm(db)
+    except Exception:
+        import logging
+
+        logging.getLogger("uvicorn.error").exception("CRM machine sync failed")
     machines = list_machines_for_admin(db)
     return html_response(
         templates,

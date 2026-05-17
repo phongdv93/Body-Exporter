@@ -169,6 +169,79 @@ def machine_usage_label_vi(label: str) -> str:
     }.get(label, label)
 
 
+def _upsert_machine_from_crm(
+    db: Session,
+    *,
+    machine_id: str,
+    license_status: str = "licensed",
+    has_purchased: bool = True,
+    event: str = "license_sync",
+) -> None:
+    mid = (machine_id or "").strip()
+    if not mid or len(mid) < 8:
+        return
+    now = datetime.utcnow()
+    row = db.scalar(select(ClientMachine).where(ClientMachine.machine_id == mid))
+    if row is None:
+        db.add(
+            ClientMachine(
+                machine_id=mid,
+                first_seen_at=now,
+                last_seen_at=now,
+                license_status=license_status[:32],
+                has_purchased_license=has_purchased,
+                last_event=event[:32],
+            )
+        )
+    else:
+        if has_purchased:
+            row.has_purchased_license = True
+        if license_status and row.license_status in ("unknown", "none"):
+            row.license_status = license_status[:32]
+        row.last_event = event[:32]
+
+
+def sync_known_machines_from_crm(db: Session) -> int:
+    """Backfill dashboard from Postgres licenses + Worker KV (machines that activated a key)."""
+    added = 0
+    before = db.scalar(select(func.count()).select_from(ClientMachine)) or 0
+
+    for lic in db.scalars(select(License).where(License.machine_fingerprint.isnot(None))).all():
+        fp = (lic.machine_fingerprint or "").strip()
+        if not fp:
+            continue
+        status = "licensed" if not lic.revoked else "expired"
+        _upsert_machine_from_crm(
+            db,
+            machine_id=fp,
+            license_status=status,
+            has_purchased=True,
+            event="postgres_license",
+        )
+
+    try:
+        from app.worker_client import fetch_worker_license_records
+
+        for rec in fetch_worker_license_records():
+            fp = (rec.get("boundMachineId") or "").strip()
+            if not fp:
+                continue
+            revoked = bool(rec.get("revoked"))
+            _upsert_machine_from_crm(
+                db,
+                machine_id=fp,
+                license_status="expired" if revoked else "licensed",
+                has_purchased=True,
+                event="worker_kv",
+            )
+    except Exception as ex:
+        log.warning("sync_known_machines_from_crm: Worker list failed: %s", ex)
+
+    db.commit()
+    after = db.scalar(select(func.count()).select_from(ClientMachine)) or 0
+    return max(0, after - before)
+
+
 def list_machines_for_admin(db: Session) -> list[dict[str, Any]]:
     rows = db.scalars(select(ClientMachine).order_by(ClientMachine.last_seen_at.desc())).all()
     now = datetime.utcnow()

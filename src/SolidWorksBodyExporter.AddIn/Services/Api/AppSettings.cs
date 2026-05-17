@@ -103,6 +103,9 @@ namespace SolidWorksBodyExporter.AddIn.Services.Api
         /// <summary>Policy version accepted (default 1).</summary>
         public int? TelemetryConsentVersion { get; set; }
 
+        /// <summary>Last successful POST /api/v1/client/ping (UTC).</summary>
+        public DateTime? LastTelemetryPingUtc { get; set; }
+
         public static AppSettings LoadOrCreate()
         {
             try
