@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
@@ -7,17 +7,15 @@ from app import config
 from app.auth import get_db, login_session, logout_session, require_admin, verify_admin
 from app.database import get_content
 from app.sepay import pg_checkout_available_for_content
+from app.template_response import html_response
 
 router = APIRouter(prefix="/admin")
 templates = Jinja2Templates(directory=str(config.TEMPLATES_DIR))
 
 
-@router.get("/login", response_class=HTMLResponse)
+@router.get("/login")
 def login_page(request: Request):
-    return templates.TemplateResponse(
-        "admin/login.html",
-        {"request": request, "error": None},
-    )
+    return html_response(templates, "admin/login.html", {"request": request, "error": None})
 
 
 @router.post("/login")
@@ -30,7 +28,8 @@ def login_post(
     if verify_admin(username.strip(), password, db):
         login_session(request, username.strip())
         return RedirectResponse("/admin", status_code=303)
-    return templates.TemplateResponse(
+    return html_response(
+        templates,
         "admin/login.html",
         {"request": request, "error": "Sai tên đăng nhập hoặc mật khẩu."},
         status_code=401,
@@ -43,25 +42,52 @@ def logout(request: Request):
     return RedirectResponse("/admin/login", status_code=303)
 
 
-@router.get("", response_class=HTMLResponse)
+def _env_status(content) -> dict:
+    wh = bool(
+        (content.sepay_webhook_secret or "").strip()
+        or config.SEPAY_WEBHOOK_SECRET
+        or (content.sepay_webhook_api_key or "").strip()
+        or config.SEPAY_WEBHOOK_API_KEY
+    )
+    return {
+        "worker": bool(config.WORKER_API_BASE_URL and config.WORKER_ADMIN_TOKEN),
+        "resend": bool(config.RESEND_API_KEY),
+        "webhook": wh,
+    }
+
+
+@router.get("")
 def dashboard(request: Request, db: Session = Depends(get_db), _user=Depends(require_admin)):
     content = get_content(db)
-    return templates.TemplateResponse(
+    return html_response(
+        templates,
         "admin/dashboard.html",
         {
             "request": request,
             "content": content,
             "pg_available": pg_checkout_available_for_content(content),
             "site_url": config.SITE_URL.rstrip("/"),
+            "env": _env_status(content),
         },
     )
 
 
-@router.get("/content", response_class=HTMLResponse)
-def edit_content(request: Request, db: Session = Depends(get_db), _user=Depends(require_admin)):
-    return templates.TemplateResponse(
+@router.get("/content")
+def edit_content(
+    request: Request,
+    saved: int = 0,
+    db: Session = Depends(get_db),
+    _user=Depends(require_admin),
+):
+    return html_response(
+        templates,
         "admin/content.html",
-        {"request": request, "content": get_content(db), "saved": False},
+        {
+            "request": request,
+            "content": get_content(db),
+            "saved": bool(saved),
+            "site_url": config.SITE_URL.rstrip("/"),
+        },
     )
 
 
@@ -116,7 +142,5 @@ def save_content(
     if wh_api:
         c.sepay_webhook_api_key = wh_api
     db.commit()
-    return templates.TemplateResponse(
-        "admin/content.html",
-        {"request": request, "content": c, "saved": True},
-    )
+    db.refresh(c)
+    return RedirectResponse("/admin/content?saved=1", status_code=303)

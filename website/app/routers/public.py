@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app import config
 from app.auth import get_db
 from app.database import get_content
+from app.template_response import html_response
 from app.sepay import (
     build_pg_checkout_fields,
     build_qr_image_url,
@@ -71,11 +72,12 @@ def _ctx(request: Request, db: Session, page_title: str | None = None, **extra):
     }
 
 
-@router.get("/", response_class=HTMLResponse)
+@router.get("/")
 def home(request: Request, db: Session = Depends(get_db)):
     content = get_content(db)
     bullets = [b.strip() for b in (content.hero_bullets or "").splitlines() if b.strip()]
-    return templates.TemplateResponse(
+    return html_response(
+        templates,
         "home.html",
         _ctx(
             request,
@@ -86,20 +88,21 @@ def home(request: Request, db: Session = Depends(get_db)):
     )
 
 
-@router.get("/download", response_class=HTMLResponse)
+@router.get("/download")
 def download_page(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse(
+    return html_response(
+        templates,
         "download.html",
         _ctx(request, db, page_title="Tải plugin Body Exporter — SolidWorks"),
     )
 
 
-@router.get("/buy", response_class=HTMLResponse)
+@router.get("/buy")
 def buy_get(request: Request, email: str = "", db: Session = Depends(get_db)):
     return _render_buy(request, db, email=email.strip())
 
 
-@router.post("/buy", response_class=HTMLResponse)
+@router.post("/buy")
 def buy_post(
     request: Request,
     email: str = Form(...),
@@ -156,7 +159,8 @@ def _render_buy(request: Request, db: Session, email: str = ""):
         amount = bank["amount_vnd"]
     qr_url = build_qr_image_url(base, email) if email else ""
     memo = build_transfer_memo(email) if email else ""
-    return templates.TemplateResponse(
+    return html_response(
+        templates,
         "buy.html",
         _ctx(
             request,
@@ -172,9 +176,10 @@ def _render_buy(request: Request, db: Session, email: str = ""):
     )
 
 
-@router.get("/buy/success", response_class=HTMLResponse)
+@router.get("/buy/success")
 def buy_success(request: Request, email: str = "", db: Session = Depends(get_db)):
-    return templates.TemplateResponse(
+    return html_response(
+        templates,
         "buy_success.html",
         _ctx(
             request,

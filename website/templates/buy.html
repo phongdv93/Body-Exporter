@@ -35,7 +35,11 @@
       <dt>Nội dung CK</dt><dd><code>{{ memo }}</code></dd>
     </dl>
   </div>
-  <p class="hint">License gửi tự động tới <strong>{{ email }}</strong> sau khi hệ thống nhận tiền (thường vài phút).</p>
+  <p class="hint buy-email-hint">
+    <strong>Chưa có email ngay sau khi bấm nút.</strong> Key gửi tới <strong>{{ email }}</strong>
+    sau khi ngân hàng xác nhận và SePay gọi webhook (thường 1–10 phút).
+    Nội dung CK phải có <code>{{ memo }}</code>. Kiểm tra cả thư mục spam.
+  </p>
 </section>
 {% endif %}
 

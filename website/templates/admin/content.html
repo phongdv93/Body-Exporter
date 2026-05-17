@@ -20,7 +20,15 @@
       <a href="/">Xem site</a>
     </nav>
     <h1>Chỉnh nội dung</h1>
-    {% if saved %}<p class="flash-ok">Đã lưu.</p>{% endif %}
+    {% if saved %}
+    <p class="flash-ok">
+      Đã lưu vào database. Trang công khai cập nhật ngay —
+      <a href="/" target="_blank" rel="noopener">trang chủ</a>,
+      <a href="/buy" target="_blank" rel="noopener">/buy</a>,
+      <a href="/download" target="_blank" rel="noopener">/download</a>.
+      (Dashboard chỉ xem tóm tắt; sửa nội dung tại trang này rồi bấm <strong>Lưu</strong>.)
+    </p>
+    {% endif %}
     <form method="post" action="/admin/content" class="admin-form card">
       <h2>Trang chủ</h2>
       <label>Tiêu đề</label>

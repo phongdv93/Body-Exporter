@@ -4,9 +4,10 @@
 <section class="card center">
   <h1>Cảm ơn bạn</h1>
   {% if email %}
-  <p>License sẽ gửi tới <strong>{{ email }}</strong> khi giao dịch được xác nhận.</p>
+  <p>License sẽ gửi tới <strong>{{ email }}</strong> sau khi thanh toán được xác nhận (webhook SePay), thường trong vài phút.</p>
+  <p class="muted">Chưa thấy mail? Đợi thêm, kiểm tra spam, đảm bảo nội dung CK đúng <code>BE {{ email }}</code>.</p>
   {% else %}
-  <p>License sẽ gửi qua email bạn đã nhập khi thanh toán.</p>
+  <p>License sẽ gửi qua email bạn đã nhập khi thanh toán được xác nhận.</p>
   {% endif %}
   <a class="btn btn-primary" href="/download">Tải & cài plugin</a>
 </section>

@@ -21,6 +21,13 @@
     </nav>
     <h1>Dashboard</h1>
 
+    <p class="admin-notice">
+      <strong>Dashboard chỉ xem tóm tắt.</strong> Để đổi tiêu đề, giá, QR, link tải… vào
+      <a href="/admin/content">Chỉnh nội dung &amp; thanh toán</a> → <strong>Lưu</strong>.
+      Email license sau CK chỉ gửi khi SePay gọi webhook <code>{{ site_url }}/webhook/sepay</code>
+      (cần <code>RESEND_API_KEY</code> trên Render).
+    </p>
+
     <section class="card" style="margin-bottom:1.25rem">
       <h2 style="margin-top:0;font-size:1rem">Bán hàng &amp; license</h2>
       <p class="muted" style="margin-top:0">Khách <strong>mua</strong> trên web — bạn <strong>xem license</strong> trong admin.</p>
@@ -37,7 +44,11 @@
       <p class="muted">Giá license: {{ '{:,}'.format(content.license_price_vnd).replace(',', '.') }} ₫</p>
       <p class="muted">Support: {{ content.support_email }}</p>
       <p class="muted">SePay cổng thẻ + key DB: {% if pg_available %}đã đủ merchant/secret (admin hoặc .env){% else %}chưa — chỉ QR CK{% endif %}</p>
-      <p class="muted">Webhook CK (lưu license sau khi khách CK): trỏ SePay tới <code>{{ site_url }}/webhook/sepay</code></p>
+      <p class="muted">Webhook CK: <code>{{ site_url }}/webhook/sepay</code>
+        — Worker {% if env.worker %}OK{% else %}<span style="color:#f3a8a8">thiếu</span>{% endif %},
+        Resend {% if env.resend %}OK{% else %}<span style="color:#f3a8a8">thiếu</span>{% endif %},
+        Webhook auth {% if env.webhook %}OK{% else %}<span style="color:#f3a8a8">thiếu secret/API key</span>{% endif %}
+      </p>
       <p style="margin-top:1rem">
         <a class="btn btn-secondary" href="/admin/content">Sửa nội dung, giá, QR, SePay…</a>
       </p>

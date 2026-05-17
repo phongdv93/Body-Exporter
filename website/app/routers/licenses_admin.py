@@ -1,7 +1,9 @@
 """Admin CRUD for issued licenses (Postgres)."""
 
+from urllib.parse import quote
+
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -11,34 +13,57 @@ from app.auth import get_db, require_admin
 from app.license_service import issue_license_record
 from app.models import AdminUser, License
 from app.database import get_content
+from app.template_response import html_response
 
 router = APIRouter(prefix="/admin/licenses")
 templates = Jinja2Templates(directory=str(config.TEMPLATES_DIR))
 
 
-@router.get("", response_class=HTMLResponse)
+def _env_status(content) -> dict:
+    wh = bool(
+        (content.sepay_webhook_secret or "").strip()
+        or config.SEPAY_WEBHOOK_SECRET
+        or (content.sepay_webhook_api_key or "").strip()
+        or config.SEPAY_WEBHOOK_API_KEY
+    )
+    return {
+        "worker": bool(config.WORKER_API_BASE_URL and config.WORKER_ADMIN_TOKEN),
+        "resend": bool(config.RESEND_API_KEY),
+        "webhook": wh,
+        "webhook_url": f"{config.SITE_URL.rstrip('/')}/webhook/sepay",
+    }
+
+
+def _licenses_ctx(request: Request, db: Session, *, saved: bool, error: str | None):
+    rows = db.scalars(select(License).order_by(License.purchased_at.desc())).all()
+    content = get_content(db)
+    return {
+        "request": request,
+        "licenses": rows,
+        "content": content,
+        "saved": saved,
+        "error": error,
+        "env": _env_status(content),
+    }
+
+
+@router.get("")
 def list_licenses(
     request: Request,
+    saved: int = 0,
+    err: str = "",
     db: Session = Depends(get_db),
     _user: AdminUser = Depends(require_admin),
 ):
-    rows = db.scalars(select(License).order_by(License.purchased_at.desc())).all()
-    content = get_content(db)
-    return templates.TemplateResponse(
+    return html_response(
+        templates,
         "admin/licenses.html",
-        {
-            "request": request,
-            "licenses": rows,
-            "content": content,
-            "saved": False,
-            "error": None,
-        },
+        _licenses_ctx(request, db, saved=bool(saved), error=err or None),
     )
 
 
-@router.post("", response_class=HTMLResponse)
+@router.post("")
 def create_license(
-    request: Request,
     buyer_email: str = Form(...),
     plan: str = Form("personal"),
     days: int = Form(365),
@@ -46,7 +71,6 @@ def create_license(
     db: Session = Depends(get_db),
     _user: AdminUser = Depends(require_admin),
 ):
-    err = None
     try:
         issue_license_record(
             db,
@@ -59,25 +83,15 @@ def create_license(
             order_id_suffix=f"admin-{buyer_email.strip()[:20]}",
         )
     except Exception as ex:
-        err = str(ex)
-
-    rows = db.scalars(select(License).order_by(License.purchased_at.desc())).all()
-    content = get_content(db)
-    return templates.TemplateResponse(
-        "admin/licenses.html",
-        {
-            "request": request,
-            "licenses": rows,
-            "content": content,
-            "saved": err is None,
-            "error": err,
-        },
-    )
+        return RedirectResponse(
+            f"/admin/licenses?err={quote(str(ex), safe='')}",
+            status_code=303,
+        )
+    return RedirectResponse("/admin/licenses?saved=1", status_code=303)
 
 
-@router.post("/edit", response_class=HTMLResponse)
+@router.post("/edit")
 def edit_license(
-    request: Request,
     license_id: int = Form(...),
     buyer_email: str = Form(""),
     machine_fingerprint: str = Form(""),
@@ -95,16 +109,4 @@ def edit_license(
         lic.notes = notes.strip()
         lic.revoked = revoked == "1"
         db.commit()
-
-    rows = db.scalars(select(License).order_by(License.purchased_at.desc())).all()
-    content = get_content(db)
-    return templates.TemplateResponse(
-        "admin/licenses.html",
-        {
-            "request": request,
-            "licenses": rows,
-            "content": content,
-            "saved": True,
-            "error": None,
-        },
-    )
+    return RedirectResponse("/admin/licenses?saved=1", status_code=303)
