@@ -1,0 +1,19 @@
+{
+  "authorName": "Gió",
+  "supportEmail": "hotro@bodyexporter.com",
+  "supportUrl": "https://bodyexporter.com",
+  "paymentWebUrl": "https://bodyexporter.com/buy",
+  "paymentWebTitle": "Mở trang thanh toán",
+  "paymentWebBody": "Chọn QR chuyển khoản hoặc thẻ trên web. Nhập email để nhận license tự động.",
+  "paymentVnTitle": "Thanh toán Việt Nam (Sepay)",
+  "paymentVnBody": "Quét QR bên dưới và chuyển đúng số tiền. Ghi email trong nội dung CK (vd. BE email@ban.com) để nhận license tự động.",
+  "paymentVnSepayUrl": "https://qr.sepay.vn/img?bank=ACB&acc=4518527&amount=1590000&des=Body%20Export%20License",
+  "paymentIntlTitle": "",
+  "paymentIntlBody": "",
+  "paymentIntlLemonsqueezyUrl": "",
+  "paymentIntlTripleUrl": "",
+  "latestVersion": "0.7.5",
+  "updateManifestUrl": "https://bodyexporter-api.bodyexporter.workers.dev/v1/update-manifest",
+  "downloadPageUrl": "",
+  "entitlementPolicy": { "mode": "normal", "capDays": 14, "message": "" }
+}

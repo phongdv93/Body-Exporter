@@ -26,6 +26,7 @@ class SiteContent(Base):
     sepay_qr_base_url: Mapped[str] = mapped_column(String(500), default="")
     license_price_vnd: Mapped[int] = mapped_column(Integer, default=1590000)
     support_email: Mapped[str] = mapped_column(String(120), default="hotro@bodyexporter.com")
+    author_name: Mapped[str] = mapped_column(String(120), default="Gió")
     sepay_pg_merchant_id: Mapped[str] = mapped_column(String(120), default="")
     sepay_pg_secret_key: Mapped[str] = mapped_column(String(300), default="")
     sepay_pg_env: Mapped[str] = mapped_column(String(20), default="sandbox")

@@ -8,6 +8,7 @@ from app.auth import get_db, login_session, logout_session, require_admin, verif
 from app.database import get_content
 from app.sepay import pg_checkout_available_for_content
 from app.template_response import html_response
+from app.worker_client import sync_client_config_from_site
 
 router = APIRouter(prefix="/admin")
 templates = Jinja2Templates(directory=str(config.TEMPLATES_DIR))
@@ -104,6 +105,7 @@ def save_content(
     license_price_vnd: int = Form(1590000),
     license_term_days: int = Form(365),
     support_email: str = Form(""),
+    author_name: str = Form(""),
     sepay_pg_merchant_id: str = Form(""),
     sepay_pg_secret_key: str = Form(""),
     sepay_pg_env: str = Form("sandbox"),
@@ -126,6 +128,7 @@ def save_content(
     c.license_price_vnd = max(1, license_price_vnd)
     c.license_term_days = max(1, int(license_term_days))
     c.support_email = support_email.strip() or config.SUPPORT_EMAIL
+    c.author_name = author_name.strip() or config.AUTHOR_NAME
     c.sepay_pg_merchant_id = sepay_pg_merchant_id.strip()
     if sepay_pg_secret_key.strip():
         c.sepay_pg_secret_key = sepay_pg_secret_key.strip()
@@ -140,4 +143,18 @@ def save_content(
         c.sepay_webhook_api_key = wh_api
     db.commit()
     db.refresh(c)
+    try:
+        sync_client_config_from_site(
+            support_email=c.support_email,
+            site_url=config.SITE_URL,
+            sepay_qr_base_url=c.sepay_qr_base_url,
+            author_name=c.author_name,
+        )
+    except Exception as ex:
+        import logging
+
+        logging.getLogger("uvicorn.error").warning(
+            "Saved site content but Worker client-config not synced (plugin About unchanged): %s",
+            ex,
+        )
     return RedirectResponse("/admin/content?saved=1", status_code=303)

@@ -84,8 +84,16 @@
         <option value="sandbox" {% if (content.sepay_pg_env or 'sandbox') == 'sandbox' %}selected{% endif %}>sandbox</option>
         <option value="production" {% if content.sepay_pg_env == 'production' %}selected{% endif %}>production</option>
       </select>
-      <label>Email hỗ trợ</label>
+      <label>Tác giả (plugin License → About)</label>
+      <input type="text" name="author_name" value="{{ content.author_name or 'Gió' }}" maxlength="120">
+      <label>Email hỗ trợ (web + cửa sổ License plugin → About)</label>
       <input type="email" name="support_email" value="{{ content.support_email }}">
+      <p class="muted" style="font-size:12px;margin:4px 0 12px">
+        Khi bấm <strong>Lưu</strong>, email và link support cũng được đẩy lên Cloudflare Worker
+        (<code>client-config</code>). Trên máy khách: xóa
+        <code>%APPDATA%\SolidWorksBodyExporter\client-config-cache.json</code> rồi mở lại License
+        (hoặc đợi ~1 giờ cache hết hạn).
+      </p>
 
       <p style="margin-top:1.5rem">
         <button type="submit" class="btn btn-primary">Lưu</button>

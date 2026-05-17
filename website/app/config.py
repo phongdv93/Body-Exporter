@@ -21,6 +21,7 @@ ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin")
 
 SITE_URL = os.getenv("SITE_URL", "http://127.0.0.1:8080").rstrip("/")
 SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "hotro@bodyexporter.com")
+AUTHOR_NAME = os.getenv("AUTHOR_NAME", "Gió").strip() or "Gió"
 
 # SEO (fallback when hero subtitle empty)
 SEO_DESCRIPTION = (

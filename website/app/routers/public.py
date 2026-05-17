@@ -24,9 +24,20 @@ router = APIRouter()
 templates = Jinja2Templates(directory=str(config.TEMPLATES_DIR))
 
 
+def _dedupe_title(title: str) -> str:
+    """e.g. 'SolidWorks Body Exporter — SolidWorks Body Exporter' → single segment."""
+    t = (title or "").strip()
+    if " — " not in t:
+        return t
+    left, _, right = t.partition(" — ")
+    if left.strip().lower() == right.strip().lower():
+        return left.strip()
+    return t
+
+
 def _ctx(request: Request, db: Session, page_title: str | None = None, **extra):
     content = get_content(db)
-    title = page_title or f"{content.hero_title} — Body Exporter"
+    title = page_title or _dedupe_title(content.hero_title) or "Body Exporter"
     subtitle = (content.hero_subtitle or "").strip()
     meta_desc = subtitle[:320] if subtitle else config.SEO_DESCRIPTION
     canonical = f"{config.SITE_URL}{request.url.path.split('?')[0]}"
@@ -83,7 +94,7 @@ def home(request: Request, db: Session = Depends(get_db)):
             request,
             db,
             bullets=bullets,
-            page_title=f"{content.hero_title} — Body Exporter",
+            page_title=_dedupe_title(content.hero_title) or "Body Exporter",
         ),
     )
 
@@ -93,7 +104,7 @@ def download_page(request: Request, db: Session = Depends(get_db)):
     return html_response(
         templates,
         "download.html",
-        _ctx(request, db, page_title="Tải plugin Body Exporter — SolidWorks"),
+        _ctx(request, db, page_title="Tải plugin Body Exporter"),
     )
 
 
@@ -165,7 +176,7 @@ def _render_buy(request: Request, db: Session, email: str = ""):
         _ctx(
             request,
             db,
-            page_title="Mua license Body Exporter — SePay",
+            page_title="Mua license Body Exporter",
             email=email,
             qr_url=qr_url,
             memo=memo,

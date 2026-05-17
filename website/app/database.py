@@ -37,6 +37,7 @@ _SITE_CONTENT_ALTER = [
     ("sepay_webhook_secret", "VARCHAR(300) DEFAULT ''"),
     ("sepay_webhook_api_key", "VARCHAR(300) DEFAULT ''"),
     ("license_term_days", "INTEGER DEFAULT 365"),
+    ("author_name", "VARCHAR(120) DEFAULT 'Gió'"),
 ]
 
 
@@ -203,6 +204,7 @@ def init_db() -> None:
                     sepay_qr_base_url=config.SEPAY_QR_BASE_URL,
                     license_price_vnd=config.LICENSE_PRICE_VND,
                     support_email=config.SUPPORT_EMAIL,
+                    author_name=config.AUTHOR_NAME,
                     sepay_pg_merchant_id=config.SEPAY_PG_MERCHANT_ID,
                     sepay_pg_secret_key=config.SEPAY_PG_SECRET_KEY,
                     sepay_pg_env=config.SEPAY_PG_ENV or "sandbox",

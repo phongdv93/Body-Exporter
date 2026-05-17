@@ -42,7 +42,7 @@
       <h2 style="margin-top:0;font-size:1rem">Tóm tắt cấu hình</h2>
       <p><strong>{{ content.hero_title }}</strong> — v{{ content.download_version }}</p>
       <p class="muted">Giá license: {{ '{:,}'.format(content.license_price_vnd).replace(',', '.') }} ₫</p>
-      <p class="muted">Support: {{ content.support_email }}</p>
+      <p class="muted">Support (web): {{ content.support_email }} — plugin About lấy từ Worker; đổi ở <a href="/admin/content">Chỉnh nội dung</a> → Lưu.</p>
       <p class="muted">SePay cổng thẻ + key DB: {% if pg_available %}đã đủ merchant/secret (admin hoặc .env){% else %}chưa — chỉ QR CK{% endif %}</p>
       <p class="muted">Webhook CK: <code>{{ site_url }}/webhook/sepay</code>
         — Worker {% if env.worker %}OK{% else %}<span style="color:#f3a8a8">thiếu</span>{% endif %},
