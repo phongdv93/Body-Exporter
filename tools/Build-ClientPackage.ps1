@@ -4,11 +4,11 @@
   Build Release + Obfuscar, copy Launcher, tao thu muc zip gui khach dung thu.
 
 .EXAMPLE
-  .\tools\Build-ClientPackage.ps1 -ApiBaseUrl "https://bodyexporter-api.bodyexporter.workers.dev" -Version "0.7.5" -CreateZip
+  .\tools\Build-ClientPackage.ps1 -ApiBaseUrl "https://bodyexporter-api.bodyexporter.workers.dev" -Version "0.7.5.1" -CreateZip
 #>
 param(
     [string]$ApiBaseUrl = "https://bodyexporter-api.bodyexporter.workers.dev",
-    [string]$Version = "0.7.5",
+    [string]$Version = "0.7.5.1",
     [switch]$SkipBuild,
     [switch]$CreateZip
 )
@@ -100,44 +100,29 @@ if (Test-Path $installCmd) {
     Copy-Item -Path $installCmd -Destination (Join-Path $stage "Install-BodyExporter.cmd") -Force
 }
 
-$readme = @"
-SolidWorks Body Exporter v$Version (dung thu)
+$customReadme = Join-Path $repoRoot "dist\BodyExporter-v0.7.5-client\HUONG-DAN-CAI-DAT.txt"
+$readmeDest = Join-Path $stage "HUONG-DAN-CAI-DAT.txt"
+if (Test-Path -LiteralPath $customReadme) {
+    Copy-Item -LiteralPath $customReadme -Destination $readmeDest -Force
+    $readmeText = Get-Content -LiteralPath $readmeDest -Raw -Encoding UTF8
+    if ($readmeText -match '^SolidWorks Body Exporter v[\d.]+') {
+        $readmeText = $readmeText -replace '^SolidWorks Body Exporter v[\d.]+', "SolidWorks Body Exporter v$Version"
+        Set-Content -LiteralPath $readmeDest -Value $readmeText.TrimEnd() -Encoding UTF8 -NoNewline
+        Add-Content -LiteralPath $readmeDest -Value "" -Encoding UTF8
+    }
+    Write-Host "HUONG-DAN-CAI-DAT.txt: copied from dist\BodyExporter-v0.7.5-client (version line -> v$Version)" -ForegroundColor DarkGray
+}
+else {
+    $readme = @"
+SolidWorks Body Exporter v$Version
 ============================================
 
-Yeu cau:
-  - Windows 10/11, SolidWorks 2024 (hoac ban ban ho tro)
-  - .NET Framework 4.8
-  - Quyen Administrator khi cai (chi lan dau)
-
-Cai dat:
-  1. Giai nen thu muc nay.
-  2. Double-click Install-BodyExporter.cmd (chon Yes khi Windows hoi Admin).
-  3. Mo SolidWorks -> Tools -> Add-Ins -> bat "SolidWorks Body Exporter".
-  4. Bam shortcut "Body Exporter" tren Desktop (hoac icon trong SW neu hien).
-
-Dung thu:
-  - Lan dau mo: tu dong 14 ngay trial (luu tren may, gan fingerprint).
-  - Hoac dan license key (UUID) trong License -> Activate / help.
-
-Excel mau (template):
-  - Goi cai KHONG kem file .xlsx - khach tu chuan bi file cong ty (co {{Body Name}}, {{Length}}, ...).
-  - Export -> Choose default Excel template... (luu duong dan tren may).
-  - Export -> Open Excel template / Fill Excel template / Open last filled export.
-
-Bao mat (v0.7.5+):
-  - DLL Release da obfuscate (Obfuscar): ten method private bi doi ten; class public COM/XAML giu nguyen.
-  - Trial 14 ngay: server /v1/trial/start (can deploy Worker).
-  - settings.json: file settings.seal (DPAPI, gan user + may) - khong sua tay ApiBaseUrl/expiry.
-  - License online re-check moi 7 ngay (offline toi da 7 ngay neu JWT hop le).
-
-KHONG gui lai cho khach:
-  - Thu muc server/, drapf, source code, file .pdb
-  - Admin token, JWT private key, Sepay secret
-
-Ho tro: hotro@bodyexporter.com
-Mua license: https://bodyexporter.com/buy
+See bodyexporter.com/download for the latest package.
+Support: hotro@bodyexporter.com
+Buy license: https://bodyexporter.com/buy
 "@
-Set-Content -Path (Join-Path $stage "HUONG-DAN-CAI-DAT.txt") -Value $readme -Encoding UTF8
+    Set-Content -Path $readmeDest -Value $readme -Encoding UTF8
+}
 
 Write-Host ""
 Write-Host "Package ready:" -ForegroundColor Green

@@ -2,28 +2,29 @@ using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+using System.Drawing.Text;
 using System.IO;
 
 namespace SolidWorksBodyExporter.AddIn.Services
 {
     /// <summary>
     /// SolidWorks expects each <c>CommandGroup</c> to expose a list of PNG icons at fixed pixel
-    /// sizes (20, 32, 40, 64, 96, 128). Without a valid icon list assigned, recent SolidWorks
-    /// versions silently drop the command from the Tools menu and CommandManager ribbon even
-    /// when <see cref="SolidWorks.Interop.sldworks.ICommandGroup.Activate"/> reports success.
-    /// <para>
-    /// To keep the add-in self-contained we generate the icons procedurally at runtime and cache
-    /// them under <c>%LOCALAPPDATA%\SolidWorksBodyExporter\icons</c>. The shape is a rounded blue
-    /// square with the letters "BE" - just enough to be visually distinct in the ribbon.
-    /// </para>
+    /// sizes. Icons are generated procedurally (rounded blue tile + "BE") and cached under
+    /// <c>%LOCALAPPDATA%\SolidWorksBodyExporter\icons</c>.
     /// </summary>
     internal static class AddInIcons
     {
-        private static readonly int[] Sizes = { 20, 32, 40, 64, 96, 128 };
+        private static readonly int[] Sizes = { 16, 20, 32, 40, 48, 64, 96, 128, 256 };
+
+        private static readonly Color Background = Color.FromArgb(255, 31, 90, 165);
+        private static readonly Color BorderColor = Color.FromArgb(255, 22, 64, 116);
+
+        /// <summary>Fraction of edge inset (minimal padding so the glyph fills the tile).</summary>
+        private const float PadRatio = 0.035f;
 
         public static IconBundle EnsurePngs()
         {
-            var dir = System.IO.Path.Combine(
+            var dir = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "SolidWorksBodyExporter",
                 "icons");
@@ -33,11 +34,7 @@ namespace SolidWorksBodyExporter.AddIn.Services
             for (var i = 0; i < Sizes.Length; i++)
             {
                 var size = Sizes[i];
-                var path = System.IO.Path.Combine(dir, $"BodyExporter_{size}.png");
-
-                // Always regenerate to pick up icon design changes between releases. The files are
-                // tiny (a few KB total) so the cost is negligible compared to the troubleshooting
-                // overhead of a stale icon hiding a code change.
+                var path = Path.Combine(dir, $"BodyExporter_{size}.png");
                 CreateIcon(path, size);
                 paths[i] = path;
             }
@@ -50,32 +47,44 @@ namespace SolidWorksBodyExporter.AddIn.Services
             using (var bmp = new Bitmap(size, size, PixelFormat.Format32bppArgb))
             using (var g = Graphics.FromImage(bmp))
             {
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
                 g.Clear(Color.Transparent);
+                g.PixelOffsetMode = PixelOffsetMode.Half;
+                g.SmoothingMode = size <= 24 ? SmoothingMode.HighSpeed : SmoothingMode.AntiAlias;
+                g.TextRenderingHint = size <= 24
+                    ? TextRenderingHint.SingleBitPerPixelGridFit
+                    : TextRenderingHint.ClearTypeGridFit;
 
-                var pad = Math.Max(1, size / 10);
-                var rect = new Rectangle(pad, pad, size - 2 * pad - 1, size - 2 * pad - 1);
-                var radius = Math.Max(2, size / 6);
+                var pad = Math.Max(1, (int)Math.Round(size * PadRatio));
+                var rect = new Rectangle(pad, pad, size - (pad * 2) - 1, size - (pad * 2) - 1);
+                var radius = Math.Max(2, (int)Math.Round(rect.Width * 0.22f));
+                var borderW = Math.Max(1f, size / 40f);
 
-                using (var bg = new SolidBrush(Color.FromArgb(255, 31, 90, 165)))
-                using (var border = new Pen(Color.FromArgb(255, 22, 64, 116), Math.Max(1f, size / 32f)))
                 using (var bgPath = RoundedRect(rect, radius))
+                using (var bg = new SolidBrush(Background))
+                using (var border = new Pen(BorderColor, borderW))
                 {
                     g.FillPath(bg, bgPath);
                     g.DrawPath(border, bgPath);
                 }
 
-                var fontSize = size * 0.42f;
-                using (var font = new Font("Arial", fontSize, FontStyle.Bold, GraphicsUnit.Pixel))
-                using (var sf = new StringFormat
+                var fontPx = rect.Height * 0.52f;
+                using (var font = new Font("Segoe UI", fontPx, FontStyle.Bold, GraphicsUnit.Pixel))
+                using (var pathLetters = new GraphicsPath())
+                using (var white = new SolidBrush(Color.White))
                 {
-                    Alignment = StringAlignment.Center,
-                    LineAlignment = StringAlignment.Center
-                })
-                {
-                    g.DrawString("BE", font, Brushes.White, rect, sf);
+                    pathLetters.AddString(
+                        "BE",
+                        font.FontFamily,
+                        (int)font.Style,
+                        fontPx,
+                        rect,
+                        new StringFormat
+                        {
+                            Alignment = StringAlignment.Center,
+                            LineAlignment = StringAlignment.Center,
+                            FormatFlags = StringFormatFlags.NoWrap | StringFormatFlags.MeasureTrailingSpaces
+                        });
+                    g.FillPath(white, pathLetters);
                 }
 
                 bmp.Save(path, ImageFormat.Png);
@@ -102,7 +111,6 @@ namespace SolidWorksBodyExporter.AddIn.Services
             Paths = paths;
         }
 
-        /// <summary>Paths in ascending pixel size order (20, 32, 40, 64, 96, 128).</summary>
         public string[] Paths { get; }
     }
 }

@@ -841,12 +841,18 @@ namespace SolidWorksBodyExporter.AddIn.Ui
         /// <summary>Template bar stays collapsed on open; user expands via Export menu or after linking a template.</summary>
         private bool _excelTemplateBarExpanded;
 
+        private void ShowExcelTemplatePanel_Click(object sender, RoutedEventArgs e)
+        {
+            _excelTemplateBarExpanded = true;
+            RefreshExcelTemplateBar();
+        }
+
         private void ChooseDefaultTemplate_Click(object sender, RoutedEventArgs e)
         {
             var dlg = new OpenFileDialog
             {
                 Filter = "Excel template (*.xlsx)|*.xlsx",
-                Title = "Choose default Excel template for \"Fill Excel template\""
+                Title = "Choose Excel template (.xlsx)"
             };
             if (dlg.ShowDialog(this) != true)
             {
@@ -859,7 +865,7 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             s.Save();
             _excelTemplateBarExpanded = true;
             RefreshExcelTemplateBar();
-            ShowToast("Default template saved.", ToastKind.Success);
+            ShowToast("Template path saved.", ToastKind.Success);
         }
 
         private void HideExcelTemplateBar_Click(object sender, RoutedEventArgs e)
@@ -902,48 +908,36 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             var templatePath = settings.ExcelTemplatePath;
             var hasTemplate = !string.IsNullOrWhiteSpace(templatePath) && File.Exists(templatePath);
 
-            SetExcelTemplateBarVisible(_excelTemplateBarExpanded && hasTemplate);
+            SetExcelTemplateBarVisible(_excelTemplateBarExpanded);
             UpdateExportMenuTemplateItems(hasTemplate);
-
-            if (!hasTemplate)
-            {
-                _excelTemplateBarExpanded = false;
-                return;
-            }
 
             if (ExcelTemplatePathText != null)
             {
-                var fileName = Path.GetFileName(templatePath);
-                var folder = Path.GetDirectoryName(templatePath) ?? string.Empty;
-                ExcelTemplatePathText.Text = fileName;
-                ExcelTemplatePathText.ToolTip = templatePath;
-                if (ExcelTemplateHintText != null)
+                if (hasTemplate)
                 {
-                    ExcelTemplateHintText.Text = string.IsNullOrEmpty(folder)
-                        ? "Open in Excel to edit layout, then Export ▾ → Fill Excel template to refresh data."
-                        : folder;
-                    ExcelTemplateHintText.ToolTip = folder;
+                    ExcelTemplatePathText.Text = Path.GetFileName(templatePath);
+                    ExcelTemplatePathText.ToolTip = templatePath;
+                }
+                else
+                {
+                    ExcelTemplatePathText.Text = "(none)";
+                    ExcelTemplatePathText.ToolTip = "No template linked yet — click Add new.";
                 }
             }
 
-            var lastPath = settings.ExcelTemplateLastOutputPath;
-            var hasLast = !string.IsNullOrWhiteSpace(lastPath) && File.Exists(lastPath);
-            if (OpenLastExcelOutputButton != null)
+            if (OpenExcelTemplateButton != null)
             {
-                OpenLastExcelOutputButton.Visibility = hasLast ? Visibility.Visible : Visibility.Collapsed;
-                OpenLastExcelOutputButton.ToolTip = hasLast
-                    ? "Open last filled workbook: " + lastPath
-                    : "Open the last filled workbook you saved.";
+                OpenExcelTemplateButton.IsEnabled = hasTemplate;
+            }
+
+            if (ChooseTemplateButton != null)
+            {
+                ChooseTemplateButton.Content = hasTemplate ? "Change…" : "Add new";
             }
         }
 
         private void UpdateExportMenuTemplateItems(bool hasTemplate)
         {
-            if (OpenExcelTemplateMenuItem != null)
-            {
-                OpenExcelTemplateMenuItem.Visibility = hasTemplate ? Visibility.Visible : Visibility.Collapsed;
-            }
-
             var lastPath = AppSettings.LoadOrCreate().ExcelTemplateLastOutputPath;
             var hasLast = !string.IsNullOrWhiteSpace(lastPath) && File.Exists(lastPath);
             if (OpenLastExcelOutputMenuItem != null)

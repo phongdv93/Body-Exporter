@@ -48,7 +48,7 @@ if (-not (Test-Path $PngFolder)) {
 # Use the standard ICO size set. ICO supports up to 256 px per entry; we cap at 128
 # because that's the largest size AddInIcons generates. Order does not matter to
 # Windows but ascending feels right.
-$wantedSizes = 16, 20, 32, 40, 48, 64, 96, 128
+$wantedSizes = 16, 20, 32, 40, 48, 64, 96, 128, 256
 $pngPaths = New-Object System.Collections.Generic.List[string]
 $sizes    = New-Object System.Collections.Generic.List[int]
 

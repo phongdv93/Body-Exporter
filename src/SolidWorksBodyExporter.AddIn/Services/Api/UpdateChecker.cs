@@ -17,12 +17,18 @@ namespace SolidWorksBodyExporter.AddIn.Services.Api
     /// </summary>
     public static class UpdateChecker
     {
+        public const string DefaultDownloadPageUrl = "https://bodyexporter.com/download";
+
         /// <summary>
         /// Fetches the manifest, shows a message when the app is already up to date (or when
         /// the manifest URL is missing), and prompts when a newer version exists.
         /// </summary>
-        public static void CheckForUpdatesInteractive(Window owner, string manifestUrl, Action<string> onStatusMessage)
+        public static void CheckForUpdatesInteractive(
+            Window owner,
+            ClientRemoteConfig config,
+            Action<string> onStatusMessage)
         {
+            var manifestUrl = config?.UpdateManifestUrl;
             if (string.IsNullOrWhiteSpace(manifestUrl))
             {
                 onStatusMessage?.Invoke("No update manifest URL is configured on the server. Cannot check for updates.");
@@ -55,7 +61,7 @@ namespace SolidWorksBodyExporter.AddIn.Services.Api
                 var msg = "A newer version is available: " + manifest.Version + " (you have " + current + ")." +
                           Environment.NewLine + Environment.NewLine +
                           (string.IsNullOrWhiteSpace(manifest.ReleaseNotes)
-                              ? "Open the download page?"
+                              ? "Open the download page on bodyexporter.com?"
                               : manifest.ReleaseNotes);
 
                 if (MessageBox.Show(owner, msg, "Body Exporter - Update", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
@@ -63,14 +69,7 @@ namespace SolidWorksBodyExporter.AddIn.Services.Api
                     return;
                 }
 
-                if (!string.IsNullOrWhiteSpace(manifest.DownloadUrl))
-                {
-                    Process.Start(new ProcessStartInfo
-                    {
-                        FileName = manifest.DownloadUrl,
-                        UseShellExecute = true
-                    });
-                }
+                OpenDownloadPage(config);
             }
             catch (Exception ex)
             {
@@ -80,9 +79,26 @@ namespace SolidWorksBodyExporter.AddIn.Services.Api
             }
         }
 
-        public static void CheckAndPrompt(Window owner, string manifestUrl)
+        public static void CheckAndPrompt(Window owner, ClientRemoteConfig config)
         {
-            CheckForUpdatesInteractive(owner, manifestUrl, null);
+            CheckForUpdatesInteractive(owner, config, null);
+        }
+
+        public static string ResolveDownloadPageUrl(ClientRemoteConfig config)
+        {
+            var url = config?.DownloadPageUrl;
+            if (!string.IsNullOrWhiteSpace(url))
+            {
+                return url.Trim();
+            }
+
+            return DefaultDownloadPageUrl;
+        }
+
+        public static void OpenDownloadPage(ClientRemoteConfig config)
+        {
+            var link = ResolveDownloadPageUrl(config);
+            Process.Start(new ProcessStartInfo { FileName = link, UseShellExecute = true });
         }
 
         /// <summary>
@@ -93,11 +109,9 @@ namespace SolidWorksBodyExporter.AddIn.Services.Api
             string manifestUrl,
             string latestVersion,
             out Version remoteVersion,
-            out string downloadUrl,
             out string releaseNotes)
         {
             remoteVersion = null;
-            downloadUrl = null;
             releaseNotes = null;
 
             var current = Assembly.GetExecutingAssembly().GetName().Version ?? new Version(0, 0, 0, 0);
@@ -114,7 +128,6 @@ namespace SolidWorksBodyExporter.AddIn.Services.Api
                         && fromManifest > current)
                     {
                         remoteVersion = fromManifest;
-                        downloadUrl = manifest.DownloadUrl;
                         releaseNotes = manifest.ReleaseNotes;
                         return true;
                     }
@@ -156,29 +169,22 @@ namespace SolidWorksBodyExporter.AddIn.Services.Api
                     manifestUrl,
                     config.LatestVersion,
                     out var remote,
-                    out var downloadUrl,
                     out var notes))
             {
                 return;
             }
 
             var current = Assembly.GetExecutingAssembly().GetName().Version;
-            var msg = "Ban moi: " + remote + " (dang dung " + current + ")." + Environment.NewLine + Environment.NewLine
-                      + (string.IsNullOrWhiteSpace(notes) ? "Mo trang tai ve ban moi?" : notes);
+            var msg = "A newer version is available: " + remote + " (you have " + current + ")." + Environment.NewLine + Environment.NewLine
+                      + (string.IsNullOrWhiteSpace(notes) ? "Open the download page on bodyexporter.com?" : notes);
 
-            if (MessageBox.Show(owner, msg, "Body Exporter - Cap nhat", MessageBoxButton.YesNo, MessageBoxImage.Information)
+            if (MessageBox.Show(owner, msg, "Body Exporter - Update", MessageBoxButton.YesNo, MessageBoxImage.Information)
                 != MessageBoxResult.Yes)
             {
                 return;
             }
 
-            var link = !string.IsNullOrWhiteSpace(downloadUrl)
-                ? downloadUrl
-                : config.DownloadPageUrl;
-            if (!string.IsNullOrWhiteSpace(link))
-            {
-                Process.Start(new ProcessStartInfo { FileName = link, UseShellExecute = true });
-            }
+            OpenDownloadPage(config);
         }
 
         private static string HttpGet(string url)

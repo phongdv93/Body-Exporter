@@ -30,7 +30,13 @@ namespace SolidWorksBodyExporter.AddIn.Ui
         private void ApplyLocalizedStaticText()
         {
             OpenBuyWebButton.Content = LicenseUiText.OpenBuyOnWeb;
+            BuyLicenseButton.Content = LicenseUiText.ActivateLicense;
+            ApplyLicenseButton.Content = LicenseUiText.ApplyKeys;
+            InstallFromFileButton.Content = LicenseUiText.ChooseLicFile;
+            RecalculateStackButton.Content = LicenseUiText.RecalculateDays;
             ActivateSectionHintText.Text = LicenseUiText.ActivateSectionHint;
+            LicenseKeysEntry.ToolTip = LicenseUiText.LicenseKeysToolTip;
+            RecalculateStackButton.ToolTip = LicenseUiText.RecalculateToolTip;
             LicenseFooterNoteText.Text = LicenseUiText.FooterNote;
         }
 
@@ -186,7 +192,7 @@ namespace SolidWorksBodyExporter.AddIn.Ui
 
             var cfg = ClientConfigClient.Load(api, forceRefresh: true);
             ApplyRemoteConfig(cfg);
-            UpdateChecker.CheckForUpdatesInteractive(this, cfg.UpdateManifestUrl, msg => ShowResult(msg, isError: false));
+            UpdateChecker.CheckForUpdatesInteractive(this, cfg, msg => ShowResult(msg, isError: false));
         }
 
         private void BuyLicense_Click(object sender, RoutedEventArgs e)
@@ -218,7 +224,7 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             var keys = LicenseManager.ParseLicenseKeyLines(raw);
             if (keys.Count == 0)
             {
-                ShowResult("Dán key mới vào ô bên dưới (mỗi dòng một UUID), hoặc chọn file .lic.", isError: true);
+                ShowResult(LicenseUiText.PasteKeysPrompt, isError: true);
                 return;
             }
 
@@ -243,16 +249,16 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             if (summary.SkippedAlreadyApplied > 0)
             {
                 ShowResult(
-                    "Da them " + summary.NewlyActivated + " key moi. "
-                    + summary.SkippedAlreadyApplied + " key da co tu truoc. Con " + days + " ngay.",
+                    "Added " + summary.NewlyActivated + " new key(s). "
+                    + summary.SkippedAlreadyApplied + " already applied. " + days + " day(s) remaining.",
                     isError: false);
             }
             else
             {
-                var msg = "Da kich hoat " + summary.NewlyActivated + " key moi. Con " + days + " ngay.";
+                var msg = "Activated " + summary.NewlyActivated + " new key(s). " + days + " day(s) remaining.";
                 if (summary.RetiredPreviousKeys > 0)
                 {
-                    msg += " (key cu da gop thoi gian va luu vao Retired).";
+                    msg += " (previous keys were merged and archived as Retired).";
                 }
 
                 ShowResult(msg, isError: false);
@@ -273,7 +279,7 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             var status = LicenseManager.Current.GetStatus();
             var days = status.DaysRemaining.HasValue ? status.DaysRemaining.Value.ToString(CultureInfo.InvariantCulture) : "?";
             ShowResult(
-                "Da tinh lai tu " + keysStacked + " key. Con " + days + " ngay (het han: "
+                "Recalculated from " + keysStacked + " key(s). " + days + " day(s) remaining (expires: "
                 + (status.ExpiresUtc?.ToLocalTime().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "?") + ").",
                 isError: false);
         }

@@ -143,7 +143,7 @@
                                Margin="0,0,0,10" />
                     <WrapPanel HorizontalAlignment="Right">
                         <Button x:Name="OpenBuyWebButton"
-                                Content="Mua license trên web"
+                                Content="Buy license on web"
                                 Style="{StaticResource PrimaryButton}"
                                 Width="160"
                                 Margin="0,0,8,4"
@@ -155,7 +155,7 @@
                                 Margin="0,0,8,4"
                                 Click="CheckUpdate_Click" />
                         <Button x:Name="BuyLicenseButton"
-                                Content="Kích hoạt license"
+                                Content="Activate license"
                                 Style="{StaticResource SecondaryButton}"
                                 Width="130"
                                 Margin="0,0,8,4"
@@ -258,26 +258,26 @@
                                      Padding="8"
                                      BorderBrush="#FFD1D9E6"
                                      BorderThickness="1"
-                                     ToolTip="Mỗi dòng một UUID. Thêm dòng mới rồi bấm Áp dụng." />
+                                     ToolTip="One UUID per line. Add new lines, then click Apply keys." />
                             <StackPanel Orientation="Horizontal" Margin="0,10,0,0" x:Name="LicenseActionButtonsRow">
                                 <Button x:Name="ApplyLicenseButton"
-                                        Content="Áp dụng key"
+                                        Content="Apply keys"
                                         Style="{StaticResource PrimaryButton}"
                                         Width="120"
                                         Margin="0,0,8,0"
                                         Click="ApplyLicense_Click" />
                                 <Button x:Name="InstallFromFileButton"
-                                        Content="Chọn file .lic…"
+                                        Content="Choose .lic file…"
                                         Style="{StaticResource SecondaryButton}"
                                         Width="130"
                                         Margin="0,0,8,0"
                                         Click="InstallFromFile_Click" />
                                 <Button x:Name="RecalculateStackButton"
-                                        Content="Tính lại ngày"
+                                        Content="Recalculate days"
                                         Style="{StaticResource SecondaryButton}"
-                                        Width="110"
+                                        Width="120"
                                         Click="RecalculateStack_Click"
-                                        ToolTip="Tính lại hạn từ các key trong ô (nếu số ngày sai)." />
+                                        ToolTip="Recalculate expiry from all keys in the box." />
                             </StackPanel>
                         </StackPanel>
                     </Border>

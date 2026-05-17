@@ -66,6 +66,7 @@ def sync_client_config_from_site(
     cfg["supportEmail"] = (support_email or config.SUPPORT_EMAIL).strip()
     cfg["supportUrl"] = site
     cfg["paymentWebUrl"] = f"{site}/buy"
+    cfg["downloadPageUrl"] = f"{site}/download"
     for k, v in _CLIENT_CONFIG_TEXT.items():
         if k != "authorName":
             cfg[k] = v

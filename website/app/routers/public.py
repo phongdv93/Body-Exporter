@@ -44,7 +44,7 @@ def _og_image_url() -> str:
     if config.SEO_OG_IMAGE:
         return config.SEO_OG_IMAGE
     base = config.SITE_URL.rstrip("/")
-    return f"{base}/static/og.png?v=3"
+    return f"{base}/static/og.png?v=4"
 
 
 def _ctx(request: Request, db: Session, page_title: str | None = None, **extra):

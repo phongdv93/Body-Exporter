@@ -835,16 +835,12 @@
                                     </ContextMenu.Resources>
                                     <MenuItem Header="New Excel workbook…" Click="ExportExcel_Click" />
                                     <MenuItem Header="Fill Excel template…" Click="ExportToTemplate_Click" />
-                                    <MenuItem x:Name="OpenExcelTemplateMenuItem"
-                                              Header="Open Excel template"
-                                              Click="OpenExcelTemplate_Click"
-                                              Visibility="Collapsed" />
+                                    <MenuItem Header="Excel template panel…" Click="ShowExcelTemplatePanel_Click" />
                                     <MenuItem x:Name="OpenLastExcelOutputMenuItem"
                                               Header="Open last filled export"
                                               Click="OpenLastExcelOutput_Click"
                                               Visibility="Collapsed" />
                                     <Separator />
-                                    <MenuItem Header="Choose default Excel template…" Click="ChooseDefaultTemplate_Click" />
                                     <MenuItem Header="Send to ERP server…" IsEnabled="False"
                                               ToolTip="Reserved for a future release." />
                                 </ContextMenu>
@@ -853,66 +849,62 @@
                     </StackPanel>
                 </DockPanel>
 
-                <!-- Excel template bar: hidden until user links a template (Export menu) -->
+                <!-- Excel template bar (Export → Excel template panel…) -->
                 <Border x:Name="ExcelTemplateBar"
                         Margin="0,8,0,0"
-                        Padding="10,6"
+                        Padding="8,6"
                         CornerRadius="8"
                         Background="#FFF8FAFC"
                         BorderBrush="#FFE2E8F0"
                         BorderThickness="1"
                         Visibility="Collapsed"
                         SnapsToDevicePixels="True">
-                        <Grid x:Name="ExcelTemplateReadyPanel">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0"
-                                       Text="Excel template"
-                                       VerticalAlignment="Center"
-                                       Foreground="#FF64748B"
-                                       FontSize="11"
-                                       FontWeight="SemiBold"
-                                       Margin="0,0,10,0" />
-                            <StackPanel Grid.Column="1" Orientation="Vertical" VerticalAlignment="Center">
-                                <TextBlock x:Name="ExcelTemplatePathText"
-                                           Foreground="#FF1E293B"
-                                           FontSize="11"
-                                           FontWeight="SemiBold"
-                                           TextTrimming="CharacterEllipsis"
-                                           ToolTip="Full path to your template file" />
-                                <TextBlock x:Name="ExcelTemplateHintText"
-                                           Foreground="#FF94A3B8"
-                                           FontSize="10"
-                                           Margin="0,2,0,0"
-                                           Text="Open in Excel to edit layout, then Export ▾ → Fill Excel template to refresh data." />
-                            </StackPanel>
-                            <StackPanel Grid.Column="2"
-                                        Orientation="Horizontal"
-                                        VerticalAlignment="Center">
-                                <Button x:Name="OpenExcelTemplateButton"
-                                        Content="Open template"
-                                        Style="{StaticResource ToolbarChipAccentButton}"
-                                        Click="OpenExcelTemplate_Click"
-                                        ToolTip="Open the linked .xlsx in Excel (edit placeholders / formatting)." />
-                                <Button Content="Change…"
-                                        Style="{StaticResource ToolbarChipButton}"
-                                        Click="ChooseDefaultTemplate_Click" />
-                                <Button x:Name="OpenLastExcelOutputButton"
-                                        Content="Last export"
-                                        Style="{StaticResource ToolbarChipButton}"
-                                        Visibility="Collapsed"
-                                        Click="OpenLastExcelOutput_Click"
-                                        ToolTip="Open the last filled workbook you saved." />
-                                <Button Content="Hide"
-                                        Style="{StaticResource ToolbarChipButton}"
-                                        Margin="12,0,0,0"
-                                        Click="HideExcelTemplateBar_Click"
-                                        ToolTip="Collapse template bar (template path stays saved)." />
-                            </StackPanel>
-                        </Grid>
+                    <Grid x:Name="ExcelTemplateReadyPanel">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100" />
+                            <ColumnDefinition Width="*" MinWidth="120" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0"
+                                   Text="Excel template"
+                                   VerticalAlignment="Center"
+                                   Foreground="#FF64748B"
+                                   FontSize="11"
+                                   FontWeight="SemiBold" />
+                        <TextBlock x:Name="ExcelTemplatePathText"
+                                   Grid.Column="1"
+                                   VerticalAlignment="Center"
+                                   Margin="8,0"
+                                   Foreground="#FF1E293B"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"
+                                   Text="(none)"
+                                   TextTrimming="CharacterEllipsis"
+                                   ToolTip="Full path to your template file" />
+                        <Button x:Name="OpenExcelTemplateButton"
+                                Grid.Column="2"
+                                Content="Open template"
+                                Style="{StaticResource ToolbarChipAccentButton}"
+                                Margin="4,0,0,0"
+                                IsEnabled="False"
+                                Click="OpenExcelTemplate_Click"
+                                ToolTip="Open the linked .xlsx in Excel." />
+                        <Button x:Name="ChooseTemplateButton"
+                                Grid.Column="3"
+                                Content="Add new"
+                                Style="{StaticResource ToolbarChipButton}"
+                                Margin="4,0,0,0"
+                                Click="ChooseDefaultTemplate_Click"
+                                ToolTip="Choose or replace the default Excel template (.xlsx)." />
+                        <Button Grid.Column="4"
+                                Content="Hide"
+                                Style="{StaticResource ToolbarChipButton}"
+                                Margin="8,0,0,0"
+                                Click="HideExcelTemplateBar_Click"
+                                ToolTip="Collapse this panel (saved path is kept)." />
+                    </Grid>
                 </Border>
                 </StackPanel>
             </Border>
