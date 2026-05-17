@@ -1,0 +1,9 @@
+# Build from repo: `cd website && docker build -t bodyexporter-web .`
+__pycache__
+*.pyc
+.venv
+.env
+data/*.db
+.git
+*.md
+!README.md

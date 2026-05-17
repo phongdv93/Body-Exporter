@@ -1,0 +1,71 @@
+<?xml version='1.0'?>
+<!--
+  Obfuscar config for SolidWorksBodyExporter.AddIn.
+
+  Triggered ONLY when `-p:Obfuscate=true` is passed to MSBuild (see csproj <Target Name="ObfuscateAfterBuild">).
+  Designed to be CONSERVATIVE: it renames internal types and private members while leaving every COM,
+  XAML, JSON-reflection, and SolidWorks callback surface alone. Anything more aggressive (string
+  encryption, control-flow flattening, anti-tamper) has historically broken either the WPF BAML loader
+  or the SolidWorks COM marshaller and is therefore explicitly disabled below.
+
+  To opt in:
+      MSBuild.exe src\SolidWorksBodyExporter.AddIn\SolidWorksBodyExporter.AddIn.csproj /p:Configuration=Release /p:Obfuscate=true
+      -> output goes to bin\Release\net48\obfuscated\SolidWorksBodyExporter.AddIn.dll
+  Then COM-register THAT DLL (regasm) for SolidWorks to load it.
+-->
+<Obfuscator>
+  <Var name="InPath" value="bin\Release\net48" />
+  <Var name="OutPath" value="bin\Release\net48\obfuscated" />
+
+  <!-- Obfuscar needs to resolve every reference our DLL pulls in (System.Xaml,
+       PresentationFramework, etc.) so it can rewrite call sites cleanly. The Reference Assemblies
+       folder is the canonical net48 location and ships with the Targeting Pack that Visual Studio
+       already installs. -->
+  <Var name="ExtraFrameworkFolders" value="C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.8" />
+
+  <!-- KeepPublicApi=true: every public type / public member keeps its CLR name. Critical for COM
+       (SolidWorks discovers AddInIntegration by ProgId) and for XAML (BAML resolves classes by
+       literal name). HidePrivateApi=true: private and internal members are fair game for renaming. -->
+  <Var name="KeepPublicApi" value="true" />
+  <Var name="HidePrivateApi" value="true" />
+
+  <!-- Hide string literals OFF on purpose. WPF/BAML references type-and-resource keys as inline
+       strings inside compiled XAML; encrypting them would silently corrupt the loaded resource
+       dictionary and crash the window before our code runs. -->
+  <Var name="HideStrings" value="false" />
+
+  <!-- Renaming events / properties off as a paranoid guard against breaking INotifyPropertyChanged
+       dispatch and DataTrigger value matching. They're "public" already so KeepPublicApi covers
+       most cases, but explicit "false" makes the intent unambiguous when reviewing this file. -->
+  <Var name="RenameEvents" value="false" />
+  <Var name="RenameProperties" value="false" />
+
+  <!-- Reuse renamed names across types: makes the obfuscated assembly smaller and decompiled output
+       harder to follow ("a" can mean many things), at no runtime cost. -->
+  <Var name="ReuseNames" value="true" />
+
+  <!-- Optimize=true elides unused metadata after rename. SuppressIldasm is off because the .NET
+       Framework loader doesn't honour the SuppressIldasm attribute the way some hosts do, and
+       turning it on with COM Interop has caused load-time TypeLoadExceptions on net48 in the past. -->
+  <Var name="Optimize" value="true" />
+  <Var name="SuppressIldasm" value="false" />
+
+  <Module file="$(InPath)\SolidWorksBodyExporter.AddIn.dll">
+    <!-- Belt-and-braces: the source code already carries [Obfuscation(Exclude=true)] on every
+         COM/XAML type, but listing them here too means anyone reading this file can audit the
+         protected surface without grepping through 30+ source files. -->
+    <SkipType name="SolidWorksBodyExporter.AddIn.AddInIntegration" skipMethods="true" skipFields="true" skipProperties="true" skipEvents="true" />
+
+    <!-- XAML user controls and converters: must keep CLR names so x:Class resolves and so XAML
+         resource lookups (StaticResource HexToColorConverter, etc.) keep finding them. -->
+    <SkipNamespace name="SolidWorksBodyExporter.AddIn.Ui" />
+
+    <!-- Data models referenced by XAML data bindings, DataTrigger Value= attributes, and Newtonsoft
+         JSON reflection on saved metadata files. -->
+    <SkipNamespace name="SolidWorksBodyExporter.AddIn.Models" />
+
+    <!-- UI-facing license status types stay readable for support screenshots. -->
+    <SkipType name="SolidWorksBodyExporter.AddIn.Services.LicenseStatus" />
+    <SkipType name="SolidWorksBodyExporter.AddIn.Services.LicenseSource" />
+  </Module>
+</Obfuscator>

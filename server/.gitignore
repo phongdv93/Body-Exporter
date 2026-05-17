@@ -1,0 +1,6 @@
+node_modules/
+.wrangler/
+.dev.vars
+jwt-private.pem
+jwt-public.pem
+.secrets-reference.local

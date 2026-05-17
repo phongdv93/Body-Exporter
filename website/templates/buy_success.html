@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+<section class="card center">
+  <h1>Cảm ơn bạn</h1>
+  {% if email %}
+  <p>License sẽ gửi tới <strong>{{ email }}</strong> khi giao dịch được xác nhận.</p>
+  {% else %}
+  <p>License sẽ gửi qua email bạn đã nhập khi thanh toán.</p>
+  {% endif %}
+  <a class="btn btn-primary" href="/download">Tải & cài plugin</a>
+</section>
+{% endblock %}

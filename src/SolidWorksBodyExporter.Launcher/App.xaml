@@ -1,0 +1,9 @@
+<Application x:Class="SolidWorksBodyExporter.Launcher.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             ShutdownMode="OnExplicitShutdown">
+    <!-- No StartupUri: App.OnStartup builds the BodyExportWindow itself after attaching to the
+         running SolidWorks process, since we need the active ModelDoc2 instance to construct it. -->
+    <Application.Resources>
+    </Application.Resources>
+</Application>

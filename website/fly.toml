@@ -1,0 +1,25 @@
+# Fly.io: https://fly.io/docs/languages-and-frameworks/docker/
+# 1. fly auth login
+# 2. fly launch --no-deploy (or fly apps create bodyexporter-web)
+# 3. fly secrets set SECRET_KEY=... ADMIN_PASSWORD=... SITE_URL=https://bodyexporter.com
+# 4. fly volumes create data_vol --region sin --size 1
+# 5. Mount volume at /app/data in fly.toml (see Fly dashboard)
+# 6. fly deploy
+
+app = "bodyexporter-web"
+primary_region = "sin"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1

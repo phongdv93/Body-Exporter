@@ -1,0 +1,30 @@
+{
+  "_comment": "KHÔNG commit file có token/JWT thật. Chỉ dùng file mẫu này để điền rồi copy từng phần vào đúng chỗ.",
+  "solidworksAddIn_userSettings": {
+    "_path": "%APPDATA%\\SolidWorksBodyExporter\\settings.json",
+    "apiBaseUrl": "https://bodyexporter-api.bodyexporter.workers.dev",
+    "licenseKey": "paste-uuid-from-purchase-email-here",
+    "excelTemplatePath": ""
+  },
+  "cloudflare_worker_clientConfig_kv": {
+    "_how": "PUT /admin/client-config với Bearer ADMIN_TOKEN — xem SETUP-SERVER.md mục 8b",
+    "authorName": "Your brand",
+    "supportEmail": "you@example.com",
+    "supportUrl": "https://example.com/support",
+    "updateManifestUrl": "https://example.com/bodyexporter/update-manifest.json",
+    "paymentWebUrl": "https://nesting.click",
+    "paymentWebTitle": "Mở trang thanh toán",
+    "paymentWebBody": "Chọn QR hoặc thẻ trên web. License gửi qua email.",
+    "paymentVnTitle": "Thanh toán Việt Nam",
+    "paymentVnBody": "Nội dung chuyển khoản: BE + email. Sau khi nhận tiền gửi license JSON.",
+    "paymentVnSepayUrl": "https://qr.sepay.vn/YOUR_SEPAY_LINK",
+    "paymentIntlTitle": "",
+    "paymentIntlBody": "",
+    "paymentIntlLemonsqueezyUrl": "",
+    "paymentIntlTripleUrl": ""
+  },
+  "wrangler_secrets": {
+    "_how": "wrangler secret put ... — không lưu trong repo",
+    "ADMIN_TOKEN": "long-random-string-for-admin-API-only"
+  }
+}

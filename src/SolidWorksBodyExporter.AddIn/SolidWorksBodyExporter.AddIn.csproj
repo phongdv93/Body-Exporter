@@ -1,0 +1,76 @@
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <!-- Never auto reg/unreg on build (dotnet SDK → MSB4803). Dev: regasm or Install-Client.ps1. -->
+    <RegisterForComInterop>false</RegisterForComInterop>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <RootNamespace>SolidWorksBodyExporter.AddIn</RootNamespace>
+    <AssemblyName>SolidWorksBodyExporter.AddIn</AssemblyName>
+    <SolidWorksInteropPath Condition="'$(SolidWorksInteropPath)' == ''">C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\api\redist</SolidWorksInteropPath>
+  </PropertyGroup>
+
+  <!-- Release: optimised, no debug symbols, no XML docs. The "no PDB" choice is deliberate
+       defence-in-depth: even though the assembly is still .NET IL and can be decompiled, removing
+       the PDB strips method-line metadata from exception stack traces and from reflection-based
+       inspectors like dotPeek, raising the bar for casual reverse engineering. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <Optimize>true</Optimize>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <DefineConstants>RELEASE;TRACE</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System.Security" />
+    <Reference Include="SolidWorks.Interop.sldworks">
+      <HintPath>$(SolidWorksInteropPath)\SolidWorks.Interop.sldworks.dll</HintPath>
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+    </Reference>
+    <Reference Include="SolidWorks.Interop.swconst">
+      <HintPath>$(SolidWorksInteropPath)\SolidWorks.Interop.swconst.dll</HintPath>
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+    </Reference>
+    <Reference Include="SolidWorks.Interop.swpublished">
+      <HintPath>$(SolidWorksInteropPath)\SolidWorks.Interop.swpublished.dll</HintPath>
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Use the bare OpenXml SDK instead of ClosedXML. ClosedXML pulls in SixLabors.Fonts which
+         throws TableLoader exceptions on certain Windows font configurations during workbook save. -->
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.1.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+  <!-- Opt-in obfuscation pass. Triggered when MSBuild is invoked with /p:Obfuscate=true; ignored
+       otherwise so day-to-day Debug builds stay fast and easy to step through. Requires the
+       Obfuscar global tool to be restored once via "dotnet tool restore" (see .config/dotnet-tools.json).
+       Output lands in bin\Release\net48\obfuscated\SolidWorksBodyExporter.AddIn.dll; that's the file
+       to ship and COM-register for production use. -->
+  <Target Name="ObfuscateAfterBuild"
+          AfterTargets="Build"
+          Condition="'$(Configuration)' == 'Release' AND '$(Obfuscate)' == 'true'">
+    <Message Importance="high" Text="Obfuscar: starting obfuscation pass on $(TargetPath)" />
+    <Exec Command="dotnet obfuscar.console obfuscar.xml"
+          WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <!-- Copy every runtime dependency (Newtonsoft.Json, SolidWorks.Interop.*, DocumentFormat.OpenXml, etc.)
+         next to the obfuscated assembly so the produced folder is a complete, deployable add-in
+         drop. Without this step SolidWorks would refuse to load the DLL with a FileNotFoundException
+         on Newtonsoft.Json the first time the License/Json code is touched. -->
+    <ItemGroup>
+      <ObfuscatedDeps Include="$(OutputPath)*.dll" Exclude="$(OutputPath)SolidWorksBodyExporter.AddIn.dll" />
+      <ObfuscatedDeps Include="$(OutputPath)*.config" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ObfuscatedDeps)"
+          DestinationFolder="$(OutputPath)obfuscated"
+          SkipUnchangedFiles="true" />
+    <Message Importance="high" Text="Obfuscar: obfuscated DLL + dependencies are at bin\Release\net48\obfuscated\" />
+  </Target>
+
+  <!-- Sdk tries UnregisterAssembly before build when COM was enabled historically; disable entirely. -->
+  <Target Name="UnregisterAssembly" />
+  <Target Name="RegisterAssembly" />
+</Project>

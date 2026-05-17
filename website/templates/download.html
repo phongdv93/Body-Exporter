@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+<section class="page-head">
+  <h1>Tải plugin</h1>
+  <p class="muted">Phiên bản <strong>{{ content.download_version }}</strong></p>
+</section>
+<section class="card">
+  {% if content.download_url %}
+  <a class="btn btn-primary btn-lg" href="{{ content.download_url }}" download>Tải bản {{ content.download_version }}</a>
+  {% else %}
+  <p class="warn">Chưa cấu hình link tải — vào <a href="/admin/content">Admin</a> dán URL file ZIP.</p>
+  {% endif %}
+  <div class="install-notes prose">
+    {{ content.download_notes | safe }}
+  </div>
+</section>
+<section class="card card-dim">
+  <h2>Dùng thử</h2>
+  <p>Sau khi cài, mở SolidWorks → License → dùng trial 14 ngày (cần internet lần đầu).</p>
+  <a class="btn btn-ghost" href="/buy">Mua license đầy đủ</a>
+</section>
+{% endblock %}

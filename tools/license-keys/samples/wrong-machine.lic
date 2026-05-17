@@ -1,0 +1,11 @@
+{
+  "payload": {
+    "version": 1,
+    "owner": "Some Other Customer",
+    "plan": "Pro",
+    "machineFingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
+    "issuedUtc": "2026-05-12T09:30:35.5729637Z",
+    "expiresUtc": "2027-05-12T09:30:35.5729637Z"
+  },
+  "signature": "a9d3YeYHhtgjjIATZDAi0sx0pd/P+tQazLO+4bAx5AcTImbjmYCBKLPdY9TsCIq6qBmobaVCydPXD3HXPEwUCoh0vR6aHkZhdjdIGsHqsNC9vCWSxIqWNHR3Z0r7z0g4hjeRnk5q/CTZIaeZWn10hxN5buAclrxMSR7WdQFi0eQFVxP2We5JB3jwBF+rBfJ4IXwC7QIKLp0dzC9ep4s1w6HwEhn0Ng3v0aDb5UwvmbbKoDvC2DTs3zkvC7nw5/XN8DctpgBjL6VRe9vlrWlEhz9RDga9KJ2r9vl5X1bRQCIwASnX+MrpfpK9QQ7IVscHKGtwE3dyPVJlSkWCAXIHIw=="
+}

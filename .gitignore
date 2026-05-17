@@ -1,0 +1,32 @@
+tools/license-keys/private.xml
+bin/
+obj/
+*.user
+.vs/
+/drapf
+
+# Build / release artifacts (use GitHub Releases instead)
+dist/*.zip
+*.SLDPRT
+
+
+# Python / website
+**/__pycache__/
+**/*.pyc
+**/.pytest_cache/
+.venv/
+website/.env
+website/data/
+website/uploads/
+*.db
+
+# Node (Worker)
+server/node_modules/
+server/.wrangler/
+server/dist/
+
+# OS / IDE
+Thumbs.db
+.DS_Store
+.idea/
+

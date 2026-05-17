@@ -1,0 +1,61 @@
+# Cloudflare Worker config for SolidWorks Body Exporter licensing API.
+# Deploy with: `wrangler deploy` (after `wrangler login` and KV namespace setup).
+
+name = "bodyexporter-api"
+main = "src/worker.ts"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Free tier covers ~100,000 requests/day - that's enough even if every active
+# install refreshes its 24h JWT 4x per day, so you only need to pay if you cross
+# ~6,000 active installs. Plenty of runway for the foreseeable future.
+workers_dev = true
+
+# ────────────────────────────────────────────────────────────────────────
+# KV NAMESPACES
+# Create with:
+#   wrangler kv:namespace create LICENSE_DB
+#   wrangler kv:namespace create LICENSE_BY_MACHINE
+# Then paste the returned IDs below.
+# ────────────────────────────────────────────────────────────────────────
+[[kv_namespaces]]
+binding = "LICENSE_DB"
+id = "10f19b56271f4a1183aca68d496f7455"
+
+[[kv_namespaces]]
+binding = "LICENSE_BY_MACHINE"
+id = "39a665215a484afeb4cb900173cf964b"
+
+# ────────────────────────────────────────────────────────────────────────
+# SECRETS — không dán giá trị thật vào file này (tránh commit lên git).
+# Trong thư mục `server`, chạy từng lệnh; khi Wrangler hỏi, dán giá trị tương ứng.
+# Bản sao key đã từng dán nhầm vào comment: xem file .secrets-reference.local (local only).
+#
+#   wrangler secret put ADMIN_TOKEN
+#   wrangler secret put JWT_PRIVATE_KEY
+#   wrangler secret put LEMON_SQUEEZY_SIGNING_SECRET
+#   wrangler secret put RESEND_API_KEY
+#   wrangler secret put RESEND_FROM
+#   wrangler secret put SEPAY_WEBHOOK_API_KEY
+#   wrangler secret put SEPAY_LICENSE_AMOUNT_VND   (fallback; prefer amount= in client-config paymentVnSepayUrl)
+#   wrangler secret put SEPAY_LEGACY_AMOUNTS_VND   (optional, e.g. 990000 after price increase)
+#   (optional) wrangler secret put SEPAY_WEBHOOK_SECRET
+#   (optional) wrangler secret put SEPAY_LICENSE_DAYS
+#
+# JWT_PRIVATE_KEY: lấy từ file jwt-private.pem (sinh 1 lần bằng OpenSSL, xem SETUP-SERVER.md §4).
+#   PowerShell: Get-Content jwt-private.pem -Raw | wrangler secret put JWT_PRIVATE_KEY
+# LEMON_SQUEEZY_SIGNING_SECRET: đúng chuỗi signing secret khi tạo webhook trên Lemon.
+# RESEND_API_KEY: key re_... trên dashboard Resend.
+# RESEND_FROM: ví dụ  Body Exporter <noreply@nesting.click>  (domain verify trên Resend).
+#   Không dùng URL https://... — Resend cần địa chỉ From dạng email.
+#
+# The corresponding JWT_PUBLIC_KEY is embedded in the addin DLL (see
+# Services/Api/LicensePublicKey.cs in the client tree). Generate the key pair
+# locally once with:
+#   openssl genrsa -out jwt-private.pem 2048
+#   openssl rsa -in jwt-private.pem -pubout -out jwt-public.pem
+# Then ship jwt-public.pem inside the DLL and keep jwt-private.pem in your
+# password manager + Cloudflare secret only. NEVER COMMIT jwt-private.pem.
+
+[observability]
+enabled = true

@@ -1,0 +1,445 @@
+<Window x:Class="SolidWorksBodyExporter.AddIn.Ui.LicenseWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="License"
+        Width="640"
+        Height="720"
+        MinHeight="520"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="#EEF1F7"
+        FontFamily="Segoe UI, Tahoma, Arial"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
+        TextOptions.TextHintingMode="Fixed">
+
+    <Window.Resources>
+        <LinearGradientBrush x:Key="AccentGradient" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#FF58B7FF" Offset="0" />
+            <GradientStop Color="#FFBA56FF" Offset="1" />
+        </LinearGradientBrush>
+
+        <ControlTemplate x:Key="GradientButtonTemplate" TargetType="Button">
+            <Border x:Name="GradientBtnBorder" CornerRadius="6"
+                    Background="{TemplateBinding Background}"
+                    SnapsToDevicePixels="True">
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                  TextOptions.TextFormattingMode="Display"
+                                  TextOptions.TextRenderingMode="ClearType" />
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter TargetName="GradientBtnBorder" Property="Opacity" Value="0.86" />
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter TargetName="GradientBtnBorder" Property="Opacity" Value="0.70" />
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+
+        <Style TargetType="Button" x:Key="PrimaryButton">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Background" Value="{StaticResource AccentGradient}" />
+            <Setter Property="Template" Value="{StaticResource GradientButtonTemplate}" />
+        </Style>
+
+        <Style TargetType="Button" x:Key="SecondaryButton">
+            <Setter Property="Foreground" Value="#FF334155" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Background" Value="#FFF0F2F5" />
+            <Setter Property="BorderBrush" Value="#FFD1D9E6" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="SecondaryBtnBorder" CornerRadius="6"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="SecondaryBtnBorder" Property="Background" Value="#FFE3E8F1" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="TextBlock" x:Key="MetaLabel">
+            <Setter Property="Foreground" Value="#FF64748B" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Margin" Value="0,3" />
+        </Style>
+        <Style TargetType="TextBlock" x:Key="MetaValue">
+            <Setter Property="Foreground" Value="#FF1A202C" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Margin" Value="0,3" />
+        </Style>
+        <Style TargetType="TextBlock" x:Key="SectionTitle">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="#FF1E293B" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Rectangle Height="3" VerticalAlignment="Top" Fill="{StaticResource AccentGradient}" />
+
+        <DockPanel Margin="0,3,0,0">
+            <Border DockPanel.Dock="Top"
+                    x:Name="StatusBadge"
+                    Background="White"
+                    BorderBrush="#FFE2E8F0"
+                    BorderThickness="0,0,0,1"
+                    Padding="22,16">
+                <Border.Effect>
+                    <DropShadowEffect Color="#FF000000" BlurRadius="10"
+                                      ShadowDepth="1" Opacity="0.05" Direction="270" />
+                </Border.Effect>
+                <StackPanel>
+                    <TextBlock x:Name="StatusTitle"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="#FF1A202C"
+                               Text="License status" />
+                    <TextBlock x:Name="StatusDetail"
+                               Margin="0,6,0,0"
+                               FontSize="13"
+                               Foreground="#FF64748B"
+                               TextWrapping="Wrap"
+                               Text="" />
+                </StackPanel>
+            </Border>
+
+            <Border DockPanel.Dock="Bottom"
+                    Background="#FFF6F8FC"
+                    BorderBrush="#FFE2E8F0"
+                    BorderThickness="0,1,0,0"
+                    Padding="18,12">
+                <StackPanel>
+                    <TextBlock x:Name="ResultText"
+                               TextWrapping="Wrap"
+                               Foreground="#FF1B6E2A"
+                               FontSize="12"
+                               Visibility="Collapsed"
+                               Margin="0,0,0,10" />
+                    <WrapPanel HorizontalAlignment="Right">
+                        <Button x:Name="CheckUpdateButton"
+                                Content="Check for updates"
+                                Style="{StaticResource SecondaryButton}"
+                                Width="150"
+                                Margin="0,0,8,4"
+                                Click="CheckUpdate_Click" />
+                        <Button x:Name="BuyLicenseButton"
+                                Content="Activate / help"
+                                Style="{StaticResource PrimaryButton}"
+                                Width="130"
+                                Margin="0,0,8,4"
+                                Click="BuyLicense_Click" />
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20,14">
+                <StackPanel>
+                    <!-- About / remote -->
+                    <Border Background="White"
+                            BorderBrush="#FFD0D8E8"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="16,14"
+                            Margin="0,0,0,12">
+                        <StackPanel>
+                            <TextBlock Text="About" Style="{StaticResource SectionTitle}" />
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="120" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Author" Style="{StaticResource MetaLabel}" />
+                                <TextBlock Grid.Row="0" Grid.Column="1" x:Name="AuthorText" Style="{StaticResource MetaValue}" Text="Gió" />
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Support email" Style="{StaticResource MetaLabel}" />
+                                <TextBlock Grid.Row="1" Grid.Column="1" x:Name="SupportEmailText" Style="{StaticResource MetaValue}" Text="—" />
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Support link" Style="{StaticResource MetaLabel}" />
+                                <TextBlock Grid.Row="2" Grid.Column="1" x:Name="SupportUrlText" Style="{StaticResource MetaValue}" Text="—" />
+                            </Grid>
+                            <Button x:Name="OpenSupportUrlButton"
+                                    Content="Open support page"
+                                    Style="{StaticResource SecondaryButton}"
+                                    HorizontalAlignment="Left"
+                                    Margin="0,10,0,0"
+                                    Visibility="Collapsed"
+                                    Click="OpenSupportUrl_Click" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- License metadata -->
+                    <Border Background="White"
+                            BorderBrush="#FFD0D8E8"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="16,14"
+                            Margin="0,0,0,12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Owner" Style="{StaticResource MetaLabel}" />
+                            <TextBlock Grid.Row="0" Grid.Column="1" x:Name="OwnerText" Style="{StaticResource MetaValue}" />
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Plan" Style="{StaticResource MetaLabel}" />
+                            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="PlanText" Style="{StaticResource MetaValue}" />
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Expires" Style="{StaticResource MetaLabel}" />
+                            <TextBlock Grid.Row="2" Grid.Column="1" x:Name="ExpiresText" Style="{StaticResource MetaValue}" />
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Days left" Style="{StaticResource MetaLabel}" />
+                            <TextBlock Grid.Row="3" Grid.Column="1" x:Name="DaysText" Style="{StaticResource MetaValue}" />
+                        </Grid>
+                    </Border>
+
+                    <!-- Buy / activate (hidden until "Buy license") -->
+                    <Border x:Name="PurchaseSection"
+                            Visibility="Collapsed"
+                            Background="White"
+                            BorderBrush="#FFD0D8E8"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="16,14"
+                            Margin="0,0,0,12">
+                        <StackPanel>
+                            <TextBlock Text="Activate license" Style="{StaticResource SectionTitle}" />
+                            <TextBlock Text="Current active key (Ctrl+C to copy). Adding a new key extends your time: remaining days + new key term; the previous key is retired."
+                                       Foreground="#FF64748B"
+                                       FontSize="11"
+                                       TextWrapping="Wrap"
+                                       Margin="0,0,0,8" />
+                            <ListBox x:Name="AppliedLicenseKeysList"
+                                     MinHeight="56"
+                                     MaxHeight="120"
+                                     FontFamily="Consolas"
+                                     FontSize="11"
+                                     BorderBrush="#FFD1D9E6"
+                                     BorderThickness="1"
+                                     Background="#FFF8FAFC"
+                                     ToolTip="Only the active key is shown. Renewals stack time onto Expires above."
+                                     PreviewKeyDown="AppliedLicenseKeysList_PreviewKeyDown" />
+                            <TextBlock Text="New key(s) to add"
+                                       Foreground="#FF64748B"
+                                       FontSize="11"
+                                       Margin="0,10,0,4" />
+                            <TextBox x:Name="NewLicenseKeysEntry"
+                                     MinHeight="48"
+                                     AcceptsReturn="True"
+                                     TextWrapping="Wrap"
+                                     VerticalScrollBarVisibility="Auto"
+                                     FontFamily="Consolas"
+                                     FontSize="11"
+                                     Padding="8"
+                                     BorderBrush="#FFD1D9E6"
+                                     BorderThickness="1"
+                                     ToolTip="Paste one or more UUIDs from email, one per line. Applied keys stay in the list above." />
+                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0" x:Name="LicenseActionButtonsRow">
+                                <Button x:Name="ApplyLicenseButton"
+                                        Content="Apply license"
+                                        Style="{StaticResource PrimaryButton}"
+                                        Width="130"
+                                        Margin="0,0,8,0"
+                                        Click="ApplyLicense_Click" />
+                                <Button x:Name="InstallFromFileButton"
+                                        Content="Choose .lic file…"
+                                        Style="{StaticResource SecondaryButton}"
+                                        Width="140"
+                                        Margin="0,0,8,0"
+                                        Click="InstallFromFile_Click" />
+                                <Button x:Name="RecalculateStackButton"
+                                        Content="Sync stacked time"
+                                        Style="{StaticResource SecondaryButton}"
+                                        Width="130"
+                                        Click="RecalculateStack_Click"
+                                        ToolTip="Re-sum expiry from keys in the list (use if you have multiple keys but days look wrong)." />
+                            </StackPanel>
+
+                            <TextBlock Text="Payment" Style="{StaticResource SectionTitle}" Margin="0,16,0,0" />
+                            <TextBlock x:Name="PaymentSectionHintText"
+                                       Foreground="#FF64748B"
+                                       FontSize="11"
+                                       TextWrapping="Wrap"
+                                       Margin="0,0,0,8" />
+
+                            <TextBlock x:Name="PaymentWebBodyText"
+                                       TextWrapping="Wrap"
+                                       Foreground="#FF475569"
+                                       FontSize="12"
+                                       Margin="0,0,0,8"
+                                       Visibility="Collapsed" />
+                            <Button x:Name="OpenPaymentWebButton"
+                                    Content="Mở trang thanh toán"
+                                    Style="{StaticResource PrimaryButton}"
+                                    HorizontalAlignment="Stretch"
+                                    Margin="0,0,0,10"
+                                    Visibility="Collapsed"
+                                    Click="OpenPaymentWeb_Click" />
+
+                            <Button x:Name="ToggleVnPaymentButton"
+                                    Style="{StaticResource PrimaryButton}"
+                                    HorizontalAlignment="Stretch"
+                                    Margin="0,0,0,6"
+                                    Click="ToggleVnPayment_Click" />
+                            <Border x:Name="PurchaseVnDetails"
+                                    Visibility="Collapsed"
+                                    Background="#FFF8FAFC"
+                                    BorderBrush="#FFE2E8F0"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    Padding="12,10"
+                                    Margin="0,0,0,10">
+                                <StackPanel>
+                                    <TextBlock x:Name="PurchaseVnBodyText"
+                                               TextWrapping="Wrap"
+                                               Foreground="#FF475569"
+                                               FontSize="12"
+                                               Margin="0,0,0,8" />
+                                    <TextBlock x:Name="PaymentEmailLabel"
+                                               Foreground="#FF64748B"
+                                               FontSize="11"
+                                               Margin="0,0,0,4" />
+                                    <TextBox x:Name="PaymentEmailBox"
+                                             MinHeight="28"
+                                             Padding="8,4"
+                                             FontSize="12"
+                                             BorderBrush="#FFD1D9E6"
+                                             BorderThickness="1"
+                                             ToolTip="Email nhan license. Ghi dung noi dung CK khi chuyen khoan."
+                                             LostFocus="PaymentEmailBox_LostFocus"
+                                             TextChanged="PaymentEmailBox_TextChanged" />
+                                    <Border x:Name="SepayQrPanel"
+                                            Visibility="Collapsed"
+                                            Background="White"
+                                            BorderBrush="#FFE2E8F0"
+                                            BorderThickness="1"
+                                            CornerRadius="6"
+                                            Padding="10"
+                                            HorizontalAlignment="Center"
+                                            Margin="0,0,0,10">
+                                        <Image x:Name="SepayQrImage"
+                                               Width="220"
+                                               Height="220"
+                                               Stretch="Uniform"
+                                               SnapsToDevicePixels="True"
+                                               RenderOptions.BitmapScalingMode="NearestNeighbor" />
+                                    </Border>
+                                    <TextBlock x:Name="PurchaseVnTransferDetails"
+                                               Visibility="Collapsed"
+                                               TextWrapping="Wrap"
+                                               Foreground="#FF334155"
+                                               FontSize="12"
+                                               FontFamily="Segoe UI"
+                                               Margin="0,0,0,0" />
+                                </StackPanel>
+                            </Border>
+
+                            <Button x:Name="ToggleIntlPaymentButton"
+                                    Content="International payment (Lemon)"
+                                    Style="{StaticResource PrimaryButton}"
+                                    HorizontalAlignment="Stretch"
+                                    Margin="0,0,0,6"
+                                    Click="ToggleIntlPayment_Click" />
+                            <Border x:Name="PurchaseIntlDetails"
+                                    Visibility="Collapsed"
+                                    Background="#FFF8FAFC"
+                                    BorderBrush="#FFE2E8F0"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    Padding="12,10"
+                                    Margin="0,0,0,0">
+                                <StackPanel>
+                                    <TextBlock x:Name="PurchaseIntlBodyText"
+                                               TextWrapping="Wrap"
+                                               Foreground="#FF475569"
+                                               FontSize="12"
+                                               Margin="0,0,0,8" />
+                                    <Button x:Name="PurchaseIntlCheckoutButton"
+                                            Content="Open Lemon Squeezy checkout"
+                                            Style="{StaticResource SecondaryButton}"
+                                            MinWidth="260"
+                                            Padding="18,0"
+                                            HorizontalAlignment="Left"
+                                            Visibility="Collapsed"
+                                            Click="IntlCheckoutButton_Click" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Fingerprint -->
+                    <Border Background="White"
+                            BorderBrush="#FFD0D8E8"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="16,14">
+                        <StackPanel>
+                            <TextBlock Text="Machine fingerprint"
+                                       FontWeight="SemiBold"
+                                       FontSize="12"
+                                       Foreground="#FF334155" />
+                            <TextBlock Text="Send this to support. Double-click the box to copy to clipboard."
+                                       Foreground="#FF64748B"
+                                       FontSize="11"
+                                       Margin="0,3,0,8" />
+                            <Border CornerRadius="4"
+                                    Background="#FFF6F8FC"
+                                    BorderBrush="#FFE2E8F0"
+                                    BorderThickness="1"
+                                    Padding="10,8">
+                                <TextBox x:Name="FingerprintBox"
+                                         IsReadOnly="True"
+                                         BorderThickness="0"
+                                         Background="Transparent"
+                                         Foreground="#FF1E40AF"
+                                         FontFamily="Consolas"
+                                         FontSize="12"
+                                         TextWrapping="Wrap"
+                                         ToolTip="Double-click to copy"
+                                         PreviewMouseDoubleClick="FingerprintBox_PreviewMouseDoubleClick" />
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock x:Name="LicenseFooterNoteText"
+                               TextWrapping="Wrap"
+                               Foreground="#FF94A3B8"
+                               FontSize="11"
+                               Margin="0,12,0,0" />
+                </StackPanel>
+            </ScrollViewer>
+        </DockPanel>
+    </Grid>
+</Window>

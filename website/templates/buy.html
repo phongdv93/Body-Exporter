@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+<section class="page-head">
+  <h1>Mua license</h1>
+  <p class="lead">{{ content.buy_intro }}</p>
+</section>
+
+<section class="card buy-form-card">
+  <form method="post" action="/buy" class="buy-form">
+    <label for="email">Email nhận license</label>
+    <input type="email" id="email" name="email" required placeholder="you@company.com"
+           value="{{ email }}" autocomplete="email">
+    <p class="hint">Ghi đúng email này trong nội dung chuyển khoản: <code>BE {{ email or 'email@ban.com' }}</code></p>
+    <div class="pay-methods">
+      <button type="submit" name="pay_method" value="qr" class="btn btn-primary">Hiện QR chuyển khoản</button>
+      {% if pg_available %}
+      <button type="submit" name="pay_method" value="card" class="btn btn-ghost">Thanh toán thẻ / SePay</button>
+      {% endif %}
+    </div>
+  </form>
+</section>
+
+{% if email and qr_url %}
+<section class="card payment-panel">
+  <h2>Chuyển khoản — {{ '{:,}'.format(amount_vnd).replace(',', '.') }} ₫</h2>
+  <div class="pay-grid">
+    <div class="qr-wrap">
+      <img src="{{ qr_url }}" alt="VietQR Sepay" width="240" height="240" loading="lazy">
+    </div>
+    <dl class="bank-dl">
+      {% if bank.bank %}<dt>Ngân hàng</dt><dd>{{ bank.bank }}</dd>{% endif %}
+      {% if bank.account %}<dt>Số tài khoản</dt><dd><code>{{ bank.account }}</code></dd>{% endif %}
+      <dt>Số tiền</dt><dd><strong>{{ '{:,}'.format(amount_vnd).replace(',', '.') }} VND</strong></dd>
+      <dt>Nội dung CK</dt><dd><code>{{ memo }}</code></dd>
+    </dl>
+  </div>
+  <p class="hint">License gửi tự động tới <strong>{{ email }}</strong> sau khi hệ thống nhận tiền (thường vài phút).</p>
+</section>
+{% endif %}
+
+<section class="card card-dim prose-footer">
+  {{ content.buy_footer | safe }}
+</section>
+{% endblock %}

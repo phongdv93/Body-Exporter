@@ -1,0 +1,79 @@
+<UserControl x:Class="SolidWorksBodyExporter.AddIn.Ui.DimensionTriplet"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="clr-namespace:SolidWorksBodyExporter.AddIn.Ui"
+             Background="Transparent">
+    <UserControl.Resources>
+        <ui:MillimeterConverter x:Key="MillimeterConverter" />
+        <ui:EditingToCursorConverter x:Key="EditingToCursorConverter" />
+        <ui:EditingToBrushConverter x:Key="EditingToBrushConverter" />
+        <Style TargetType="Border" x:Key="SlotBoxStyle">
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="6,4" />
+            <Setter Property="Margin" Value="2,3" />
+            <Setter Property="BorderBrush" Value="{Binding IsEditing, Converter={StaticResource EditingToBrushConverter}}" />
+            <Setter Property="Background" Value="#FFFAFAFA" />
+            <Setter Property="Cursor" Value="{Binding IsEditing, Converter={StaticResource EditingToCursorConverter}}" />
+        </Style>
+        <Style TargetType="TextBlock" x:Key="SlotLabel">
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="Foreground" Value="#FF888888" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style TargetType="TextBlock" x:Key="SlotValue">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="Foreground" Value="#FF202020" />
+        </Style>
+        <Style TargetType="Border" x:Key="AxisChip">
+            <Setter Property="Background" Value="#FF3D7BCE" />
+            <Setter Property="CornerRadius" Value="3" />
+            <Setter Property="Padding" Value="4,1" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Border x:Name="LengthBox" Grid.Column="0" Style="{StaticResource SlotBoxStyle}" Tag="Length">
+            <StackPanel>
+                <DockPanel LastChildFill="False">
+                    <TextBlock DockPanel.Dock="Left" Text="Length" Style="{StaticResource SlotLabel}" />
+                    <Border DockPanel.Dock="Right" Style="{StaticResource AxisChip}">
+                        <TextBlock Text="{Binding LengthAxis}" Foreground="White" FontWeight="Bold" FontSize="10" />
+                    </Border>
+                </DockPanel>
+                <TextBlock Text="{Binding Length, Converter={StaticResource MillimeterConverter}}" Style="{StaticResource SlotValue}" />
+            </StackPanel>
+        </Border>
+        <Border x:Name="WidthBox" Grid.Column="1" Style="{StaticResource SlotBoxStyle}" Tag="Width">
+            <StackPanel>
+                <DockPanel LastChildFill="False">
+                    <TextBlock DockPanel.Dock="Left" Text="Width" Style="{StaticResource SlotLabel}" />
+                    <Border DockPanel.Dock="Right" Style="{StaticResource AxisChip}">
+                        <TextBlock Text="{Binding WidthAxis}" Foreground="White" FontWeight="Bold" FontSize="10" />
+                    </Border>
+                </DockPanel>
+                <TextBlock Text="{Binding Width, Converter={StaticResource MillimeterConverter}}" Style="{StaticResource SlotValue}" />
+            </StackPanel>
+        </Border>
+        <Border x:Name="ThicknessBox" Grid.Column="2" Style="{StaticResource SlotBoxStyle}" Tag="Thickness">
+            <StackPanel>
+                <DockPanel LastChildFill="False">
+                    <TextBlock DockPanel.Dock="Left" Text="Thickness" Style="{StaticResource SlotLabel}" />
+                    <Border DockPanel.Dock="Right" Style="{StaticResource AxisChip}">
+                        <TextBlock Text="{Binding ThicknessAxis}" Foreground="White" FontWeight="Bold" FontSize="10" />
+                    </Border>
+                </DockPanel>
+                <TextBlock Text="{Binding Thickness, Converter={StaticResource MillimeterConverter}}" Style="{StaticResource SlotValue}" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

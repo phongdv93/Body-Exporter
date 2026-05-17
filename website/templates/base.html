@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ page_title | default('Body Exporter') }}{% endblock %}</title>
+  <meta name="description" content="{{ meta_description | default('') | e }}">
+  <meta name="keywords" content="{{ meta_keywords | default('') | e }}">
+  <link rel="canonical" href="{{ canonical_url | default(site_url ~ '/') }}">
+  <meta name="robots" content="index, follow">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="{{ canonical_url | default(site_url) }}">
+  <meta property="og:title" content="{{ page_title | default('Body Exporter') | e }}">
+  <meta property="og:description" content="{{ meta_description | default('') | e }}">
+  <meta property="og:locale" content="vi_VN">
+  {% if seo_og_image %}
+  <meta property="og:image" content="{{ seo_og_image | e }}">
+  {% endif %}
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ page_title | default('Body Exporter') | e }}">
+  <meta name="twitter:description" content="{{ meta_description | default('') | e }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/site.css">
+  <script type="application/ld+json">{{ schema_website_json | safe }}</script>
+  <script type="application/ld+json">{{ schema_app_json | safe }}</script>
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+  <header class="site-header">
+    <a class="logo" href="/">Body<span>Exporter</span></a>
+    <nav>
+      <a href="/" {% if request.url.path == '/' %}class="active"{% endif %}>Giới thiệu</a>
+      <a href="/download" {% if request.url.path.startswith('/download') %}class="active"{% endif %}>Tải plugin</a>
+      <a href="/buy" class="nav-cta {% if request.url.path.startswith('/buy') %}active{% endif %}">Mua license</a>
+    </nav>
+  </header>
+  <main class="site-main">
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="site-footer">
+    <p>© {{ content.hero_title if content is defined else 'Body Exporter' }} ·
+      <a href="mailto:{{ support_email }}">{{ support_email }}</a>
+    </p>
+  </footer>
+</body>
+</html>

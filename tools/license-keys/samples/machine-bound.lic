@@ -1,0 +1,11 @@
+{
+  "payload": {
+    "version": 1,
+    "owner": "Pham Van Phong",
+    "plan": "Pro",
+    "machineFingerprint": "cb4313155a26bd32901246d63889b73c19c8b1a83dccae898d3d982c577e5aab",
+    "issuedUtc": "2026-05-12T09:30:35.3015259Z",
+    "expiresUtc": "2027-05-12T09:30:35.3015259Z"
+  },
+  "signature": "HOjrOs6Lbxn34IgFUEXLESvL8AZla4hEgq+zj82nIC8oPCHwQKnvTnjFL+lu9OdqYNGW/GKvyFiuWF//H2SF0laARt2Qsd2FSTS4+kwowaE90J6uLaM80ykmavFbvz2y0LeQ9AqkqACGA1aRY8nbwrxLi0NTjC5bWCyv7ROQwleiT+Pfyle9W6BlUWb52Tq+a7ICw6psUwv+s43W3OE9HumJ8jZ1PJxlr0rd5tPHQz3N8kwnJNlIwX3Di5OQp3j7JLFRc3+f+6gb6dC/NM8Tuw3TMw51uUNTXXx0AuGMSLmoT+rPMWkqXML13M4UKeDnnkgdY9Az/5AnUZ1Mx97Qtw=="
+}

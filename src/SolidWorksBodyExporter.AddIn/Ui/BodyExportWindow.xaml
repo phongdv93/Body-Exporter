@@ -1,0 +1,1170 @@
+<Window x:Class="SolidWorksBodyExporter.AddIn.Ui.BodyExportWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="clr-namespace:SolidWorksBodyExporter.AddIn.Ui"
+        Title="{Binding WindowTitle}"
+        Width="1320"
+        Height="760"
+        Background="#EEF1F7"
+        FontFamily="Segoe UI"
+        WindowStartupLocation="CenterScreen"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
+        TextOptions.TextHintingMode="Fixed"
+        RenderOptions.BitmapScalingMode="HighQuality"
+        RenderOptions.EdgeMode="Aliased"
+        PreviewKeyDown="BodyExportWindow_PreviewKeyDown">
+
+    <Window.Resources>
+        <ui:HexToColorConverter x:Key="HexToColorConverter" />
+        <ui:MillimeterConverter x:Key="MillimeterConverter" />
+        <ui:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        <ui:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter" />
+
+        <!-- ═══════════════════════════════════════════════════════════
+             ROW ACTION BUTTON  –  rounded template so DataTriggers that
+             set Background (Edit→gray, Confirm→gradient) render properly
+             ═══════════════════════════════════════════════════════════ -->
+        <Style TargetType="Button" x:Key="RowActionButton">
+            <Setter Property="Width" Value="84" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Padding" Value="6,0" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd"
+                                CornerRadius="6"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="#FFD1D9E6"
+                                BorderThickness="1"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.82" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.65" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Compact toolbar chips (template bar) — matches swap-pill / secondary actions -->
+        <Style TargetType="Button" x:Key="ToolbarChipButton">
+            <Setter Property="Height" Value="26" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="Padding" Value="10,0" />
+            <Setter Property="Margin" Value="6,0,0,0" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#FF334155" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="#FFD1D9E6" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ChipBd" CornerRadius="6"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ChipBd" Property="Background" Value="#FFEEF2F8" />
+                                <Setter TargetName="ChipBd" Property="BorderBrush" Value="#FF94A3B8" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="Button" x:Key="ToolbarChipAccentButton" BasedOn="{StaticResource ToolbarChipButton}">
+            <Setter Property="Foreground" Value="#FF1E40AF" />
+            <Setter Property="BorderBrush" Value="#FF93C5FD" />
+            <Setter Property="Background" Value="#FFEFF6FF" />
+        </Style>
+
+        <Style TargetType="Button" x:Key="RowReorderMiniButton" BasedOn="{StaticResource RowActionButton}">
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Margin" Value="0,0,4,0" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Background" Value="#FFF8FAFC" />
+            <Setter Property="Foreground" Value="#FF475569" />
+        </Style>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             SWAP AXIS PILL  –  unchanged concept, slightly crisper
+             ═══════════════════════════════════════════════════════════ -->
+        <Style TargetType="Button" x:Key="SwapAxisButton">
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#FF3D5A80" />
+            <Setter Property="Padding" Value="8,3" />
+            <Setter Property="Margin" Value="3,0" />
+            <Setter Property="MinHeight" Value="22" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd"
+                                Background="#FFF0F4FA"
+                                BorderBrush="#FFB8C5D9"
+                                BorderThickness="1"
+                                CornerRadius="11"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#FFDDE6F5" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#FF7A95C2" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#FFC2D2EC" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#FF3D5A80" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             DIMENSION CELL TEMPLATES  –  logic unchanged
+             ═══════════════════════════════════════════════════════════ -->
+        <DataTemplate x:Key="LengthCellTemplate">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="4,2">
+                <TextBlock Text="{Binding Length, Converter={StaticResource MillimeterConverter}}"
+                           FontSize="15" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                <StackPanel Orientation="Horizontal" Margin="0,6,0,0" HorizontalAlignment="Center"
+                            Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <Button Content="↔ W" ToolTip="Swap with Width"     Tag="Length->Width"     Click="SwapAxis_Click" Style="{StaticResource SwapAxisButton}" />
+                    <Button Content="↔ T" ToolTip="Swap with Thickness" Tag="Length->Thickness" Click="SwapAxis_Click" Style="{StaticResource SwapAxisButton}" />
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate x:Key="WidthCellTemplate">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="4,2">
+                <TextBlock Text="{Binding Width, Converter={StaticResource MillimeterConverter}}"
+                           FontSize="15" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                <StackPanel Orientation="Horizontal" Margin="0,6,0,0" HorizontalAlignment="Center"
+                            Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <Button Content="↔ L" ToolTip="Swap with Length"    Tag="Width->Length"    Click="SwapAxis_Click" Style="{StaticResource SwapAxisButton}" />
+                    <Button Content="↔ T" ToolTip="Swap with Thickness" Tag="Width->Thickness" Click="SwapAxis_Click" Style="{StaticResource SwapAxisButton}" />
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate x:Key="ThicknessCellTemplate">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="4,2">
+                <TextBlock Text="{Binding Thickness, Converter={StaticResource MillimeterConverter}}"
+                           FontSize="15" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                <StackPanel Orientation="Horizontal" Margin="0,6,0,0" HorizontalAlignment="Center"
+                            Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <Button Content="↔ L" ToolTip="Swap with Length" Tag="Thickness->Length" Click="SwapAxis_Click" Style="{StaticResource SwapAxisButton}" />
+                    <Button Content="↔ W" ToolTip="Swap with Width"  Tag="Thickness->Width"  Click="SwapAxis_Click" Style="{StaticResource SwapAxisButton}" />
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             TOAST  –  brushes + storyboard unchanged
+             ═══════════════════════════════════════════════════════════ -->
+        <SolidColorBrush x:Key="ToastSuccessBrush" Color="#FF2E7D32" />
+        <SolidColorBrush x:Key="ToastErrorBrush"   Color="#FFC62828" />
+        <SolidColorBrush x:Key="ToastInfoBrush"    Color="#FF37474F" />
+
+        <Storyboard x:Key="ToastStoryboard">
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="Opacity">
+                <DiscreteDoubleKeyFrame KeyTime="0:0:0"    Value="0" />
+                <EasingDoubleKeyFrame   KeyTime="0:0:0.25" Value="1" />
+                <DiscreteDoubleKeyFrame KeyTime="0:0:2.0"  Value="1" />
+                <EasingDoubleKeyFrame   KeyTime="0:0:2.45" Value="0" />
+            </DoubleAnimationUsingKeyFrames>
+        </Storyboard>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             CELL STYLE  –  softer selection, same IsDeleted logic
+             ═══════════════════════════════════════════════════════════ -->
+        <Style TargetType="DataGridCell" x:Key="SoftCellStyle">
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment"        Value="Center" />
+            <Setter Property="BorderThickness"          Value="0" />
+            <Setter Property="Padding"                  Value="6,0" />
+            <Setter Property="Background"               Value="Transparent" />
+            <Setter Property="Foreground"               Value="#FF1A202C" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsDeleted}" Value="True">
+                    <Setter Property="Foreground" Value="#FFB85450" />
+                </DataTrigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="Transparent" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             ROW STYLE  –  subtle alternation + hover + selected
+             ═══════════════════════════════════════════════════════════ -->
+        <Style TargetType="DataGridRow" x:Key="SoftRowStyle">
+            <Setter Property="Background"     Value="White" />
+            <Setter Property="BorderBrush"    Value="#FFF0F2F7" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+            <Style.Triggers>
+                <Trigger Property="AlternationIndex" Value="1">
+                    <Setter Property="Background" Value="#FAFBFF" />
+                </Trigger>
+                <DataTrigger Binding="{Binding IsDeleted}" Value="True">
+                    <Setter Property="Foreground" Value="#FFB85450" />
+                </DataTrigger>
+                <!-- hover only when not selected -->
+                <MultiTrigger>
+                    <MultiTrigger.Conditions>
+                        <Condition Property="IsMouseOver" Value="True" />
+                        <Condition Property="IsSelected"  Value="False" />
+                    </MultiTrigger.Conditions>
+                    <Setter Property="Background" Value="#F2F6FF" />
+                </MultiTrigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#E8EFFD" />
+                    <Setter Property="BorderBrush" Value="#BDD0F5" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             STATUS TEXT + PILL BACKGROUND
+             ═══════════════════════════════════════════════════════════ -->
+        <Style TargetType="TextBlock" x:Key="StatusTextStyle">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="FontWeight"        Value="SemiBold" />
+            <Setter Property="FontSize"          Value="11" />
+            <Setter Property="Foreground"        Value="#FF64748B" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Status}" Value="New">
+                    <Setter Property="Foreground" Value="#FF1B6E2A" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Status}" Value="SizeChanged">
+                    <Setter Property="Foreground" Value="#FFB84F00" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Pill background for the Status cell  -->
+        <Style TargetType="Border" x:Key="StatusPillStyle">
+            <Setter Property="CornerRadius"      Value="10" />
+            <Setter Property="Padding"           Value="10,4" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Background"        Value="#FFF0F2F7" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Status}" Value="New">
+                    <Setter Property="Background" Value="#FFE6F4EA" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Status}" Value="SizeChanged">
+                    <Setter Property="Background" Value="#FFFFF3E0" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Status}" Value="Deleted">
+                    <Setter Property="Background" Value="#FFFFEBEE" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             COLUMN HEADERS  –  dark navy, slim, professional
+             ═══════════════════════════════════════════════════════════ -->
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Padding"                   Value="12,0" />
+            <Setter Property="Height"                    Value="36" />
+            <Setter Property="FontWeight"                Value="SemiBold" />
+            <Setter Property="FontSize"                  Value="11" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Background"                Value="#FF1E293B" />
+            <Setter Property="Foreground"                Value="#FF94A3B8" />
+            <Setter Property="BorderBrush"               Value="#FF2D3D52" />
+            <Setter Property="BorderThickness"           Value="0,0,1,0" />
+        </Style>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             SHARED GRADIENT BRUSH  –  reused on all toolbar buttons
+             ═══════════════════════════════════════════════════════════ -->
+        <LinearGradientBrush x:Key="AccentGradient" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#FF58B7FF" Offset="0" />
+            <GradientStop Color="#FFBA56FF" Offset="1" />
+        </LinearGradientBrush>
+
+        <!-- Shared button template (rounded, gradient-aware) -->
+        <ControlTemplate x:Key="GradientButtonTemplate" TargetType="Button">
+            <Border x:Name="Bd" CornerRadius="6"
+                    Background="{TemplateBinding Background}"
+                    SnapsToDevicePixels="True">
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                  TextOptions.TextFormattingMode="Display"
+                                  TextOptions.TextRenderingMode="ClearType" />
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter TargetName="Bd" Property="Opacity" Value="0.86" />
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter TargetName="Bd" Property="Opacity" Value="0.70" />
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             COMBOBOX  -  modern flat dropdown, theme-matched popup
+             Three pieces:
+               1. ComboBoxToggleButton    -> the right-edge chevron
+               2. ComboBox ControlTemplate -> the editable surface
+               3. ComboBoxItem template   -> each row in the popup
+             All three share the same #F0F4FA / #3D5A80 palette as the
+             swap pill so the toolbar reads as a single visual block.
+             ═══════════════════════════════════════════════════════════ -->
+        <ControlTemplate x:Key="ComboBoxToggleButtonTemplate" TargetType="ToggleButton">
+            <Border x:Name="Bd"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    SnapsToDevicePixels="True">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="28" />
+                    </Grid.ColumnDefinitions>
+                    <!-- Caret chevron rendered as a Path so it scales with DPI
+                         without the blurry GDI font glyph used by the default
+                         WPF ComboBox template. -->
+                    <Path Grid.Column="1"
+                          x:Name="Arrow"
+                          Width="10" Height="6"
+                          HorizontalAlignment="Center" VerticalAlignment="Center"
+                          Stretch="Uniform"
+                          Fill="#FF64748B"
+                          Data="M 0 0 L 5 6 L 10 0 Z" />
+                </Grid>
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter TargetName="Arrow" Property="Fill" Value="#FF3D5A80" />
+                </Trigger>
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter TargetName="Arrow" Property="Fill" Value="#FF3D5A80" />
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+
+        <Style TargetType="ComboBox" x:Key="ThemedComboBox">
+            <Setter Property="Height"          Value="32" />
+            <Setter Property="Padding"         Value="10,0,0,0" />
+            <Setter Property="FontFamily"      Value="Segoe UI" />
+            <Setter Property="FontSize"        Value="12" />
+            <Setter Property="Foreground"      Value="#FF1A202C" />
+            <Setter Property="Background"      Value="White" />
+            <Setter Property="BorderBrush"     Value="#FFD1D9E6" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Cursor"          Value="Hand" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+            <Setter Property="TextOptions.TextRenderingMode"  Value="ClearType" />
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <Border x:Name="Bd"
+                                    CornerRadius="6"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    SnapsToDevicePixels="True">
+                                <Grid>
+                                    <ContentPresenter x:Name="ContentSite"
+                                                      Margin="{TemplateBinding Padding}"
+                                                      VerticalAlignment="Center"
+                                                      HorizontalAlignment="Left"
+                                                      Content="{TemplateBinding SelectionBoxItem}"
+                                                      ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                                      ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}"
+                                                      IsHitTestVisible="False"
+                                                      TextOptions.TextFormattingMode="Display"
+                                                      TextOptions.TextRenderingMode="ClearType" />
+                                    <ToggleButton x:Name="ToggleButton"
+                                                  ClickMode="Press"
+                                                  Focusable="False"
+                                                  IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                                  Template="{StaticResource ComboBoxToggleButtonTemplate}" />
+                                </Grid>
+                            </Border>
+                            <!-- Popup: rounded card with the same drop shadow as the toolbar.
+                                 AllowsTransparency=True is required for CornerRadius to clip
+                                 the popup; Placement=Bottom positions it directly under the
+                                 combo box. -->
+                            <Popup x:Name="Popup"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   Placement="Bottom"
+                                   PopupAnimation="Slide"
+                                   AllowsTransparency="True"
+                                   Focusable="False">
+                                <Border x:Name="DropDownBorder"
+                                        MinWidth="{TemplateBinding ActualWidth}"
+                                        MaxHeight="360"
+                                        Margin="0,6,0,0"
+                                        Background="White"
+                                        BorderBrush="#FFD0D8E8"
+                                        BorderThickness="1"
+                                        CornerRadius="6"
+                                        SnapsToDevicePixels="True">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="#FF000000" BlurRadius="16"
+                                                          ShadowDepth="2" Opacity="0.18" />
+                                    </Border.Effect>
+                                    <ScrollViewer Margin="1"
+                                                  SnapsToDevicePixels="True"
+                                                  VerticalScrollBarVisibility="Auto"
+                                                  HorizontalScrollBarVisibility="Disabled">
+                                        <StackPanel IsItemsHost="True"
+                                                    KeyboardNavigation.DirectionalNavigation="Contained" />
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#FF7A95C2" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#FF3D7BCE" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#FFB0B0B0" />
+                                <Setter TargetName="Bd" Property="Background" Value="#FFF5F6FA" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ComboBoxItem: each row in the popup. Hover gets a soft accent tint
+             matching the row hover in the bodies grid; selected row uses the
+             same accent gradient as the primary toolbar buttons but at 18 %
+             opacity so the dropdown is calm rather than shouting. -->
+        <!-- Export ▾ context menu — same palette as ComboBox dropdown -->
+        <Style x:Key="ThemedExportContextMenu" TargetType="ContextMenu">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="HasDropShadow" Value="False" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ContextMenu">
+                        <Border Background="White"
+                                BorderBrush="#FFD0D8E8"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="2,4"
+                                MinWidth="200"
+                                SnapsToDevicePixels="True">
+                            <Border.Effect>
+                                <DropShadowEffect Color="#FF000000" BlurRadius="14"
+                                                  ShadowDepth="2" Opacity="0.16" />
+                            </Border.Effect>
+                            <StackPanel IsItemsHost="True"
+                                        KeyboardNavigation.DirectionalNavigation="Cycle" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="ThemedExportMenuItem" TargetType="MenuItem" BasedOn="{x:Null}">
+            <Setter Property="FontFamily" Value="Segoe UI" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="#FF1A202C" />
+            <Setter Property="Padding" Value="12,8" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="MenuItem">
+                        <Border x:Name="Bd" Background="Transparent" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                            <ContentPresenter ContentSource="Header"
+                                              RecognizesAccessKey="True"
+                                              VerticalAlignment="Center"
+                                              TextOptions.TextFormattingMode="Display"
+                                              TextOptions.TextRenderingMode="ClearType" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#FFF0F4FA" />
+                                <Setter Property="Foreground" Value="#FF3D5A80" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#FFB0B0B0" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Scrollbars — slightly slimmer; keeps default template so scrolling stays reliable -->
+        <Style TargetType="ScrollBar">
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Setter Property="MinWidth" Value="8" />
+            <Setter Property="Width" Value="11" />
+            <Style.Triggers>
+                <Trigger Property="Orientation" Value="Horizontal">
+                    <Setter Property="Width" Value="Auto" />
+                    <Setter Property="MinWidth" Value="0" />
+                    <Setter Property="MinHeight" Value="8" />
+                    <Setter Property="Height" Value="11" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <DataTemplate x:Key="OpenPartComboItemTemplate" DataType="{x:Type ui:OpenPartItem}">
+            <TextBlock Text="{Binding DisplayName}" Padding="2,0">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Foreground" Value="#FF1A202C" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsOpenPartCommand}" Value="True">
+                                <Setter Property="FontStyle" Value="Italic" />
+                                <Setter Property="Foreground" Value="#FF1E40AF" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+        </DataTemplate>
+
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="FontFamily" Value="Segoe UI" />
+            <Setter Property="FontSize"   Value="12" />
+            <Setter Property="Foreground" Value="#FF1A202C" />
+            <Setter Property="Padding"    Value="10,7" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="VerticalContentAlignment"   Value="Center" />
+            <Setter Property="Cursor"     Value="Hand" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+            <Setter Property="TextOptions.TextRenderingMode"  Value="ClearType" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="Bd"
+                                Background="Transparent"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter VerticalAlignment="Center"
+                                              TextOptions.TextFormattingMode="Display"
+                                              TextOptions.TextRenderingMode="ClearType" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#FFF0F4FA" />
+                                <Setter Property="Foreground" Value="#FF3D5A80" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#FFE8EFFD" />
+                                <Setter Property="Foreground" Value="#FF1E40AF" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             CHECKBOX  -  rounded square + gradient check mark
+             The check mark is a Path drawn over the inner box so it
+             scales crisply at every DPI and never falls back to the
+             stale Win32 glyph the default WPF template uses.
+             ═══════════════════════════════════════════════════════════ -->
+        <Style TargetType="CheckBox" x:Key="ThemedCheckBox">
+            <Setter Property="FontFamily" Value="Segoe UI" />
+            <Setter Property="FontSize"   Value="12" />
+            <Setter Property="Foreground" Value="#FF4A5568" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Cursor"     Value="Hand" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+            <Setter Property="TextOptions.TextRenderingMode"  Value="ClearType" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <StackPanel Orientation="Horizontal" Background="Transparent">
+                            <Grid Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0">
+                                <Border x:Name="Box"
+                                        CornerRadius="4"
+                                        Background="White"
+                                        BorderBrush="#FFC9D3E2"
+                                        BorderThickness="1.5"
+                                        SnapsToDevicePixels="True" />
+                                <!-- Gradient fill shown only when checked. Same gradient as
+                                     the primary action buttons so checked state reads as a
+                                     "this is on" badge that matches the toolbar accent. -->
+                                <Border x:Name="CheckedFill"
+                                        CornerRadius="4"
+                                        Opacity="0"
+                                        SnapsToDevicePixels="True">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Color="#FF58B7FF" Offset="0" />
+                                            <GradientStop Color="#FFBA56FF" Offset="1" />
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                </Border>
+                                <Path x:Name="CheckMark"
+                                      Stroke="White"
+                                      StrokeThickness="2"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round"
+                                      StrokeLineJoin="Round"
+                                      Opacity="0"
+                                      Data="M 3 9 L 7.5 13 L 15 5"
+                                      SnapsToDevicePixels="False" />
+                            </Grid>
+                            <ContentPresenter VerticalAlignment="Center"
+                                              TextOptions.TextFormattingMode="Display"
+                                              TextOptions.TextRenderingMode="ClearType" />
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Box" Property="BorderBrush" Value="#FF7A95C2" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="CheckedFill" Property="Opacity" Value="1" />
+                                <Setter TargetName="CheckMark"   Property="Opacity" Value="1" />
+                                <Setter TargetName="Box"         Property="BorderBrush" Value="Transparent" />
+                                <Setter Property="Foreground" Value="#FF1A202C" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Box" Property="Background" Value="#FFF0F4FA" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#FFB0B0B0" />
+                                <Setter TargetName="Box" Property="BorderBrush" Value="#FFE0E0E0" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="1137*"/>
+            <ColumnDefinition Width="104*"/>
+            <ColumnDefinition Width="79*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- ── TOP ACCENT BAR (3 px gradient stripe) ── -->
+        <Rectangle Grid.ColumnSpan="3" Height="3" VerticalAlignment="Top" Panel.ZIndex="10">
+            <Rectangle.Fill>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                    <GradientStop Color="#FF58B7FF" Offset="0" />
+                    <GradientStop Color="#FFBA56FF" Offset="1" />
+                </LinearGradientBrush>
+            </Rectangle.Fill>
+        </Rectangle>
+
+        <!-- ── MAIN LAYOUT ── -->
+        <DockPanel Grid.ColumnSpan="3" Margin="0,3,0,0">
+
+            <!-- ───────────────────────────────────────────────────────
+                 TOOLBAR PANEL  –  white card with hairline bottom border
+                 ─────────────────────────────────────────────────────── -->
+            <Border DockPanel.Dock="Top"
+                    Background="White"
+                    BorderBrush="#FFE2E8F0"
+                    BorderThickness="0,0,0,1"
+                    Padding="16,12"
+                    MinHeight="52"
+                    SnapsToDevicePixels="True">
+                <Border.Effect>
+                    <DropShadowEffect Color="#FF000000" BlurRadius="10"
+                                      ShadowDepth="1" Opacity="0.05" Direction="270" />
+                </Border.Effect>
+
+                <StackPanel>
+                <DockPanel>
+                    <!-- LICENSE BADGE – right-aligned -->
+                    <Border DockPanel.Dock="Right"
+                            x:Name="LicenseBadge"
+                            CornerRadius="12"
+                            Padding="12,5"
+                            VerticalAlignment="Center"
+                            Cursor="Hand"
+                            BorderThickness="1"
+                            PreviewMouseLeftButtonDown="LicenseBadge_Click">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Color="#FFFFF8E8" Offset="0"/>
+                                <GradientStop Color="#FFFFE8C0" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <Border.BorderBrush>
+                            <SolidColorBrush Color="#FFFFCC80"/>
+                        </Border.BorderBrush>
+                        <TextBlock x:Name="LicenseBadgeText"
+                                   Text="License"
+                                   Foreground="#FF8A5500"
+                                   FontSize="11"
+                                   FontWeight="SemiBold" />
+                    </Border>
+
+                    <!-- LEFT CONTROLS -->
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+
+                        <!-- Active-part label + combo (includes Open part… in dropdown) -->
+                        <TextBlock Text="Active part:"
+                                   VerticalAlignment="Center"
+                                   Foreground="#FF64748B"
+                                   FontWeight="SemiBold"
+                                   FontSize="12"
+                                   Margin="0,0,8,0" />
+                        <ComboBox x:Name="ActivePartCombo"
+                                  Width="260"
+                                  Margin="0,0,16,0"
+                                  IsEditable="False"
+                                  IsTextSearchEnabled="False"
+                                  Style="{StaticResource ThemedComboBox}"
+                                  ItemTemplate="{StaticResource OpenPartComboItemTemplate}"
+                                  ItemsSource="{Binding OpenParts}"
+                                  SelectedItem="{Binding SelectedActivePart, Mode=TwoWay}"
+                                  ToolTip="Pick a part, or use “Open part…” (Ctrl+O) to open a .sldprt file."
+                                  DropDownOpened="ActivePartCombo_DropDownOpened"
+                                  PreviewMouseLeftButtonDown="ActivePartCombo_PreviewMouseLeftButtonDown" />
+
+                        <!-- Primary action buttons -->
+                        <Button Content="Refresh"
+                                ToolTip="Refresh (F5)"
+                                Width="90" Height="32"
+                                Margin="0,0,8,0"
+                                Click="Refresh_Click"
+                                FontWeight="SemiBold" FontSize="12"
+                                Foreground="White"
+                                Background="{StaticResource AccentGradient}"
+                                Template="{StaticResource GradientButtonTemplate}" />
+
+                        <Button Content="Save to SolidWorks"
+                                ToolTip="Save to SolidWorks (Ctrl+S)"
+                                Width="156" Height="32"
+                                Margin="0,0,8,0"
+                                Click="Save_Click"
+                                FontWeight="SemiBold" FontSize="12"
+                                Foreground="White"
+                                Background="{StaticResource AccentGradient}"
+                                Template="{StaticResource GradientButtonTemplate}" />
+
+                        <Button Content="Copy All"
+                                ToolTip="Copy All rows (Ctrl+C when focus is outside the grid; in grid: copy selection)"
+                                Width="90" Height="32"
+                                Margin="0,0,0,0"
+                                Click="CopyAll_Click"
+                                FontWeight="SemiBold" FontSize="12"
+                                Foreground="White"
+                                Background="{StaticResource AccentGradient}"
+                                Template="{StaticResource GradientButtonTemplate}" />
+
+                        <!-- Divider -->
+                        <Rectangle Width="1" Fill="#FFD8E0EC"
+                                   VerticalAlignment="Stretch"
+                                   Margin="16,4" />
+
+                        <!-- Checkboxes (custom-styled to match theme) -->
+                        <CheckBox x:Name="IncludeHeaderCheck"
+                                  Style="{StaticResource ThemedCheckBox}"
+                                  Content="Include header row"
+                                  IsChecked="True"
+                                  Margin="0,0,14,0" />
+                        <CheckBox x:Name="IncludePreviewImagesCheck"
+                                  Style="{StaticResource ThemedCheckBox}"
+                                  Content="Include preview images"
+                                  IsChecked="True"
+                                  ToolTip="When checked, the Excel export embeds the Preview column as PNG images anchored to each row. Uncheck for a slim text-only workbook."
+                                  Margin="0,0,12,0" />
+
+                        <Button x:Name="ExportMenuButton"
+                                Content="Export ▾"
+                                Width="100" Height="32"
+                                Margin="8,0,0,0"
+                                Click="ExportMenuButton_Click"
+                                ToolTip="Export to Excel, fill a company template, or set a default template path."
+                                FontWeight="SemiBold" FontSize="12"
+                                Foreground="White"
+                                Background="{StaticResource AccentGradient}"
+                                Template="{StaticResource GradientButtonTemplate}">
+                            <Button.ContextMenu>
+                                <ContextMenu Style="{StaticResource ThemedExportContextMenu}">
+                                    <ContextMenu.Resources>
+                                        <Style TargetType="MenuItem" BasedOn="{StaticResource ThemedExportMenuItem}" />
+                                        <Style TargetType="Separator">
+                                            <Setter Property="Height" Value="1" />
+                                            <Setter Property="Margin" Value="10,4" />
+                                            <Setter Property="Background" Value="#FFE2E8F0" />
+                                        </Style>
+                                    </ContextMenu.Resources>
+                                    <MenuItem Header="New Excel workbook…" Click="ExportExcel_Click" />
+                                    <MenuItem Header="Fill Excel template…" Click="ExportToTemplate_Click" />
+                                    <MenuItem x:Name="OpenExcelTemplateMenuItem"
+                                              Header="Open Excel template"
+                                              Click="OpenExcelTemplate_Click"
+                                              Visibility="Collapsed" />
+                                    <MenuItem x:Name="OpenLastExcelOutputMenuItem"
+                                              Header="Open last filled export"
+                                              Click="OpenLastExcelOutput_Click"
+                                              Visibility="Collapsed" />
+                                    <Separator />
+                                    <MenuItem Header="Choose default Excel template…" Click="ChooseDefaultTemplate_Click" />
+                                    <MenuItem Header="Send to ERP server…" IsEnabled="False"
+                                              ToolTip="Reserved for a future release." />
+                                </ContextMenu>
+                            </Button.ContextMenu>
+                        </Button>
+                    </StackPanel>
+                </DockPanel>
+
+                <!-- Excel template bar: hidden until user links a template (Export menu) -->
+                <Border x:Name="ExcelTemplateBar"
+                        Margin="0,8,0,0"
+                        Padding="10,6"
+                        CornerRadius="8"
+                        Background="#FFF8FAFC"
+                        BorderBrush="#FFE2E8F0"
+                        BorderThickness="1"
+                        Visibility="Collapsed"
+                        SnapsToDevicePixels="True">
+                        <Grid x:Name="ExcelTemplateReadyPanel">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       Text="Excel template"
+                                       VerticalAlignment="Center"
+                                       Foreground="#FF64748B"
+                                       FontSize="11"
+                                       FontWeight="SemiBold"
+                                       Margin="0,0,10,0" />
+                            <StackPanel Grid.Column="1" Orientation="Vertical" VerticalAlignment="Center">
+                                <TextBlock x:Name="ExcelTemplatePathText"
+                                           Foreground="#FF1E293B"
+                                           FontSize="11"
+                                           FontWeight="SemiBold"
+                                           TextTrimming="CharacterEllipsis"
+                                           ToolTip="Full path to your template file" />
+                                <TextBlock x:Name="ExcelTemplateHintText"
+                                           Foreground="#FF94A3B8"
+                                           FontSize="10"
+                                           Margin="0,2,0,0"
+                                           Text="Open in Excel to edit layout, then Export ▾ → Fill Excel template to refresh data." />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2"
+                                        Orientation="Horizontal"
+                                        VerticalAlignment="Center">
+                                <Button x:Name="OpenExcelTemplateButton"
+                                        Content="Open template"
+                                        Style="{StaticResource ToolbarChipAccentButton}"
+                                        Click="OpenExcelTemplate_Click"
+                                        ToolTip="Open the linked .xlsx in Excel (edit placeholders / formatting)." />
+                                <Button Content="Change…"
+                                        Style="{StaticResource ToolbarChipButton}"
+                                        Click="ChooseDefaultTemplate_Click" />
+                                <Button x:Name="OpenLastExcelOutputButton"
+                                        Content="Last export"
+                                        Style="{StaticResource ToolbarChipButton}"
+                                        Visibility="Collapsed"
+                                        Click="OpenLastExcelOutput_Click"
+                                        ToolTip="Open the last filled workbook you saved." />
+                                <Button Content="Hide"
+                                        Style="{StaticResource ToolbarChipButton}"
+                                        Margin="12,0,0,0"
+                                        Click="HideExcelTemplateBar_Click"
+                                        ToolTip="Collapse template bar (template path stays saved)." />
+                            </StackPanel>
+                        </Grid>
+                </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- ───────────────────────────────────────────────────────
+                 HINT TEXT  –  muted footer strip
+                 ─────────────────────────────────────────────────────── -->
+            <Border DockPanel.Dock="Bottom"
+                    Background="#FFF6F8FC"
+                    BorderBrush="#FFE2E8F0"
+                    BorderThickness="0,1,0,0"
+                    Padding="16,9">
+                <TextBlock Foreground="#FF94A3B8"
+                           FontSize="11"
+                           TextWrapping="Wrap"
+                           Text="Click 'Edit' on a row to unlock dimension swap. In edit mode each cell has '↔ W' / '↔ T' pills that swap values with the target column. Drag column headers to reorder columns. Use ▲ / ▼ in Action to reorder rows (Copy All and Excel follow row order).&#x0A;" />
+            </Border>
+
+            <!-- ───────────────────────────────────────────────────────
+                 DATA GRID  –  rounded card with soft shadow
+                 ─────────────────────────────────────────────────────── -->
+            <Border Margin="14,10,14,10"
+                    CornerRadius="8"
+                    ClipToBounds="True"
+                    BorderBrush="#FFD0D8E8"
+                    BorderThickness="1">
+                <Border.Effect>
+                    <DropShadowEffect Color="#FF000000" BlurRadius="18"
+                                      ShadowDepth="2" Opacity="0.09" />
+                </Border.Effect>
+
+                <DataGrid x:Name="BodiesGrid"
+                          ItemsSource="{Binding Rows}"
+                          AutoGenerateColumns="False"
+                          EnableRowVirtualization="False"
+                          VirtualizingPanel.IsVirtualizingWhenGrouping="False"
+                          CanUserAddRows="False"
+                          CanUserReorderColumns="True"
+                          ClipboardCopyMode="IncludeHeader"
+                          SelectionMode="Extended"
+                          SelectionUnit="FullRow"
+                          GridLinesVisibility="None"
+                          HeadersVisibility="Column"
+                          RowHeight="76"
+                          RowBackground="White"
+                          AlternationCount="2"
+                          CellStyle="{StaticResource SoftCellStyle}"
+                          RowStyle="{StaticResource SoftRowStyle}"
+                          BorderBrush="Transparent"
+                          BorderThickness="0"
+                          Background="White"
+                          IsReadOnly="False">
+                    <DataGrid.Columns>
+
+                        <!-- PREVIEW ─────────────────────────────────── -->
+                        <DataGridTemplateColumn Header="Preview" Width="74"
+                                                IsReadOnly="True" CanUserReorder="False">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Background="Transparent"
+                                            BorderThickness="0"
+                                            Padding="0"
+                                            Margin="8"
+                                            Cursor="Hand"
+                                            Focusable="False"
+                                            MouseEnter="PreviewThumbnail_MouseEnter"
+                                            MouseLeave="PreviewThumbnail_MouseLeave"
+                                            ToolTip="Hover for large preview (grayscale technical preview)">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border BorderBrush="#FF2D3748" BorderThickness="1"
+                                                        Background="#FFFFFFFF" CornerRadius="2"
+                                                        SnapsToDevicePixels="True">
+                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                        <Image Source="{Binding Thumbnail}"
+                                               Width="52" Height="52" Stretch="Uniform"
+                                               IsHitTestVisible="False"
+                                               RenderOptions.BitmapScalingMode="HighQuality" />
+                                    </Button>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <!-- STATUS  (pill badge) ─────────────────────── -->
+                        <DataGridTemplateColumn Header="Status" Width="100" IsReadOnly="True">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource StatusPillStyle}">
+                                        <TextBlock Text="{Binding Status}"
+                                                   Style="{StaticResource StatusTextStyle}" />
+                                    </Border>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <!-- BODY NAME ───────────────────────────────── -->
+                        <DataGridTextColumn Header="Body Name"
+                                            Binding="{Binding DisplayName, UpdateSourceTrigger=PropertyChanged}"
+                                            Width="180" />
+
+                        <!-- DIMENSIONS ──────────────────────────────── -->
+                        <DataGridTemplateColumn Header="Length"    Width="120" IsReadOnly="True" CellTemplate="{StaticResource LengthCellTemplate}" />
+                        <DataGridTemplateColumn Header="Width"     Width="120" IsReadOnly="True" CellTemplate="{StaticResource WidthCellTemplate}" />
+                        <DataGridTemplateColumn Header="Thickness" Width="120" IsReadOnly="True" CellTemplate="{StaticResource ThicknessCellTemplate}" />
+
+                        <!-- QTY  (accent badge) ──────────────────────── -->
+                        <DataGridTemplateColumn Header="Qty" Width="60" IsReadOnly="True">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Border Background="#FFF0F4FF" CornerRadius="14"
+                                            Width="32" Height="32"
+                                            HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Quantity}"
+                                                   FontSize="14"
+                                                   FontWeight="Bold"
+                                                   Foreground="#FF3D5A80"
+                                                   VerticalAlignment="Center"
+                                                   HorizontalAlignment="Center" />
+                                    </Border>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <!-- MATERIAL ─────────────────────────────────── -->
+                        <DataGridTextColumn Header="Material"
+                                            Binding="{Binding MaterialDisplay}"
+                                            IsReadOnly="True"
+                                            Width="160" />
+
+                        <!-- APPEARANCE ───────────────────────────────── -->
+                        <DataGridTemplateColumn Header="Appearance" Width="200" IsReadOnly="True">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Border Width="18" Height="18" CornerRadius="4"
+                                                Margin="0,0,8,0"
+                                                BorderBrush="#FF9AAABB" BorderThickness="1">
+                                            <Border.Background>
+                                                <SolidColorBrush Color="{Binding ColorHex, Converter={StaticResource HexToColorConverter}, FallbackValue=Transparent}" />
+                                            </Border.Background>
+                                        </Border>
+                                        <TextBlock Text="{Binding AppearanceDisplay}"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="#FF334155"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <!-- ACTION (Edit / Confirm) ──────────────────── -->
+                        <DataGridTemplateColumn Header="Action" Width="148" IsReadOnly="True">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Border HorizontalAlignment="Center">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsDeleted}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Button Content="▲"
+                                                    Style="{StaticResource RowReorderMiniButton}"
+                                                    Margin="0,0,2,0"
+                                                    ToolTip="Move row up (export / copy order)"
+                                                    Click="MoveRowUp_Click" />
+                                            <Button Content="▼"
+                                                    Style="{StaticResource RowReorderMiniButton}"
+                                                    Margin="0,0,6,0"
+                                                    ToolTip="Move row down (export / copy order)"
+                                                    Click="MoveRowDown_Click" />
+                                            <Button Click="EditConfirm_Click"
+                                                    VerticalAlignment="Center"
+                                                    HorizontalAlignment="Center">
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource RowActionButton}">
+                                                        <Setter Property="Width" Value="72" />
+                                                        <Setter Property="Content" Value="Edit" />
+                                                        <Setter Property="Background" Value="#FFF0F2F5" />
+                                                        <Setter Property="Foreground" Value="#FF4A5568" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                                                <Setter Property="Content" Value="Confirm" />
+                                                                <Setter Property="Foreground" Value="White" />
+                                                                <Setter Property="Background">
+                                                                    <Setter.Value>
+                                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                                            <GradientStop Color="#FF58B7FF" Offset="0" />
+                                                                            <GradientStop Color="#FFBA56FF" Offset="1" />
+                                                                        </LinearGradientBrush>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                            </Button>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Border>
+        </DockPanel>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             TOAST OVERLAY
+             Notes (v0.7.1):
+             - Removed fixed Width/Height that were clipping the text to a
+               36x37 box - the Border now auto-sizes to its content (the
+               TextBlock) so messages like "Saved to SolidWorks" render
+               in full. Padding=22,12 gives the message breathing room
+               while letting short toasts stay compact.
+             - HorizontalAlignment="Center" centres the toast horizontally
+               on the Grid so the position is consistent regardless of
+               window resize. Previous Margin="642,0,0,28" hardcoded
+               position only worked at the initial 1320 px window width.
+             ═══════════════════════════════════════════════════════════ -->
+        <Border x:Name="ToastBorder"
+                Grid.ColumnSpan="3"
+                Background="{StaticResource ToastInfoBrush}"
+                CornerRadius="8"
+                Padding="22,12"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Bottom"
+                Margin="0,0,0,32"
+                Opacity="0"
+                IsHitTestVisible="False"
+                SnapsToDevicePixels="True"
+                UseLayoutRounding="True">
+            <Border.Effect>
+                <DropShadowEffect Color="#FF000000" BlurRadius="18"
+                                  ShadowDepth="3" Opacity="0.32" />
+            </Border.Effect>
+            <TextBlock x:Name="ToastText"
+                       Text=""
+                       Foreground="White"
+                       FontSize="13"
+                       FontWeight="SemiBold"
+                       TextOptions.TextFormattingMode="Display"
+                       TextOptions.TextRenderingMode="ClearType" />
+        </Border>
+    </Grid>
+</Window>

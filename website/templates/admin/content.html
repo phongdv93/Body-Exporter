@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nội dung — Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/site.css">
+</head>
+<body>
+  <div class="admin-wrap">
+    <nav class="admin-nav">
+      <a href="/admin">Dashboard</a>
+      <a href="/admin/logout">Đăng xuất</a>
+      <a href="/">Xem site</a>
+    </nav>
+    <h1>Chỉnh nội dung</h1>
+    {% if saved %}<p class="flash-ok">Đã lưu.</p>{% endif %}
+    <form method="post" action="/admin/content" class="admin-form card">
+      <h2>Trang chủ</h2>
+      <label>Tiêu đề</label>
+      <input type="text" name="hero_title" value="{{ content.hero_title }}">
+      <label>Mô tả ngắn</label>
+      <textarea name="hero_subtitle">{{ content.hero_subtitle }}</textarea>
+      <label>Tính năng (mỗi dòng một ý)</label>
+      <textarea name="hero_bullets">{{ content.hero_bullets }}</textarea>
+      <label>Giới thiệu (HTML)</label>
+      <textarea name="about_html">{{ content.about_html }}</textarea>
+
+      <h2>Tải plugin</h2>
+      <label>Phiên bản</label>
+      <input type="text" name="download_version" value="{{ content.download_version }}">
+      <label>URL file ZIP (Google Drive direct / R2 / …)</label>
+      <input type="url" name="download_url" value="{{ content.download_url }}">
+      <label>Hướng dẫn cài (HTML)</label>
+      <textarea name="download_notes">{{ content.download_notes }}</textarea>
+
+      <h2>Thanh toán</h2>
+      <label>Đoạn intro /buy</label>
+      <textarea name="buy_intro">{{ content.buy_intro }}</textarea>
+      <label>Đoạn footer /buy (HTML)</label>
+      <textarea name="buy_footer">{{ content.buy_footer }}</textarea>
+      <label>Giá (VND)</label>
+      <input type="number" name="license_price_vnd" value="{{ content.license_price_vnd }}" min="1">
+      <label>URL gốc QR Sepay (qr.sepay.vn/img?bank=…&amp;amount=…)</label>
+      <input type="url" name="sepay_qr_base_url" value="{{ content.sepay_qr_base_url }}">
+      <label>Email hỗ trợ</label>
+      <input type="email" name="support_email" value="{{ content.support_email }}">
+
+      <p style="margin-top:1.5rem">
+        <button type="submit" class="btn btn-primary">Lưu</button>
+      </p>
+    </form>
+  </div>
+</body>
+</html>

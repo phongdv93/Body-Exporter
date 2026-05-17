@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin — Body Exporter</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/site.css">
+</head>
+<body>
+  <div class="admin-wrap login-card card">
+    <h1>Admin</h1>
+    {% if error %}<p class="warn">{{ error }}</p>{% endif %}
+    <form method="post" action="/admin/login" class="admin-form">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" required autocomplete="username">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" required autocomplete="current-password">
+      <p style="margin-top:1.25rem">
+        <button type="submit" class="btn btn-primary">Đăng nhập</button>
+      </p>
+    </form>
+    <p style="margin-top:1rem"><a href="/">← Về trang chủ</a></p>
+  </div>
+</body>
+</html>
