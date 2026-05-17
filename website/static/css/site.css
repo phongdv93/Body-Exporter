@@ -354,3 +354,6 @@ body {
   min-height: 100vh;
   color: var(--muted);
 }
+.install-notes{
+  margin-top: 10px;
+}
