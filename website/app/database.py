@@ -5,7 +5,22 @@ from sqlalchemy import create_engine, inspect, select, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from app import config
-from app.models import AdminUser, Base, SiteContent
+from app.models import AdminUser, Base, License, SiteContent
+
+_BE_LICENSES_REQUIRED_COLUMNS = frozenset(
+    {
+        "id",
+        "license_key",
+        "buyer_email",
+        "plan",
+        "purchased_at",
+        "expires_at",
+        "machine_fingerprint",
+        "sepay_transaction_id",
+        "revoked",
+        "notes",
+    }
+)
 
 log = logging.getLogger("uvicorn.error")
 
@@ -84,6 +99,27 @@ def rename_legacy_tables() -> None:
         names.add(new)
 
 
+def ensure_be_licenses_table() -> None:
+    """Recreate be_licenses if it exists with wrong schema (shared DB / bad rename)."""
+    try:
+        insp = inspect(engine)
+        if "be_licenses" not in insp.get_table_names():
+            return
+        have = _table_columns(insp, "be_licenses")
+        if _BE_LICENSES_REQUIRED_COLUMNS.issubset(have):
+            return
+        log.warning(
+            "be_licenses schema mismatch (columns: %s) — dropping and recreating Body Exporter table",
+            sorted(have),
+        )
+        with engine.begin() as conn:
+            conn.execute(text("DROP TABLE IF EXISTS be_licenses"))
+        License.__table__.create(engine, checkfirst=True)
+        log.info("be_licenses recreated with correct schema")
+    except Exception:
+        log.exception("ensure_be_licenses_table failed")
+
+
 def ensure_schema() -> None:
     insp = inspect(engine)
     names = insp.get_table_names()
@@ -131,6 +167,7 @@ SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 def init_db() -> None:
     rename_legacy_tables()
     Base.metadata.create_all(bind=engine)
+    ensure_be_licenses_table()
     ensure_schema()
     with SessionLocal() as db:
         if not db.get(SiteContent, 1):

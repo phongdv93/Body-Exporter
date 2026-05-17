@@ -158,7 +158,7 @@ DATABASE_URL=postgresql://user:pass@ep-xxx.region.aws.neon.tech/neondb?sslmode=r
 - App tự thêm driver `psycopg2`; nếu host đưa `postgres://` cũng được.
 - **Không set** `DATABASE_URL` → dev local vẫn dùng **SQLite** `data/site.db`.
 - Lần chạy đầu: `init_db()` gọi `create_all` + seed `be_site_content` + admin (nếu bảng trống). Bản cũ tự đổi tên `site_content` → `be_site_content`, v.v. **chỉ khi** cột bảng khớp Body Exporter (tránh đụng bảng `licenses` của app khác khi dùng chung Postgres).
-- Nếu `/admin/licenses` lỗi 500 sau khi gộp DB: có thể bảng `be_licenses` sai schema — trong SQL (Postgres): `DROP TABLE IF EXISTS be_licenses;` rồi restart app để tạo lại bảng đúng (mất dòng CRM cũ nếu có).
+- Nếu log báo `column be_licenses.buyer_email does not exist`: bảng `be_licenses` sai schema (thường do gộp Postgres với app khác). Bản mới **tự DROP + tạo lại** `be_licenses` khi startup nếu thiếu cột. Deploy lại rồi mở `/admin/licenses` — hoặc tay: `DROP TABLE IF EXISTS be_licenses;` rồi restart service.
 
 **Lưu ý:** Đừng commit file `.env` có thật `DATABASE_URL` lên GitHub — chỉ lưu trong secrets của Railway/Fly/GitHub Actions.
 

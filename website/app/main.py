@@ -1,13 +1,18 @@
 from pathlib import Path
+import logging
+import traceback
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 
 from app import config
 from app.database import init_db
 from app.routers import admin_routes, licenses_admin, public, sepay_webhook
+
+_log = logging.getLogger("uvicorn.error")
 
 app = FastAPI(title="Body Exporter", docs_url=None, redoc_url=None)
 
@@ -19,6 +24,24 @@ app.add_middleware(
     same_site="lax",
     https_only=config.SITE_URL.startswith("https://"),
 )
+
+
+@app.middleware("http")
+async def log_unhandled_exceptions(request: Request, call_next):
+    """Render free tier has no shell; tracebacks go to Logs via stderr."""
+    try:
+        return await call_next(request)
+    except StarletteHTTPException:
+        raise
+    except Exception:
+        _log.error(
+            "UNHANDLED %s %s\n%s",
+            request.method,
+            request.url.path,
+            traceback.format_exc(),
+        )
+        raise
+
 
 static_dir = Path(__file__).resolve().parents[1] / "static"
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
