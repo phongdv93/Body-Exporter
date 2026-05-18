@@ -429,7 +429,7 @@ body {
 }
 .policy-details[open] .policy-summary-hint { opacity: 0; height: 0; overflow: hidden; }
 .policy-body {
-  padding: 0.94rem 1.25rem 1.15rem 4.1rem;
+  padding: 1rem 1.25rem 1.15rem 4.1rem;
   font-size: 0.92rem;
   line-height: 1.65;
   color: var(--muted);
@@ -597,6 +597,7 @@ body {
 .card-compact {
   padding: 1rem 1.25rem;
   text-align: center;
+  justify-content: flex-start;
 }
 
 @media (max-width: 520px) {
