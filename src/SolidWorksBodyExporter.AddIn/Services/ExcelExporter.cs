@@ -169,7 +169,7 @@ namespace SolidWorksBodyExporter.AddIn.Services
                 }
                 else if (ExcelSpreadsheetHelper.TryGetNumericValue(row, column, out var num))
                 {
-                    r.Append(NumberCell(reference, num, ExcelSpreadsheetHelper.NumericStyleIndexFor(column)));
+                    r.Append(NumberCell(reference, num));
                 }
                 else
                 {
@@ -196,10 +196,10 @@ namespace SolidWorksBodyExporter.AddIn.Services
             return cell;
         }
 
-        private static Cell NumberCell(string reference, double value, uint styleIndex)
+        private static Cell NumberCell(string reference, double value)
         {
             var cell = new Cell { CellReference = reference };
-            ExcelSpreadsheetHelper.WriteNumericCell(cell, value, styleIndex);
+            ExcelSpreadsheetHelper.WriteNumericCellPreservingStyle(cell, value);
             return cell;
         }
 

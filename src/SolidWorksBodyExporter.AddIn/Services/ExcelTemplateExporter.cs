@@ -121,10 +121,6 @@ namespace SolidWorksBodyExporter.AddIn.Services
                     throw new InvalidOperationException("Template workbook has no WorkbookPart.");
 
                 var sharedStringTable = workbookPart.SharedStringTablePart?.SharedStringTable;
-                ExcelSpreadsheetHelper.EnsureWorkbookNumericStyles(
-                    workbookPart,
-                    out var dimensionStyleIndex,
-                    out var quantityStyleIndex);
 
                 foreach (var wsPart in workbookPart.WorksheetParts)
                 {
@@ -139,7 +135,7 @@ namespace SolidWorksBodyExporter.AddIn.Services
                     // also require ambiguous decisions about whether bodies replicate to
                     // every sheet or split across them. We keep behaviour predictable:
                     // first hit wins.
-                    FillSheet(wsPart, sheetData, placeholders, rowList, dimensionStyleIndex, quantityStyleIndex);
+                    FillSheet(wsPart, sheetData, placeholders, rowList);
                     ExcelSpreadsheetHelper.InvalidateFormulaCaches(sheetData);
                     result.RowsWritten = rowList.Count;
                     wsPart.Worksheet.Save();
@@ -215,9 +211,7 @@ namespace SolidWorksBodyExporter.AddIn.Services
             WorksheetPart wsPart,
             SheetData sheetData,
             List<PlaceholderLocation> placeholders,
-            IReadOnlyList<BodyExportRow> rows,
-            uint dimensionStyleIndex,
-            uint quantityStyleIndex)
+            IReadOnlyList<BodyExportRow> rows)
         {
             if (placeholders.Count == 0 || rows.Count == 0) return;
 
@@ -270,11 +264,7 @@ namespace SolidWorksBodyExporter.AddIn.Services
 
                     if (placeholder.Column == ExportColumn.Preview)
                     {
-                        // Clear any placeholder text out of the cell; the image will be
-                        // anchored to it via a TwoCellAnchor in the drawings pipeline.
-                        targetCell.DataType = CellValues.String;
-                        targetCell.CellValue = new CellValue(string.Empty);
-                        targetCell.InlineString = null;
+                        ExcelSpreadsheetHelper.ClearCellValuePreservingStyle(targetCell);
 
                         var pngBytes = TryEncodePng(body?.Thumbnail);
                         if (pngBytes == null) continue;
@@ -285,14 +275,11 @@ namespace SolidWorksBodyExporter.AddIn.Services
                     }
                     else if (ExcelSpreadsheetHelper.TryGetNumericValue(body, placeholder.Column, out var num))
                     {
-                        var styleIndex = placeholder.Column == ExportColumn.Quantity
-                            ? quantityStyleIndex
-                            : dimensionStyleIndex;
-                        ExcelSpreadsheetHelper.WriteNumericCell(targetCell, num, styleIndex);
+                        ExcelSpreadsheetHelper.WriteNumericCellPreservingStyle(targetCell, num);
                     }
                     else
                     {
-                        ExcelSpreadsheetHelper.WriteTextCell(
+                        ExcelSpreadsheetHelper.WriteTextCellPreservingStyle(
                             targetCell,
                             BodyExportWindow.ExportColumnValue(body, placeholder.Column));
                     }
