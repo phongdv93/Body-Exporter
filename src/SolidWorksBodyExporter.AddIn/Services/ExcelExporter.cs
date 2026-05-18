@@ -95,6 +95,7 @@ namespace SolidWorksBodyExporter.AddIn.Services
                     Name = "Bodies"
                 });
 
+                ExcelSpreadsheetHelper.EnsureFullRecalculationOnLoad(workbookPart);
                 workbookPart.Workbook.Save();
             }
         }

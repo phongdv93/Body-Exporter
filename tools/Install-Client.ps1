@@ -46,14 +46,79 @@ function Test-SolidWorksRunning {
     return $null -ne (Get-Process -Name 'SLDWORKS' -ErrorAction SilentlyContinue | Select-Object -First 1)
 }
 
+function Copy-SolidWorksInteropDeps {
+    param(
+        [Parameter(Mandatory = $true)][string]$SourceDir,
+        [Parameter(Mandatory = $true)][string]$TargetDir
+    )
+    if (-not (Test-Path -LiteralPath $TargetDir)) {
+        New-Item -ItemType Directory -Path $TargetDir -Force | Out-Null
+    }
+    Get-ChildItem -LiteralPath $SourceDir -Filter 'SolidWorks.Interop.*.dll' -ErrorAction SilentlyContinue |
+        ForEach-Object {
+            Copy-Item -LiteralPath $_.FullName -Destination $TargetDir -Force
+        }
+}
+
+function Remove-BodyExporterComRegistration {
+  param([string]$Guid = $AddInGuid)
+    $clsid = "{$Guid}"
+    $progId = 'SolidWorksBodyExporter.AddIn'
+    $roots = @(
+        'HKLM:\SOFTWARE\Classes',
+        'HKLM:\SOFTWARE\WOW6432Node\Classes'
+    )
+    foreach ($root in $roots) {
+        foreach ($sub in @("CLSID\$clsid", $progId)) {
+            $key = Join-Path $root $sub
+            if (Test-Path -LiteralPath $key) {
+                Remove-Item -LiteralPath $key -Recurse -Force -ErrorAction SilentlyContinue
+                Write-Host "  Xoa registry: $key" -ForegroundColor DarkGray
+            }
+        }
+    }
+    $swKey = "HKLM:\SOFTWARE\SolidWorks\Addins\$clsid"
+    if (Test-Path -LiteralPath $swKey) {
+        Remove-Item -LiteralPath $swKey -Recurse -Force -ErrorAction SilentlyContinue
+        Write-Host "  Xoa registry: $swKey" -ForegroundColor DarkGray
+    }
+}
+
 function Unregister-AddInDll {
     param(
         [Parameter(Mandatory = $true)][string]$DllPath,
-        [Parameter(Mandatory = $true)][string]$RegAsm
+        [Parameter(Mandatory = $true)][string]$RegAsm,
+        [string]$InteropSourceDir
     )
     if (-not (Test-Path -LiteralPath $DllPath)) { return }
+
+    $dllDir = Split-Path -Parent $DllPath
+    if ($InteropSourceDir) {
+        Copy-SolidWorksInteropDeps -SourceDir $InteropSourceDir -TargetDir $dllDir
+    }
+
     Write-Host "  Go dang ky COM: $DllPath" -ForegroundColor DarkGray
-    & $RegAsm /unregister $DllPath 2>$null | Out-Null
+    $prevNative = $null
+    if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
+        $prevNative = $PSNativeCommandUseErrorActionPreference
+        $PSNativeCommandUseErrorActionPreference = $false
+    }
+    $prevEap = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        & $RegAsm /unregister $DllPath 2>&1 | Out-Null
+    }
+    finally {
+        $ErrorActionPreference = $prevEap
+        if ($null -ne $prevNative) {
+            $PSNativeCommandUseErrorActionPreference = $prevNative
+        }
+    }
+
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host '  RegAsm khong go duoc COM (thieu DLL phu thuoc?) — xoa registry...' -ForegroundColor Yellow
+        Remove-BodyExporterComRegistration
+    }
 }
 
 function Clear-BodyExporterCaches {
@@ -148,7 +213,7 @@ if (Test-SolidWorksRunning) {
 
 # 0. Go phien ban cu + cache (giu license: settings.json, license.lic, trial.dat).
 Write-Host '[0/6] Go phien ban cu va cache...' -ForegroundColor Yellow
-Unregister-AddInDll -DllPath $oldInstalledDll -RegAsm $regasm
+Unregister-AddInDll -DllPath $oldInstalledDll -RegAsm $regasm -InteropSourceDir $source
 $legacyPf = 'C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\SolidWorksBodyExporter.AddIn.dll'
 if (Test-Path -LiteralPath $legacyPf) {
     Write-Host '  Phat hien DLL cu trong Program Files (nen xoa thu cong neu SW van load ban cu):' -ForegroundColor Yellow
@@ -173,9 +238,24 @@ Get-ChildItem -Path $source -Filter '*.dll' -ErrorAction SilentlyContinue |
 $installedDll = Join-Path $InstallRoot 'SolidWorksBodyExporter.AddIn.dll'
 $installedExe = Join-Path $InstallRoot 'SolidWorksBodyExporter.Launcher.exe'
 
-# 2. Dang ky COM (regasm /codebase).
+# 2. Dang ky COM (regasm /codebase). Interop DLLs da copy o buoc 1.
 Write-Host "[2/6] Dang ky COM trong registry..." -ForegroundColor Yellow
-& $regasm /codebase /tlb $installedDll | Out-Null
+$prevNative = $null
+if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
+    $prevNative = $PSNativeCommandUseErrorActionPreference
+    $PSNativeCommandUseErrorActionPreference = $false
+}
+$prevEap = $ErrorActionPreference
+try {
+    $ErrorActionPreference = 'Continue'
+    & $regasm /codebase /tlb $installedDll 2>&1 | Out-Null
+}
+finally {
+    $ErrorActionPreference = $prevEap
+    if ($null -ne $prevNative) {
+        $PSNativeCommandUseErrorActionPreference = $prevNative
+    }
+}
 if ($LASTEXITCODE -ne 0) {
     throw "regasm.exe loi exit code $LASTEXITCODE. Hay chac chan script chay voi quyen Administrator."
 }

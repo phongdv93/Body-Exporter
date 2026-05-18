@@ -140,11 +140,13 @@ namespace SolidWorksBodyExporter.AddIn.Services
                     // every sheet or split across them. We keep behaviour predictable:
                     // first hit wins.
                     FillSheet(wsPart, sheetData, placeholders, rowList, dimensionStyleIndex, quantityStyleIndex);
+                    ExcelSpreadsheetHelper.InvalidateFormulaCaches(sheetData);
                     result.RowsWritten = rowList.Count;
                     wsPart.Worksheet.Save();
                     break;
                 }
 
+                ExcelSpreadsheetHelper.EnsureFullRecalculationOnLoad(workbookPart);
                 workbookPart.Workbook.Save();
             }
 

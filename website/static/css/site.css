@@ -526,7 +526,7 @@ body {
 .guide-details .policy-summary {
   padding: 0.95rem 1.15rem;
 }
-.guide-details .policy-body {
+.guide-details {
   padding: 0 1.15rem 1rem 3.85rem;
   border-top: 1px solid var(--border);
 }

@@ -45,13 +45,13 @@ namespace SolidWorksBodyExporter.AddIn.Services
             switch (column)
             {
                 case ExportColumn.Length:
-                    value = Math.Round(row.Length, 2, MidpointRounding.AwayFromZero);
+                    value = Math.Round(row.Length, 1, MidpointRounding.AwayFromZero);
                     return true;
                 case ExportColumn.Width:
-                    value = Math.Round(row.Width, 2, MidpointRounding.AwayFromZero);
+                    value = Math.Round(row.Width, 1, MidpointRounding.AwayFromZero);
                     return true;
                 case ExportColumn.Thickness:
-                    value = Math.Round(row.Thickness, 2, MidpointRounding.AwayFromZero);
+                    value = Math.Round(row.Thickness, 1, MidpointRounding.AwayFromZero);
                     return true;
                 case ExportColumn.Quantity:
                     value = row.Quantity;
@@ -61,12 +61,15 @@ namespace SolidWorksBodyExporter.AddIn.Services
             }
         }
 
-        /// <summary>Excel format code: thousands + decimal per current culture.</summary>
+        /// <summary>
+        /// Excel format: integer values without decimals; fractional values with one optional decimal
+        /// (e.g. 42 and 42,5), decimal separator from <see cref="CultureInfo.CurrentCulture"/>.
+        /// </summary>
         public static string DimensionNumberFormatCode()
         {
             return CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator == ","
-                ? "#.##0,00"
-                : "#,##0.00";
+                ? "#.##0,#"
+                : "#,##0.#";
         }
 
         public static string QuantityNumberFormatCode()
@@ -277,6 +280,42 @@ namespace SolidWorksBodyExporter.AddIn.Services
             });
             sheet.CellFormats.Count = (uint)sheet.CellFormats.Count();
             return index;
+        }
+
+        /// <summary>
+        /// Forces Excel to recalculate all formulas when the file is opened (fixes stale cached
+        /// values after we fill template input cells).
+        /// </summary>
+        public static void EnsureFullRecalculationOnLoad(WorkbookPart workbookPart)
+        {
+            if (workbookPart?.Workbook == null) return;
+
+            var calc = workbookPart.Workbook.CalculationProperties;
+            if (calc == null)
+            {
+                calc = new CalculationProperties();
+                workbookPart.Workbook.CalculationProperties = calc;
+            }
+
+            calc.FullCalculationOnLoad = true;
+            calc.CalculationOnSave = true;
+            calc.CalculationMode = CalculateModeValues.Auto;
+            calc.ForceFullCalculation = true;
+        }
+
+        /// <summary>Clear cached formula results so Excel recomputes on open.</summary>
+        public static void InvalidateFormulaCaches(SheetData sheetData)
+        {
+            if (sheetData == null) return;
+
+            foreach (var row in sheetData.Elements<Row>())
+            {
+                foreach (var cell in row.Elements<Cell>())
+                {
+                    if (cell.CellFormula == null) continue;
+                    cell.CellValue = null;
+                }
+            }
         }
     }
 }
