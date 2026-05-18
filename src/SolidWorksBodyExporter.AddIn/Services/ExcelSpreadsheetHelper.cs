@@ -120,7 +120,15 @@ namespace SolidWorksBodyExporter.AddIn.Services
                 })
             { Count = 4 };
 
-            return new Stylesheet(fonts, fills, borders, numberingFormats, cellStyleFormats, cellFormats);
+            // Schema order: numFmts, fonts, fills, borders, cellStyleXfs, cellXfs.
+            var sheet = new Stylesheet();
+            sheet.Append(numberingFormats);
+            sheet.Append(fonts);
+            sheet.Append(fills);
+            sheet.Append(borders);
+            sheet.Append(cellStyleFormats);
+            sheet.Append(cellFormats);
+            return sheet;
         }
 
         public static uint NumericStyleIndexFor(ExportColumn column)
@@ -150,27 +158,78 @@ namespace SolidWorksBodyExporter.AddIn.Services
         /// </summary>
         public static void EnsureWorkbookNumericStyles(WorkbookPart workbookPart, out uint dimensionStyleIndex, out uint quantityStyleIndex)
         {
-            dimensionStyleIndex = StyleIndexDimension;
-            quantityStyleIndex = StyleIndexQuantity;
+            var stylesPart = workbookPart.WorkbookStylesPart;
+            if (stylesPart == null)
+            {
+                stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
+                stylesPart.Stylesheet = CreateStylesheet();
+                dimensionStyleIndex = StyleIndexDimension;
+                quantityStyleIndex = StyleIndexQuantity;
+                return;
+            }
 
-            var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
-            var sheet = stylesPart.Stylesheet ?? new Stylesheet();
-            stylesPart.Stylesheet = sheet;
+            var sheet = stylesPart.Stylesheet;
+            if (sheet == null)
+            {
+                stylesPart.Stylesheet = CreateStylesheet();
+                dimensionStyleIndex = StyleIndexDimension;
+                quantityStyleIndex = StyleIndexQuantity;
+                return;
+            }
 
+            // Edit the existing stylesheet in place. Re-assigning stylesPart.Stylesheet to the
+            // same root element throws "already been associated with another OpenXmlPart".
+            EnsureMinimalStyleChildren(sheet);
             EnsureNumberingFormat(sheet, DimensionNumberFormatId, DimensionNumberFormatCode());
             EnsureNumberingFormat(sheet, QuantityNumberFormatId, QuantityNumberFormatCode());
-
             dimensionStyleIndex = EnsureCellFormat(sheet, DimensionNumberFormatId);
             quantityStyleIndex = EnsureCellFormat(sheet, QuantityNumberFormatId);
+        }
 
-            sheet.Save();
+        private static void EnsureMinimalStyleChildren(Stylesheet sheet)
+        {
+            if (sheet.Fonts == null)
+            {
+                sheet.Fonts = new Fonts(new Font(new FontSize { Val = 11 }, new FontName { Val = "Calibri" })) { Count = 1 };
+            }
+
+            if (sheet.Fills == null)
+            {
+                sheet.Fills = new Fills(
+                    new Fill(new PatternFill { PatternType = PatternValues.None }),
+                    new Fill(new PatternFill { PatternType = PatternValues.Gray125 }))
+                { Count = 2 };
+            }
+
+            if (sheet.Borders == null)
+            {
+                sheet.Borders = new Borders(new Border()) { Count = 1 };
+            }
+
+            if (sheet.CellStyleFormats == null)
+            {
+                sheet.CellStyleFormats = new CellStyleFormats(new CellFormat()) { Count = 1 };
+            }
         }
 
         private static void EnsureNumberingFormat(Stylesheet sheet, uint formatId, string formatCode)
         {
             if (sheet.NumberingFormats == null)
             {
-                sheet.NumberingFormats = new NumberingFormats();
+                var numberingFormats = new NumberingFormats();
+                OpenXmlElement insertBefore = sheet.Fonts;
+                if (insertBefore == null) insertBefore = sheet.Fills;
+                if (insertBefore == null) insertBefore = sheet.Borders;
+                if (insertBefore == null) insertBefore = sheet.CellStyleFormats;
+                if (insertBefore == null) insertBefore = sheet.CellFormats;
+                if (insertBefore != null)
+                {
+                    sheet.InsertBefore(numberingFormats, insertBefore);
+                }
+                else
+                {
+                    sheet.NumberingFormats = numberingFormats;
+                }
             }
 
             var existing = sheet.NumberingFormats.Elements<NumberingFormat>()

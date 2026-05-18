@@ -18,7 +18,7 @@ class SiteContent(Base):
     hero_subtitle: Mapped[str] = mapped_column(Text, default="")
     hero_bullets: Mapped[str] = mapped_column(Text, default="")  # one feature per line
     about_html: Mapped[str] = mapped_column(Text, default="")
-    download_version: Mapped[str] = mapped_column(String(40), default="0.7.7")
+    download_version: Mapped[str] = mapped_column(String(40), default="0.7.8")
     download_url: Mapped[str] = mapped_column(String(500), default="")
     download_notes: Mapped[str] = mapped_column(Text, default="")
     buy_intro: Mapped[str] = mapped_column(Text, default="")
