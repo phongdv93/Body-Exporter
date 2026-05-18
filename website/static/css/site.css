@@ -509,8 +509,99 @@ body {
   margin: 0.85rem 0 0;
   text-align: center;
 }
+
+/* Download page — collapsible guides */
+.guide-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-bottom: 1.25rem;
+}
+.guide-details {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.guide-details .policy-summary {
+  padding: 0.95rem 1.15rem;
+}
+.guide-details .policy-body {
+  padding: 0 1.15rem 1rem 3.85rem;
+  border-top: 1px solid var(--border);
+}
+.guide-icon-install::after { border-color: var(--accent); opacity: 0.9; }
+.guide-icon-use::after {
+  border: none;
+  inset: 0.5rem;
+  background: var(--accent);
+  opacity: 0.35;
+  border-radius: 2px;
+}
+.guide-icon-excel::after {
+  content: "X";
+  border: none;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent);
+  opacity: 0.95;
+}
+.guide-steps {
+  margin: 0 0 1rem;
+  padding-left: 1.2rem;
+  color: var(--muted);
+  line-height: 1.65;
+}
+.guide-steps li { margin-bottom: 0.55rem; }
+.guide-steps li:last-child { margin-bottom: 0; }
+.guide-admin-notes {
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px dashed var(--border);
+  font-size: 0.88rem;
+}
+.placeholder-table-wrap {
+  overflow-x: auto;
+  margin: 0.5rem 0 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.placeholder-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.placeholder-table th,
+.placeholder-table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.placeholder-table th {
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.placeholder-table tbody tr:last-child td { border-bottom: none; }
+.placeholder-table code {
+  font-size: 0.8rem;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.card-compact {
+  padding: 1rem 1.25rem;
+  text-align: center;
+}
+
 @media (max-width: 520px) {
   .policy-body { padding-left: 1.25rem; }
+  .guide-details .policy-body { padding-left: 1.15rem; }
 }
 .flash-err {
   color: #ffb4b4;

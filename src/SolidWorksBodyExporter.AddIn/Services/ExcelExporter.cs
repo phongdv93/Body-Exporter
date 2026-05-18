@@ -63,7 +63,7 @@ namespace SolidWorksBodyExporter.AddIn.Services
                 workbookPart.Workbook = new Workbook();
 
                 var stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
-                stylesPart.Stylesheet = BuildStylesheet();
+                stylesPart.Stylesheet = ExcelSpreadsheetHelper.CreateStylesheet();
                 stylesPart.Stylesheet.Save();
 
                 var worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
@@ -97,31 +97,6 @@ namespace SolidWorksBodyExporter.AddIn.Services
 
                 workbookPart.Workbook.Save();
             }
-        }
-
-        private static Stylesheet BuildStylesheet()
-        {
-            // Style 0 = default. Style 1 = bold header. Style 2 = numeric with vertical centering.
-            var fonts = new Fonts(
-                new Font(new FontSize { Val = 11 }, new FontName { Val = "Calibri" }),
-                new Font(new Bold(), new FontSize { Val = 11 }, new FontName { Val = "Calibri" }))
-            { Count = 2 };
-
-            var fills = new Fills(
-                new Fill(new PatternFill { PatternType = PatternValues.None }),
-                new Fill(new PatternFill { PatternType = PatternValues.Gray125 }))
-            { Count = 2 };
-
-            var borders = new Borders(new Border()) { Count = 1 };
-
-            var cellStyleFormats = new CellStyleFormats(new CellFormat()) { Count = 1 };
-
-            var cellFormats = new CellFormats(
-                new CellFormat { FontId = 0, FillId = 0, BorderId = 0, FormatId = 0 },
-                new CellFormat { FontId = 1, FillId = 0, BorderId = 0, FormatId = 0, ApplyFont = true })
-            { Count = 2 };
-
-            return new Stylesheet(fonts, fills, borders, cellStyleFormats, cellFormats);
         }
 
         private static Columns BuildColumns(IReadOnlyList<ExportColumn> order)
@@ -191,9 +166,9 @@ namespace SolidWorksBodyExporter.AddIn.Services
                     // anchored via the DrawingsPart in EmbedPreviewImages.
                     r.Append(StringCell(reference, string.Empty));
                 }
-                else if (IsNumeric(column))
+                else if (ExcelSpreadsheetHelper.TryGetNumericValue(row, column, out var num))
                 {
-                    r.Append(NumberCell(reference, NumericValueFor(row, column)));
+                    r.Append(NumberCell(reference, num, ExcelSpreadsheetHelper.NumericStyleIndexFor(column)));
                 }
                 else
                 {
@@ -201,32 +176,6 @@ namespace SolidWorksBodyExporter.AddIn.Services
                 }
             }
             return r;
-        }
-
-        private static bool IsNumeric(ExportColumn column)
-        {
-            switch (column)
-            {
-                case ExportColumn.Length:
-                case ExportColumn.Width:
-                case ExportColumn.Thickness:
-                case ExportColumn.Quantity:
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
-        private static double NumericValueFor(BodyExportRow row, ExportColumn column)
-        {
-            switch (column)
-            {
-                case ExportColumn.Length:   return row.Length;
-                case ExportColumn.Width:    return row.Width;
-                case ExportColumn.Thickness: return row.Thickness;
-                case ExportColumn.Quantity: return row.Quantity;
-                default: return 0;
-            }
         }
 
         private static Cell StringCell(string reference, string text, uint? styleIndex = null)
@@ -246,14 +195,11 @@ namespace SolidWorksBodyExporter.AddIn.Services
             return cell;
         }
 
-        private static Cell NumberCell(string reference, double value)
+        private static Cell NumberCell(string reference, double value, uint styleIndex)
         {
-            return new Cell
-            {
-                CellReference = reference,
-                DataType = CellValues.Number,
-                CellValue = new CellValue(value.ToString("R", CultureInfo.InvariantCulture))
-            };
+            var cell = new Cell { CellReference = reference };
+            ExcelSpreadsheetHelper.WriteNumericCell(cell, value, styleIndex);
+            return cell;
         }
 
         private static string CellReference(int column, uint row)

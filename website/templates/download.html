@@ -45,14 +45,95 @@
   </div>
 </section>
 
-<section class="card">
-  <div class="install-notes prose">
-    {{ content.download_notes | safe }}
-  </div>
+<section class="guide-stack">
+  <details class="policy-details guide-details">
+    <summary class="policy-summary">
+      <span class="policy-summary-icon guide-icon-install" aria-hidden="true"></span>
+      <span class="policy-summary-text">
+        <span class="policy-summary-title">Hướng dẫn cài đặt</span>
+        <span class="policy-summary-hint">Bấm để xem chi tiết</span>
+      </span>
+      <span class="policy-chevron" aria-hidden="true"></span>
+    </summary>
+    <div class="policy-body guide-body">
+      <ol class="guide-steps">
+        <li><strong>Đóng SolidWorks</strong> (tránh DLL bị khóa khi cài).</li>
+        <li>Giải nén ZIP → chạy <code>Install-BodyExporter.cmd</code> <strong>Run as administrator</strong>.
+          Installer tự gỡ COM/DLL cũ và xóa cache. <strong>Giữ license:</strong>
+          <code>settings.json</code>, <code>license.lic</code>, <code>trial.dat</code> trong
+          <code>%APPDATA%\SolidWorksBodyExporter</code>.</li>
+        <li>Mở SolidWorks → <strong>Tools → Add-Ins</strong> → bật <em>SolidWorks Body Exporter</em>.</li>
+        <li>Dùng shortcut <strong>Body Exporter</strong> trên Desktop để mở cửa sổ export.</li>
+      </ol>
+      {% if content.download_notes %}
+      <div class="install-notes prose guide-admin-notes">
+        {{ content.download_notes | safe }}
+      </div>
+      {% endif %}
+    </div>
+  </details>
+
+  <details class="policy-details guide-details">
+    <summary class="policy-summary">
+      <span class="policy-summary-icon guide-icon-use" aria-hidden="true"></span>
+      <span class="policy-summary-text">
+        <span class="policy-summary-title">Hướng dẫn sử dụng</span>
+        <span class="policy-summary-hint">Bấm để xem chi tiết</span>
+      </span>
+      <span class="policy-chevron" aria-hidden="true"></span>
+    </summary>
+    <div class="policy-body guide-body">
+      <ol class="guide-steps">
+        <li>Mở file <strong>.SLDPRT</strong> trong SolidWorks.</li>
+        <li>Mở <strong>Body Exporter</strong> (shortcut Desktop hoặc launcher trong thư mục cài).</li>
+        <li>Plugin quét danh sách body — chỉnh <strong>tên hiển thị</strong> và trục <strong>Length / Width / Thickness</strong>.</li>
+        <li><strong>Copy All</strong> — dán vào Excel; hoặc menu <strong>Export</strong> → xuất file Excel.</li>
+        <li>Lần đầu: <strong>License</strong> → trial 14 ngày (cần internet) hoặc key từ <a href="/buy">/buy</a>.</li>
+      </ol>
+      <p class="muted fine-print">Bấm Save trong cửa sổ export để lưu metadata vào file Part.</p>
+    </div>
+  </details>
+
+  <details class="policy-details guide-details">
+    <summary class="policy-summary">
+      <span class="policy-summary-icon guide-icon-excel" aria-hidden="true"></span>
+      <span class="policy-summary-text">
+        <span class="policy-summary-title">Export Excel &amp; placeholder</span>
+        <span class="policy-summary-hint">Bấm để xem chi tiết</span>
+      </span>
+      <span class="policy-chevron" aria-hidden="true"></span>
+    </summary>
+    <div class="policy-body guide-body">
+      <p class="policy-lead">Tạo file <code>.xlsx</code> mẫu của công ty, chèn <strong>placeholder</strong> vào ô cần điền — plugin thay bằng dữ liệu từng body khi export.</p>
+      <ol class="guide-steps">
+        <li><strong>Export ▾ → Excel template panel…</strong> — <em>Add new…</em> / <em>Change…</em> chọn file mẫu (một dòng có placeholder).</li>
+        <li><strong>Export ▾ → Fill Excel template…</strong> — chọn nơi lưu file kết quả.</li>
+        <li>Body đầu tiên ghi đè dòng placeholder; các body tiếp theo chèn xuống các dòng bên dưới.</li>
+      </ol>
+      <p><strong>Placeholder hỗ trợ</strong> (không phân biệt hoa thường):</p>
+      <div class="placeholder-table-wrap">
+        <table class="placeholder-table">
+          <thead>
+            <tr><th>Gõ trong Excel</th><th>Dữ liệu điền</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>{% raw %}{{Body Name}}{% endraw %}</code></td><td>Tên body / part</td></tr>
+            <tr><td><code>{% raw %}{{Length}}{% endraw %}</code></td><td>Chiều dài (mm)</td></tr>
+            <tr><td><code>{% raw %}{{Width}}{% endraw %}</code></td><td>Chiều rộng (mm)</td></tr>
+            <tr><td><code>{% raw %}{{Thickness}}{% endraw %}</code></td><td>Chiều dày (mm)</td></tr>
+            <tr><td><code>{% raw %}{{Quantity}}{% endraw %}</code> · <code>{% raw %}{{Qty}}{% endraw %}</code></td><td>Số lượng</td></tr>
+            <tr><td><code>{% raw %}{{Appearance}}{% endraw %}</code> · <code>{% raw %}{{Color}}{% endraw %}</code></td><td>Màu / vật liệu</td></tr>
+            <tr><td><code>{% raw %}{{Preview}}{% endraw %}</code></td><td>Ảnh thumbnail (PNG trong ô)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted fine-print">Tiếng Việt: {% raw %}{{Ten chi tiet}}{% endraw %}, {% raw %}{{Chieu dai}}{% endraw %}, {% raw %}{{Chieu rong}}{% endraw %}, {% raw %}{{Chieu day}}{% endraw %}, {% raw %}{{So luong}}{% endraw %}, {% raw %}{{Mau sac}}{% endraw %}… Placeholder lạ sẽ báo sau khi export.</p>
+    </div>
+  </details>
 </section>
-<section class="card card-dim">
-  <h2>Dùng thử</h2>
-  <p>Sau khi cài, mở SolidWorks → License → dùng trial 14 ngày (cần internet lần đầu).</p>
-  <a class="btn btn-ghost" href="/buy">Mua license đầy đủ</a>
+
+<section class="card card-dim card-compact">
+  <p class="muted" style="margin:0">Trial 14 ngày sau khi cài — cần internet lần đầu.</p>
+  <a class="btn btn-ghost" href="/buy" style="margin-top:0.75rem;display:inline-flex">Mua license</a>
 </section>
 {% endblock %}
