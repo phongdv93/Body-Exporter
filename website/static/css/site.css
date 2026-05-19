@@ -527,7 +527,7 @@ body {
   padding: 0.95rem 1.15rem;
 }
 .guide-details .policy-body {
-  padding: 0 1.15rem 1rem 3.85rem;
+  padding: 0.94rem 1.15rem 1rem 3.85rem;
   border-top: 1px solid var(--border);
 }
 .guide-icon-install::after { border-color: var(--accent); opacity: 0.9; }
