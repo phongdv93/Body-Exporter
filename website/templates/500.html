@@ -1,0 +1,13 @@
+{% extends "error_layout.html" %}
+{% block title %}Lỗi máy chủ — Body Exporter{% endblock %}
+{% block content %}
+<div class="error-card">
+  <p class="error-code error-code--warn" aria-hidden="true">500</p>
+  <h1 class="error-title">Có lỗi xảy ra</h1>
+  <p class="error-lead">Thử tải lại trang. Nếu vẫn lỗi, liên hệ hỗ trợ.</p>
+  <div class="error-actions">
+    <a class="btn btn-primary" href="/">Trang chủ</a>
+    <a class="btn btn-ghost" href="mailto:{{ support_email }}">Liên hệ</a>
+  </div>
+</div>
+{% endblock %}

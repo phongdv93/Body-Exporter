@@ -10,11 +10,15 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app import config
 from app.database import init_db
+from app.error_pages import http_exception_handler, server_error_handler
 from app.routers import admin_routes, client_api, licenses_admin, public, sepay_webhook
 
 _log = logging.getLogger("uvicorn.error")
 
 app = FastAPI(title="Body Exporter", docs_url=None, redoc_url=None)
+
+app.add_exception_handler(StarletteHTTPException, http_exception_handler)
+app.add_exception_handler(Exception, server_error_handler)
 
 app.add_middleware(
     SessionMiddleware,
