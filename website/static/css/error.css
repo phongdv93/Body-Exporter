@@ -1,0 +1,187 @@
+/* Error pages — self-contained layout (404 / 500) */
+body.error-page {
+  --ep-bg: #0a0e14;
+  --ep-card: rgba(18, 24, 32, 0.72);
+  --ep-border: rgba(42, 53, 72, 0.9);
+  --ep-text: #e8edf5;
+  --ep-muted: #8b9bb4;
+  --ep-accent: #3dd6c6;
+  --ep-warn: #f4a261;
+  --ep-font: "DM Sans", system-ui, sans-serif;
+
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  font-family: var(--ep-font);
+  background: var(--ep-bg);
+  color: var(--ep-text);
+  line-height: 1.5;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.error-page__bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 0%, rgba(61, 214, 198, 0.14), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 100% 100%, rgba(61, 214, 198, 0.06), transparent 50%),
+    radial-gradient(ellipse 40% 35% at 0% 80%, rgba(244, 162, 97, 0.05), transparent 45%),
+    var(--ep-bg);
+}
+
+.error-page__bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(42, 53, 72, 0.35) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(42, 53, 72, 0.35) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 20%, transparent 75%);
+  opacity: 0.45;
+}
+
+.error-page__header {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.1rem 1.5rem;
+  border-bottom: 1px solid var(--ep-border);
+  background: rgba(10, 14, 20, 0.75);
+  backdrop-filter: blur(10px);
+}
+
+.error-page__logo {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--ep-text);
+  text-decoration: none;
+  letter-spacing: -0.03em;
+}
+
+.error-page__logo span {
+  color: var(--ep-accent);
+}
+
+.error-page__main {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1.5rem, 5vw, 3rem);
+}
+
+.error-page__panel {
+  position: relative;
+  width: min(100%, 26rem);
+  padding: clamp(2rem, 6vw, 2.75rem) clamp(1.5rem, 5vw, 2.25rem);
+  text-align: center;
+  border-radius: 20px;
+  border: 1px solid var(--ep-border);
+  background: var(--ep-card);
+  backdrop-filter: blur(16px);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+    0 24px 48px rgba(0, 0, 0, 0.35);
+}
+
+.error-page__panel::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    145deg,
+    rgba(61, 214, 198, 0.35),
+    transparent 40%,
+    transparent 60%,
+    rgba(61, 214, 198, 0.12)
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.error-page__code-wrap {
+  margin: 0 0 1rem;
+  position: relative;
+}
+
+.error-page__code {
+  display: block;
+  margin: 0;
+  font-size: clamp(4.5rem, 22vw, 7rem);
+  font-weight: 700;
+  line-height: 0.95;
+  letter-spacing: -0.06em;
+  color: var(--ep-accent);
+  background: linear-gradient(165deg, #f0f4fa 8%, var(--ep-accent) 72%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.error-page--500 .error-page__code {
+  background: linear-gradient(165deg, #f0f4fa 8%, var(--ep-warn) 78%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+@supports not ((-webkit-background-clip: text) or (background-clip: text)) {
+  .error-page__code {
+    -webkit-text-fill-color: unset;
+    color: var(--ep-accent);
+  }
+  .error-page--500 .error-page__code {
+    color: var(--ep-warn);
+  }
+}
+
+.error-page__title {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.2rem, 4vw, 1.45rem);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+.error-page__lead {
+  margin: 0 0 1.75rem;
+  color: var(--ep-muted);
+  font-size: 0.95rem;
+  max-width: 18em;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.error-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.error-page__actions .btn {
+  min-width: 7.5rem;
+  justify-content: center;
+}
+
+@media (max-width: 380px) {
+  .error-page__actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  .error-page__actions .btn {
+    width: 100%;
+  }
+}

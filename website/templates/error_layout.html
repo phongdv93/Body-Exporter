@@ -8,12 +8,16 @@
   <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/site.css">
+  <link rel="stylesheet" href="/static/css/error.css">
 </head>
-<body class="error-body">
-  <a class="error-logo" href="/">Body<span>Exporter</span></a>
-  <main class="error-main">
+<body class="error-page{% block body_class %}{% endblock %}">
+  <div class="error-page__bg" aria-hidden="true"></div>
+  <header class="error-page__header">
+    <a class="error-page__logo" href="/">Body<span>Exporter</span></a>
+  </header>
+  <main class="error-page__main">
     {% block content %}{% endblock %}
   </main>
 </body>
