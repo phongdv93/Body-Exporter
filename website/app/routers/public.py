@@ -18,8 +18,8 @@ from app.i18n import (
     normalize_lang,
     resolve_lang,
     safe_redirect_path,
+    page_meta,
     schema_website_json,
-    seo_meta,
     translate,
 )
 from app.template_response import html_response
@@ -73,11 +73,22 @@ def _install_notes_extra(raw: str | None) -> str | None:
     return notes
 
 
-def _ctx(request: Request, db: Session, page_title: str | None = None, **extra):
+def _ctx(
+    request: Request,
+    db: Session,
+    page_title: str | None = None,
+    *,
+    seo_page: str | None = None,
+    **extra,
+):
     content = get_content(db)
     lang = resolve_lang(request)
-    meta_desc, _seo_title = seo_meta(lang, content)
-    title = page_title or _dedupe_title(content.hero_title) or "Body Exporter"
+    if seo_page:
+        meta_desc, default_title = page_meta(lang, seo_page)
+        title = page_title or default_title
+    else:
+        meta_desc, default_title = page_meta(lang, "home")
+        title = page_title or _dedupe_title(content.hero_title) or default_title
     keywords = config.SEO_KEYWORDS_EN if lang == "en" else config.SEO_KEYWORDS
     canonical = f"{config.SITE_URL}{request.url.path.split('?')[0]}"
     schema_web = schema_website_json(lang, meta_desc)
@@ -115,8 +126,8 @@ def _ctx(request: Request, db: Session, page_title: str | None = None, **extra):
         "install_notes_extra": _install_notes_extra(content.download_notes),
         "hero_subtitle": localized_text(content, "hero_subtitle", lang, default_key="home.hero_subtitle_default"),
         "about_html": localized_html_field(content, "about_html", lang),
-        "buy_intro": localized_html_field(content, "buy_intro", lang),
-        "buy_footer": localized_html_field(content, "buy_footer", lang),
+        "buy_intro": localized_html_field(content, "buy_intro", lang, default_key="buy.intro_default"),
+        "buy_footer": localized_html_field(content, "buy_footer", lang, default_key="buy.footer_default"),
         **extra,
     }
 
@@ -148,8 +159,9 @@ def home(request: Request, db: Session = Depends(get_db)):
         _ctx(
             request,
             db,
+            seo_page="home",
             bullets=bullets,
-            page_title=_dedupe_title(content.hero_title) or "Body Exporter",
+            page_title=_dedupe_title(content.hero_title) or translate(lang, "page.home"),
         ),
     )
 
@@ -166,7 +178,7 @@ def download_page(request: Request, db: Session = Depends(get_db)):
         _ctx(
             request,
             db,
-            page_title=translate(resolve_lang(request), "page.download"),
+            seo_page="download",
             download_consent=_download_consent_ok(request),
         ),
     )
@@ -185,7 +197,7 @@ def download_accept(
             _ctx(
                 request,
                 db,
-                page_title=translate(resolve_lang(request), "page.download"),
+                seo_page="download",
                 download_consent=False,
                 policy_error=translate(resolve_lang(request), "download.policy_error"),
             ),
@@ -200,7 +212,7 @@ def download_accept(
             _ctx(
                 request,
                 db,
-                page_title=translate(lang, "page.download"),
+                seo_page="download",
                 download_consent=False,
                 policy_error=translate(lang, "download.policy_error_unavailable", email=email),
             ),
@@ -297,7 +309,7 @@ def _render_buy(request: Request, db: Session, email: str = ""):
         _ctx(
             request,
             db,
-            page_title=translate(resolve_lang(request), "page.buy"),
+            seo_page="buy",
             email=email,
             qr_url=qr_url,
             memo=memo,
@@ -316,7 +328,7 @@ def buy_success(request: Request, email: str = "", db: Session = Depends(get_db)
         _ctx(
             request,
             db,
-            page_title=translate(resolve_lang(request), "page.buy_success"),
+            seo_page="buy_success",
             email=email.strip(),
         ),
     )

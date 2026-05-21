@@ -66,39 +66,51 @@ def lang_url(path: str, lang: str) -> str:
 
 
 def localized_text(content: SiteContent, field: str, lang: str, *, default_key: str | None = None) -> str:
-    """CMS text for language; optional i18n default_key (e.g. home.hero_subtitle_default)."""
+    """CMS text for active language only — EN never falls back to Vietnamese copy."""
     lang = normalize_lang(lang)
     if lang == "en":
         en_val = (getattr(content, f"{field}_en", None) or "").strip()
         if en_val:
             return en_val
+        return translate(lang, default_key) if default_key else ""
+
     vi_val = (getattr(content, field, None) or "").strip()
     if vi_val:
         return vi_val
-    if default_key:
-        return translate(lang, default_key)
-    return ""
+    return translate(lang, default_key) if default_key else ""
 
 
-def localized_html_field(content: SiteContent, field: str, lang: str) -> str:
-    """HTML block: EN column, else VI column."""
+def localized_html_field(
+    content: SiteContent, field: str, lang: str, *, default_key: str | None = None
+) -> str:
+    """HTML block for active language; optional locale default when CMS field empty."""
     lang = normalize_lang(lang)
     if lang == "en":
         en_val = (getattr(content, f"{field}_en", None) or "").strip()
         if en_val:
             return en_val
-    return (getattr(content, field, None) or "").strip()
+        return translate(lang, default_key) if default_key else ""
+
+    return (getattr(content, field, None) or "").strip() or (
+        translate(lang, default_key) if default_key else ""
+    )
+
+
+def page_meta(lang: str, page: str) -> tuple[str, str]:
+    """Per-route title + meta description from locale files."""
+    lang = normalize_lang(lang)
+    page = (page or "home").strip().lower()
+    title = translate(lang, f"page.{page}")
+    desc = translate(lang, f"meta.{page}")
+    return desc[:320], title
 
 
 def localized_bullets(content: SiteContent, lang: str) -> list[str]:
     lang = normalize_lang(lang)
-    raw = ""
     if lang == "en":
-        raw = (content.hero_bullets_en or "").strip()
-    if not raw:
-        raw = (content.hero_bullets or "").strip()
-    if not raw:
-        raw = translate(lang, "home.bullets_default")
+        raw = (content.hero_bullets_en or "").strip() or translate(lang, "home.bullets_default")
+    else:
+        raw = (content.hero_bullets or "").strip() or translate(lang, "home.bullets_default")
     return [line.strip() for line in raw.splitlines() if line.strip()]
 
 

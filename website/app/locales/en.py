@@ -7,6 +7,7 @@ MESSAGES = {
     "lang.vi": "Tiếng Việt",
     "lang.en": "English",
     "footer.rights": "All rights reserved",
+    "home.eyebrow": "SolidWorks add-in",
     "home.hero_title_default": "SolidWorks Body Exporter",
     "home.hero_subtitle_default": (
         "Export body/part data from SolidWorks — Excel, templates, and a fast workflow for wood shops."
@@ -97,7 +98,27 @@ MESSAGES = {
     "download.excel_foot": "Unknown placeholders are reported after export.",
     "download.trial_foot": "14-day trial after install — internet required on first activation.",
     "download.trial_buy": "Buy license",
+    "meta.home": (
+        "Body Exporter — SolidWorks add-in to export body/part data to Excel and company templates. "
+        "Online license, 14-day trial."
+    ),
+    "meta.download": (
+        "Download Body Exporter for SolidWorks — Excel export, template placeholders, installer guide."
+    ),
+    "meta.buy": (
+        "Buy a Body Exporter license — bank transfer QR or card via SePay. License emailed after payment."
+    ),
+    "meta.buy_success": "Thank you for purchasing Body Exporter. Your license will be emailed shortly.",
     "buy.title": "Buy license",
+    "buy.intro_default": (
+        "Enter your email to receive a license automatically after payment. "
+        "Choose bank transfer (QR) or card (SePay) below."
+    ),
+    "buy.footer_default": (
+        "<p>After a successful transfer with the correct amount and memo, your license is sent to your email "
+        "within a few minutes. Check spam if needed. Support: "
+        '<a href="mailto:hotro@bodyexporter.com">hotro@bodyexporter.com</a>.</p>'
+    ),
     "buy.email_label": "Email for license delivery",
     "buy.email_hint": "Use this exact email in the transfer memo: <code>BE {email}</code>",
     "buy.btn_qr": "Show bank QR",
@@ -120,6 +141,7 @@ MESSAGES = {
     "buy.success_no_email": "License will be sent to the email you used when payment is confirmed.",
     "buy.success_spam": "No email yet? Wait a bit, check spam, and ensure transfer memo is <code>BE {email}</code>.",
     "buy.success_download": "Download & install plugin",
+    "page.home": "Body Exporter — SolidWorks Excel export add-in",
     "page.download": "Download Body Exporter plugin",
     "page.buy": "Buy Body Exporter license",
     "page.buy_success": "Payment received — Body Exporter",

@@ -7,6 +7,7 @@ MESSAGES = {
     "lang.vi": "Tiếng Việt",
     "lang.en": "English",
     "footer.rights": "Bản quyền",
+    "home.eyebrow": "Add-in SolidWorks",
     "home.hero_title_default": "SolidWorks Body Exporter",
     "home.hero_subtitle_default": (
         "Xuất thông tin body/part từ SolidWorks — Excel, template, workflow nhanh cho xưởng mộc."
@@ -94,7 +95,25 @@ MESSAGES = {
     "download.excel_foot": "Placeholder lạ sẽ báo sau khi export.",
     "download.trial_foot": "Trial 14 ngày sau khi cài — cần internet lần đầu.",
     "download.trial_buy": "Mua license",
+    "meta.home": (
+        "Body Exporter — add-in SolidWorks xuất body/part, Excel & template, license online. Trial 14 ngày."
+    ),
+    "meta.download": (
+        "Tải plugin Body Exporter cho SolidWorks — export Excel, template {{placeholder}}, hướng dẫn cài đặt."
+    ),
+    "meta.buy": (
+        "Mua license Body Exporter — chuyển khoản QR hoặc thẻ SePay. License gửi email sau thanh toán."
+    ),
+    "meta.buy_success": "Cảm ơn bạn đã mua Body Exporter. License sẽ được gửi qua email.",
     "buy.title": "Mua license",
+    "buy.intro_default": (
+        "Nhập email để nhận license tự động sau khi thanh toán. "
+        "Chọn chuyển khoản QR hoặc thẻ (SePay) bên dưới."
+    ),
+    "buy.footer_default": (
+        "<p>Sau khi chuyển khoản đúng số tiền và nội dung CK, license gửi về email trong vài phút. "
+        "Cần hỗ trợ: <a href=\"mailto:hotro@bodyexporter.com\">hotro@bodyexporter.com</a>.</p>"
+    ),
     "buy.email_label": "Email nhận license",
     "buy.email_hint": "Ghi đúng email này trong nội dung chuyển khoản: <code>BE {email}</code>",
     "buy.btn_qr": "Hiện QR chuyển khoản",
@@ -117,6 +136,7 @@ MESSAGES = {
     "buy.success_no_email": "License sẽ gửi qua email bạn đã nhập khi thanh toán được xác nhận.",
     "buy.success_spam": "Chưa thấy mail? Đợi thêm, kiểm tra spam, đảm bảo nội dung CK đúng <code>BE {email}</code>.",
     "buy.success_download": "Tải & cài plugin",
+    "page.home": "Body Exporter — add-in SolidWorks xuất Excel",
     "page.download": "Tải plugin Body Exporter",
     "page.buy": "Mua license Body Exporter",
     "page.buy_success": "Thanh toán thành công — Body Exporter",

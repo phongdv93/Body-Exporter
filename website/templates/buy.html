@@ -3,7 +3,7 @@
 {% block content %}
 <section class="page-head">
   <h1>{{ t('buy.title') }}</h1>
-  <p class="lead">{{ buy_intro }}</p>
+  <p class="lead">{{ buy_intro | safe }}</p>
 </section>
 
 <section class="card buy-form-card">

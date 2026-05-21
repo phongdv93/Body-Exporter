@@ -20,6 +20,11 @@
   <meta property="og:title" content="{{ page_title | default('Body Exporter') | e }}">
   <meta property="og:description" content="{{ meta_description | default('') | e }}">
   <meta property="og:locale" content="{{ og_locale | default('vi_VN') }}">
+  {% if lang == 'en' %}
+  <meta property="og:locale:alternate" content="vi_VN">
+  {% else %}
+  <meta property="og:locale:alternate" content="en_US">
+  {% endif %}
   <meta property="og:image" content="{{ seo_og_image | e }}">
   <meta property="og:image:secure_url" content="{{ seo_og_image | e }}">
   <meta property="og:image:type" content="image/png">
