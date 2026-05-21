@@ -38,6 +38,69 @@
       <p class="muted" style="font-size:13px;margin-bottom:0">Trang <code>/buy</code> là nơi có QR SePay + form email. Danh sách key đã cấp nằm ở <strong>Danh sách license</strong>.</p>
     </section>
 
+    <section class="card" style="margin-bottom:1.25rem">
+      <h2 style="margin-top:0;font-size:1rem">Lượt tải plugin từ web</h2>
+      <p class="muted fine-print" style="margin-top:0">
+        Đếm khi khách bấm tải trên <code>/download</code> (đồng ý policy) và được chuyển tới file ZIP.
+        <strong>Người tải (ước lượng)</strong> = số trình duyệt/IP khác nhau (hash IP + User-Agent), không trùng 100% với máy cài.
+      </p>
+      <div class="admin-stat-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:0.75rem;margin:1rem 0">
+        <div class="admin-stat-box" style="padding:0.75rem 1rem;background:rgba(255,255,255,0.04);border-radius:8px">
+          <div class="muted" style="font-size:12px">Tổng lượt tải</div>
+          <strong style="font-size:1.35rem">{{ download_stats.total_clicks }}</strong>
+        </div>
+        <div class="admin-stat-box" style="padding:0.75rem 1rem;background:rgba(255,255,255,0.04);border-radius:8px">
+          <div class="muted" style="font-size:12px">Người tải (ước lượng)</div>
+          <strong style="font-size:1.35rem">{{ download_stats.unique_visitors }}</strong>
+        </div>
+        <div class="admin-stat-box" style="padding:0.75rem 1rem;background:rgba(255,255,255,0.04);border-radius:8px">
+          <div class="muted" style="font-size:12px">7 ngày — lượt tải</div>
+          <strong style="font-size:1.35rem">{{ download_stats.clicks_7d }}</strong>
+        </div>
+        <div class="admin-stat-box" style="padding:0.75rem 1rem;background:rgba(255,255,255,0.04);border-radius:8px">
+          <div class="muted" style="font-size:12px">7 ngày — người tải</div>
+          <strong style="font-size:1.35rem">{{ download_stats.unique_7d }}</strong>
+        </div>
+        <div class="admin-stat-box" style="padding:0.75rem 1rem;background:rgba(255,255,255,0.04);border-radius:8px">
+          <div class="muted" style="font-size:12px">30 ngày — lượt tải</div>
+          <strong style="font-size:1.35rem">{{ download_stats.clicks_30d }}</strong>
+        </div>
+        <div class="admin-stat-box" style="padding:0.75rem 1rem;background:rgba(255,255,255,0.04);border-radius:8px">
+          <div class="muted" style="font-size:12px">30 ngày — người tải</div>
+          <strong style="font-size:1.35rem">{{ download_stats.unique_30d }}</strong>
+        </div>
+      </div>
+      {% if download_stats.recent %}
+      <details class="policy-details" style="margin-top:0.5rem">
+        <summary style="cursor:pointer;font-size:13px;color:var(--muted,#9ca3af)">20 lượt tải gần nhất</summary>
+        <div class="machines-table-wrap" style="margin-top:0.75rem">
+          <table class="machines-table">
+            <thead>
+              <tr>
+                <th>Thời gian (UTC)</th>
+                <th>Phiên bản</th>
+                <th>Ngôn ngữ</th>
+                <th>IP</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for ev in download_stats.recent %}
+              <tr>
+                <td class="muted">{{ ev.downloaded_at.strftime('%d/%m/%Y %H:%M') if ev.downloaded_at else '—' }}</td>
+                <td>{{ ev.plugin_version or '—' }}</td>
+                <td>{{ ev.lang or '—' }}</td>
+                <td>{{ ev.ip or '—' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </details>
+      {% else %}
+      <p class="muted" style="margin-bottom:0">Chưa có lượt tải nào được ghi nhận.</p>
+      {% endif %}
+    </section>
+
     <section class="card admin-machines-section" style="margin-bottom:1.25rem">
       <h2 style="margin-top:0;font-size:1rem">Máy đã cài plugin ({{ machine_count }})</h2>
       <p class="muted fine-print" style="margin-top:0">

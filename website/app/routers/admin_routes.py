@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app import config
 from app.auth import get_db, login_session, logout_session, require_admin, verify_admin
 from app.client_telemetry import list_machines_for_admin, sync_known_machines_from_crm
+from app.download_tracking import download_stats_for_admin
 from app.database import get_content
 from app.sepay import pg_checkout_available_for_content
 from app.template_response import html_response
@@ -74,6 +75,22 @@ def dashboard(request: Request, db: Session = Depends(get_db), _user=Depends(req
         logging.getLogger("uvicorn.error").exception("list_machines_for_admin failed")
         db.rollback()
         machines = []
+    try:
+        download_stats = download_stats_for_admin(db)
+    except Exception:
+        import logging
+
+        logging.getLogger("uvicorn.error").exception("download_stats_for_admin failed")
+        db.rollback()
+        download_stats = {
+            "total_clicks": 0,
+            "unique_visitors": 0,
+            "clicks_7d": 0,
+            "unique_7d": 0,
+            "clicks_30d": 0,
+            "unique_30d": 0,
+            "recent": [],
+        }
     return html_response(
         templates,
         "admin/dashboard.html",
@@ -82,6 +99,7 @@ def dashboard(request: Request, db: Session = Depends(get_db), _user=Depends(req
             "content": content,
             "machines": machines,
             "machine_count": len(machines),
+            "download_stats": download_stats,
             "pg_available": pg_checkout_available_for_content(content),
             "site_url": config.SITE_URL.rstrip("/"),
             "env": _env_status(content),

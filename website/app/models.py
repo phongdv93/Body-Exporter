@@ -75,6 +75,20 @@ class License(Base):
     notes: Mapped[str] = mapped_column(Text, default="")
 
 
+class DownloadEvent(Base):
+    """One row per successful redirect to the plugin ZIP (/download/go)."""
+
+    __tablename__ = "be_download_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    downloaded_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    ip: Mapped[str | None] = mapped_column(String(45), nullable=True)
+    visitor_hash: Mapped[str] = mapped_column(String(64), index=True, default="")
+    plugin_version: Mapped[str] = mapped_column(String(40), default="")
+    lang: Mapped[str] = mapped_column(String(8), default="vi")
+    user_agent: Mapped[str] = mapped_column(String(300), default="")
+
+
 class ClientMachine(Base):
     """Plugin install / heartbeat — one row per machine fingerprint."""
 

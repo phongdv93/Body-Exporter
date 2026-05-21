@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app import config
 from app.auth import get_db
 from app.database import get_content
+from app.download_tracking import record_plugin_download
 from app.i18n import (
     LANG_COOKIE,
     LANG_COOKIE_MAX_AGE,
@@ -246,6 +247,7 @@ def download_go(request: Request, db: Session = Depends(get_db)):
         return RedirectResponse("/download", status_code=303)
     if not _download_consent_ok(request):
         return RedirectResponse("/download", status_code=303)
+    record_plugin_download(request, db, content)
     return RedirectResponse(url, status_code=302)
 
 
