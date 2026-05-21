@@ -32,7 +32,7 @@
   <h2>{{ t('buy.transfer_title', amount=('{:,}'.format(amount_vnd).replace(',', '.'))) }}</h2>
   <div class="pay-grid">
     <div class="qr-wrap">
-      <img src="{{ qr_url }}" alt="VietQR Sepay" width="240" height="240" loading="lazy">
+      <img src="{{ qr_url }}" alt="VietQR chuyển khoản" width="240" height="240" loading="lazy">
     </div>
     <dl class="bank-dl">
       {% if bank.bank %}<dt>{{ t('buy.bank') }}</dt><dd>{{ bank.bank }}</dd>{% endif %}

@@ -166,6 +166,47 @@ def ensure_be_licenses_table() -> None:
         log.exception("ensure_be_licenses_table failed")
 
 
+_BUY_INTRO_SEpay_SNIPPETS = (
+    " (SePay)",
+    "(SePay)",
+    " via SePay",
+    " / SePay",
+)
+
+
+def _scrub_sepay_from_customer_cms(db: Session) -> None:
+    """One-time style fix: remove SePay branding from public /buy copy stored in DB."""
+    row = db.get(SiteContent, 1)
+    if not row:
+        return
+    fields = (
+        "buy_intro",
+        "buy_intro_en",
+        "buy_footer",
+        "buy_footer_en",
+        "buy_form_note",
+        "buy_form_note_en",
+        "buy_payment_note",
+        "buy_payment_note_en",
+    )
+    changed = False
+    for name in fields:
+        val = (getattr(row, name, None) or "").strip()
+        if not val or "sepay" not in val.lower():
+            continue
+        new_val = val
+        for snippet in _BUY_INTRO_SEpay_SNIPPETS:
+            new_val = new_val.replace(snippet, "")
+        new_val = new_val.replace("SePay", "").replace("sepay", "")
+        new_val = " ".join(new_val.split())
+        if new_val != val:
+            setattr(row, name, new_val)
+            changed = True
+    if changed:
+        db.commit()
+        log.info("Scrubbed SePay branding from SiteContent buy copy")
+
+
 def ensure_schema() -> None:
     insp = inspect(engine)
     names = insp.get_table_names()
@@ -237,7 +278,7 @@ def init_db() -> None:
                     download_notes="",
                     buy_intro=(
                         "Nhập email để nhận license tự động sau khi thanh toán. "
-                        "Chọn chuyển khoản QR hoặc thẻ (SePay) bên dưới."
+                        "Chọn chuyển khoản QR hoặc thẻ bên dưới."
                     ),
                     buy_footer=(
                         "Sau khi chuyển khoản đúng số tiền và nội dung CK, license gửi về email trong vài phút. "
@@ -256,6 +297,8 @@ def init_db() -> None:
                 )
             )
             db.commit()
+
+        _scrub_sepay_from_customer_cms(db)
 
         admin = db.scalar(select(AdminUser).where(AdminUser.username == config.ADMIN_USERNAME.strip()))
         if not admin:

@@ -106,13 +106,13 @@ MESSAGES = {
         "Download Body Exporter for SolidWorks — Excel export, template placeholders, installer guide."
     ),
     "meta.buy": (
-        "Buy a Body Exporter license — bank transfer QR or card via SePay. License emailed after payment."
+        "Buy a Body Exporter license — bank transfer QR or card. License emailed after payment."
     ),
     "meta.buy_success": "Thank you for purchasing Body Exporter. Your license will be emailed shortly.",
     "buy.title": "Buy license",
     "buy.intro_default": (
         "Enter your email to receive a license automatically after payment. "
-        "Choose bank transfer (QR) or card (SePay) below."
+        "Choose bank transfer (QR) or card below."
     ),
     "buy.footer_default": (
         "<p>After a successful transfer with the correct amount and memo, your license is sent to your email "
@@ -122,8 +122,8 @@ MESSAGES = {
     "buy.email_label": "Email for license delivery",
     "buy.email_hint": "Use this exact email in the transfer memo: <code>BE {email}</code>",
     "buy.btn_qr": "Show bank QR",
-    "buy.btn_card": "Pay by card / SePay",
-    "buy.redirect_sepay": "Redirecting to SePay…",
+    "buy.btn_card": "Pay by card",
+    "buy.redirect_sepay": "Redirecting to payment…",
     "buy.transfer_title": "Bank transfer — {amount} ₫",
     "buy.bank": "Bank",
     "buy.account": "Account number",
@@ -131,13 +131,13 @@ MESSAGES = {
     "buy.memo": "Transfer memo",
     "buy.wait_hint": (
         "<strong>License email is not instant.</strong> Key is sent to <strong>{email}</strong> "
-        "after the bank confirms payment and SePay calls our webhook (usually 1–10 minutes). "
+        "after the bank confirms payment (usually 1–10 minutes). "
         "Memo must include <code>{memo}</code>. Check spam."
     ),
     "buy.success_title": "Thank you",
     "buy.success_with_email": (
-        "Your license will be emailed to <strong>{email}</strong> after payment is confirmed "
-        "(SePay webhook), usually within a few minutes."
+        "Your license will be emailed to <strong>{email}</strong> after payment is confirmed, "
+        "usually within a few minutes."
     ),
     "buy.success_no_email": "License will be sent to the email you used when payment is confirmed.",
     "buy.success_spam": "No email yet? Wait a bit, check spam, and ensure transfer memo is <code>BE {email}</code>.",

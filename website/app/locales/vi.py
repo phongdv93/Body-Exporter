@@ -102,13 +102,13 @@ MESSAGES = {
         "Tải plugin Body Exporter cho SolidWorks — export Excel, template {{placeholder}}, hướng dẫn cài đặt."
     ),
     "meta.buy": (
-        "Mua license Body Exporter — chuyển khoản QR hoặc thẻ SePay. License gửi email sau thanh toán."
+        "Mua license Body Exporter — chuyển khoản QR hoặc thẻ. License gửi email sau thanh toán."
     ),
     "meta.buy_success": "Cảm ơn bạn đã mua Body Exporter. License sẽ được gửi qua email.",
     "buy.title": "Mua license",
     "buy.intro_default": (
         "Nhập email để nhận license tự động sau khi thanh toán. "
-        "Chọn chuyển khoản QR hoặc thẻ (SePay) bên dưới."
+        "Chọn chuyển khoản QR hoặc thẻ bên dưới."
     ),
     "buy.footer_default": (
         "<p>Sau khi chuyển khoản đúng số tiền và nội dung CK, license gửi về email trong vài phút. "
@@ -117,8 +117,8 @@ MESSAGES = {
     "buy.email_label": "Email nhận license",
     "buy.email_hint": "Ghi đúng email này trong nội dung chuyển khoản: <code>BE {email}</code>",
     "buy.btn_qr": "Hiện QR chuyển khoản",
-    "buy.btn_card": "Thanh toán thẻ / SePay",
-    "buy.redirect_sepay": "Đang chuyển sang SePay…",
+    "buy.btn_card": "Thanh toán thẻ",
+    "buy.redirect_sepay": "Đang chuyển sang cổng thanh toán…",
     "buy.transfer_title": "Chuyển khoản — {amount} ₫",
     "buy.bank": "Ngân hàng",
     "buy.account": "Số tài khoản",
@@ -126,13 +126,13 @@ MESSAGES = {
     "buy.memo": "Nội dung CK",
     "buy.wait_hint": (
         "<strong>Chưa có email ngay sau khi bấm nút.</strong> Key gửi tới <strong>{email}</strong> "
-        "sau khi ngân hàng xác nhận và SePay gọi webhook (thường 1–10 phút). "
+        "sau khi ngân hàng xác nhận (thường 1–10 phút). "
         "Nội dung CK phải có <code>{memo}</code>. Kiểm tra cả thư mục spam."
     ),
     "buy.success_title": "Cảm ơn bạn",
     "buy.success_with_email": (
-        "License sẽ gửi tới <strong>{email}</strong> sau khi thanh toán được xác nhận "
-        "(webhook SePay), thường trong vài phút."
+        "License sẽ gửi tới <strong>{email}</strong> sau khi thanh toán được xác nhận, "
+        "thường trong vài phút."
     ),
     "buy.success_no_email": "License sẽ gửi qua email bạn đã nhập khi thanh toán được xác nhận.",
     "buy.success_spam": "Chưa thấy mail? Đợi thêm, kiểm tra spam, đảm bảo nội dung CK đúng <code>BE {email}</code>.",
