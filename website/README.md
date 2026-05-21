@@ -49,14 +49,32 @@ Then log in at `/admin` with `ADMIN_USERNAME` / `ADMIN_PASSWORD` from `.env`.
 - Site: http://127.0.0.1:8080  
 - Admin: http://127.0.0.1:8080/admin (user/password from `.env`)
 
-## SEO
+## SEO & Google Search Console
 
 - Every public page: `<title>`, `description`, `keywords`, `canonical`, Open Graph, Twitter card, JSON-LD (`WebSite` + `SoftwareApplication`).
 - Defaults: `SEO_DESCRIPTION` + `SEO_KEYWORDS` in `.env` (optional). Short intro on homepage still feeds meta description.
-- **`/robots.txt`** and **`/sitemap.xml`** (public routes only; `/admin` disallowed).
+- **`/robots.txt`** — allows `/`, blocks `/admin`, `/api/`, webhooks; points to sitemap.
+- **`/sitemap.xml`** — 3 trang index: `/`, `/download`, `/buy` (có `lastmod`, `priority`). Không gồm `/buy/success`.
 - Optional **`SEO_OG_IMAGE`** in `.env` = full URL of a 1200×630 image for social share.
 
-After deploy: [Google Search Console](https://search.google.com/search-console) → add property `https://bodyexporter.com` → verify via DNS or HTML.
+**Production bắt buộc:** biến `SITE_URL=https://bodyexporter.com` (không dấu `/` cuối). Nếu sai, sitemap sẽ ghi URL `127.0.0.1` → Google không index.
+
+### Kiểm tra sau deploy
+
+```text
+https://bodyexporter.com/robots.txt    → dòng Sitemap: https://bodyexporter.com/sitemap.xml
+https://bodyexporter.com/sitemap.xml   → 3 URL https://bodyexporter.com/...
+```
+
+### Đưa lên Search Console (lần đầu)
+
+1. [Google Search Console](https://search.google.com/search-console) → **Thêm thuộc tính** → URL tiền tố: `https://bodyexporter.com` (hoặc domain `bodyexporter.com`).
+2. **Xác minh** quyền sở hữu (DNS TXT trên Cloudflare, hoặc file HTML).
+3. Menu **Sơ đồ web** (Sitemaps) → nhập: `sitemap.xml` → **Gửi** (URL đầy đủ: `https://bodyexporter.com/sitemap.xml`).
+4. **Kiểm tra URL** → thử `https://bodyexporter.com/` và `/download` → **Yêu cầu lập chỉ mục** (Request indexing) cho từng URL quan trọng.
+5. Đợi vài ngày–2 tuần; trang mới thường không lên ngay.
+
+Render/Railway: sau khi đổi `SITE_URL`, redeploy và mở lại sitemap trên trình duyệt để chắc domain đúng.
 
 ## Nhận mail `hotro@bodyexporter.com` (Cloudflare)
 

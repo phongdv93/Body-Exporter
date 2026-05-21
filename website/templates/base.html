@@ -10,6 +10,7 @@
   <meta name="description" content="{{ meta_description | default('') | e }}">
   <meta name="keywords" content="{{ meta_keywords | default('') | e }}">
   <link rel="canonical" href="{{ canonical_url | default(site_url ~ '/') }}">
+  <link rel="sitemap" type="application/xml" title="Sitemap" href="{{ site_url }}/sitemap.xml">
   <meta name="robots" content="index, follow">
   <meta property="og:type" content="website">
   <meta property="og:url" content="{{ canonical_url | default(site_url) }}">

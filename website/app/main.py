@@ -12,6 +12,7 @@ from app import config
 from app.database import init_db
 from app.error_pages import http_exception_handler, server_error_handler
 from app.routers import admin_routes, client_api, licenses_admin, public, sepay_webhook
+from app.sitemap import build_sitemap_xml
 
 _log = logging.getLogger("uvicorn.error")
 
@@ -60,6 +61,11 @@ app.include_router(licenses_admin.router)
 @app.on_event("startup")
 def startup():
     init_db()
+    site = config.SITE_URL.rstrip("/")
+    if "127.0.0.1" in site or "localhost" in site:
+        _log.warning("SITE_URL=%s — sitemap/SEO URLs point at localhost until you set production SITE_URL", site)
+    else:
+        _log.info("SEO sitemap: %s/sitemap.xml (submit in Google Search Console)", site)
 
 
 @app.get("/health")
@@ -80,7 +86,12 @@ def robots_txt():
     base = config.SITE_URL.rstrip("/")
     return f"""User-agent: *
 Allow: /
+
 Disallow: /admin
+Disallow: /api/
+Disallow: /webhook/
+Disallow: /health
+Disallow: /buy/success
 
 Sitemap: {base}/sitemap.xml
 """
@@ -88,13 +99,9 @@ Sitemap: {base}/sitemap.xml
 
 @app.get("/sitemap.xml")
 def sitemap_xml():
-    base = config.SITE_URL.rstrip("/")
-    urls = ["/", "/download", "/buy"]
-    xml = [
-        '<?xml version="1.0" encoding="UTF-8"?>',
-        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
-    ]
-    for path in urls:
-        xml.append(f"  <url><loc>{base}{path}</loc><changefreq>weekly</changefreq></url>")
-    xml.append("</urlset>")
-    return Response("\n".join(xml), media_type="application/xml")
+    body = build_sitemap_xml(config.SITE_URL)
+    return Response(
+        content=body,
+        media_type="application/xml",
+        headers={"Cache-Control": "public, max-age=3600"},
+    )
