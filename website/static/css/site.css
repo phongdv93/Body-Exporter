@@ -454,9 +454,24 @@ body {
 }
 .policy-safe strong { color: var(--accent); font-weight: 600; }
 .policy-foot {
-  font-size: 0.86rem;
+  font-size: 0.88rem;
   color: var(--muted);
-  opacity: 0.92;
+}
+.policy-foot a {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.policy-foot a:hover {
+  color: var(--text);
+}
+.policy-body a:not(.btn) {
+  color: var(--accent);
+  font-weight: 500;
+}
+.policy-body a:not(.btn):hover {
+  color: var(--text);
 }
 .download-consent-panel {
   padding: 1.15rem 1.25rem 1.25rem;
@@ -563,6 +578,18 @@ body {
   padding-top: 0.85rem;
   border-top: 1px dashed var(--border);
   font-size: 0.88rem;
+}
+.guide-notes-label {
+  margin: 0 0 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.guide-admin-notes.prose a {
+  color: var(--accent);
+  font-weight: 500;
 }
 .placeholder-table-wrap {
   overflow-x: auto;

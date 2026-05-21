@@ -1,4 +1,5 @@
 import json
+import re
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -47,6 +48,18 @@ def _og_image_url() -> str:
     return f"{base}/static/og.png?v=4"
 
 
+def _install_notes_extra(raw: str | None) -> str | None:
+    """Optional admin HTML below install steps — hide legacy duplicate of built-in guide."""
+    notes = (raw or "").strip()
+    if not notes:
+        return None
+    plain = re.sub(r"<[^>]+>", " ", notes.lower())
+    plain = re.sub(r"\s+", " ", plain).strip()
+    if "install-bodyexporter" in plain and ("add-ins" in plain or "add ins" in plain):
+        return None
+    return notes
+
+
 def _ctx(request: Request, db: Session, page_title: str | None = None, **extra):
     content = get_content(db)
     title = page_title or _dedupe_title(content.hero_title) or "Body Exporter"
@@ -91,6 +104,7 @@ def _ctx(request: Request, db: Session, page_title: str | None = None, **extra):
         "seo_og_image": _og_image_url(),
         "schema_website_json": schema_web,
         "schema_app_json": schema_app,
+        "install_notes_extra": _install_notes_extra(content.download_notes),
         **extra,
     }
 

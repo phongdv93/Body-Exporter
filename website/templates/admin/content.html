@@ -45,8 +45,8 @@
       <input type="text" name="download_version" value="{{ content.download_version }}">
       <label>URL file ZIP (Google Drive direct / R2 / …)</label>
       <input type="url" name="download_url" value="{{ content.download_url }}">
-      <label>Hướng dẫn cài (HTML)</label>
-      <textarea name="download_notes">{{ content.download_notes }}</textarea>
+      <label>Ghi chú cài đặt thêm (HTML, tùy chọn)</label>
+      <textarea name="download_notes" placeholder="Chỉ hiện dưới bước cài trên /download nếu khác hướng dẫn mặc định. Để trống = không hiện.">{{ content.download_notes }}</textarea>
 
       <h2>Thanh toán</h2>
       <label>Đoạn intro /buy</label>

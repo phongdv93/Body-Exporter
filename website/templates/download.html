@@ -58,13 +58,14 @@
     <div class="policy-body guide-body">
       <ol class="guide-steps">
         <li><strong>Đóng SolidWorks</strong> (tránh DLL bị khóa khi cài).</li>
-        <li>Giải nén ZIP → chạy <code>Install-BodyExporter.cmd</code> <strong>Run as administrator</strong>.
+        <li>Giải nén ZIP → chạy <code>Install-BodyExporter.cmd</code> <strong>Run as administrator</strong>.</li>
         <li>Mở SolidWorks → <strong>Tools → Add-Ins</strong> → bật <em>SolidWorks Body Exporter</em>.</li>
         <li>Dùng shortcut <strong>Body Exporter</strong> trên Desktop để mở cửa sổ export.</li>
       </ol>
-      {% if content.download_notes %}
+      {% if install_notes_extra %}
       <div class="install-notes prose guide-admin-notes">
-        {{ content.download_notes | safe }}
+        <p class="guide-notes-label">Ghi chú thêm</p>
+        {{ install_notes_extra | safe }}
       </div>
       {% endif %}
     </div>

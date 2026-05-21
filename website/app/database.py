@@ -200,12 +200,7 @@ def init_db() -> None:
                         "<p>Body Exporter là add-in SolidWorks giúp bạn liệt kê và xuất body "
                         "theo format sẵn cho sản xuất.</p>"
                     ),
-                    download_notes=(
-                        "1. Tải file ZIP.\n"
-                        "2. Giải nén và chạy <strong>Install-BodyExporter.cmd</strong> (Run as administrator).\n"
-                        "3. Mở SolidWorks → Tools → Add-Ins → bật <em>SolidWorks Body Exporter</em>.\n"
-                        "4. Dùng shortcut Desktop hoặc menu add-in."
-                    ),
+                    download_notes="",
                     buy_intro=(
                         "Nhập email để nhận license tự động sau khi thanh toán. "
                         "Chọn chuyển khoản QR hoặc thẻ (SePay) bên dưới."
