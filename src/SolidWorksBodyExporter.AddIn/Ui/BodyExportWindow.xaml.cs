@@ -1144,6 +1144,50 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             }
         }
 
+        private void SuggestSort_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (Rows.Count == 0)
+                {
+                    ShowToast("No bodies to sort.", ToastKind.Info);
+                    return;
+                }
+
+                var service = BodySortRulesService.LoadFromUserSettings();
+                var snapshot = Rows.ToList();
+                var analysis = service.Analyze(snapshot);
+                var sorted = service.Sort(snapshot);
+
+                Rows.Clear();
+                foreach (var row in sorted)
+                {
+                    Rows.Add(row);
+                }
+
+                if (analysis.HasIssues)
+                {
+                    var preview = string.Join("; ", analysis.OutOfOrder.Take(2));
+                    if (analysis.OutOfOrder.Count > 2)
+                    {
+                        preview += " …";
+                    }
+
+                    ShowToast(
+                        "Sorted by rules. " + analysis.OutOfOrder.Count + " row(s) were out of suggested order: " + preview,
+                        ToastKind.Info);
+                }
+                else
+                {
+                    ShowToast("Sorted by keyword rules — order looks good.", ToastKind.Success);
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowToast("Suggest order failed: " + ex.Message, ToastKind.Error);
+            }
+        }
+
         private void MoveRowUp_Click(object sender, RoutedEventArgs e)
         {
             if (!(sender is FrameworkElement fe) || !(fe.DataContext is BodyExportRow row))

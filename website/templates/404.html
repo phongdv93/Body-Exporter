@@ -1,15 +1,15 @@
 {% extends "error_layout.html" %}
 {% block title %}404 — Body Exporter{% endblock %}
 {% block content %}
-<article class="error-page__panel">
+<div class="error-page__panel">
   <div class="error-page__code-wrap">
     <p class="error-page__code" aria-hidden="true">404</p>
   </div>
-  <h1 class="error-page__title">Không tìm thấy trang</h1>
-  <p class="error-page__lead">Đường dẫn không tồn tại hoặc đã đổi.</p>
+  <h1 class="error-page__title">{{ t('error.404.title') }}</h1>
+  <p class="error-page__lead">{{ t('error.404.lead') }}</p>
   <div class="error-page__actions">
-    <a class="btn btn-primary" href="/">Trang chủ</a>
-    <a class="btn btn-ghost" href="/download">Tải plugin</a>
+    <a class="btn btn-primary" href="/">{{ t('error.404.home') }}</a>
+    <a class="btn btn-ghost" href="/download">{{ t('error.404.download') }}</a>
   </div>
-</article>
+</div>
 {% endblock %}

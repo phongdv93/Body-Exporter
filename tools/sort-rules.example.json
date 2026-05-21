@@ -1,0 +1,19 @@
+{
+  "Tiers": [
+    {
+      "Priority": 10,
+      "Label": "Main / frame",
+      "Keywords": ["table top", "mat ban", "frame", "khung", "main panel", "desktop"]
+    },
+    {
+      "Priority": 20,
+      "Label": "Panels / sides",
+      "Keywords": ["side", "panel", "vach", "canh", "door", "wing"]
+    },
+    {
+      "Priority": 30,
+      "Label": "Trim / accessories",
+      "Keywords": ["trim", "cap", "bo goc", "nep", "bracket", "hook", "cover"]
+    }
+  ]
+}

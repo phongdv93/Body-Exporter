@@ -2,8 +2,8 @@
 {% block title %}{{ page_title }}{% endblock %}
 {% block content %}
 <section class="page-head">
-  <h1>Tải plugin</h1>
-  <p class="muted">Phiên bản <strong>{{ content.download_version }}</strong></p>
+  <h1>{{ t('download.title') }}</h1>
+  <p class="muted">{{ t('download.version') }} <strong>{{ content.download_version }}</strong></p>
 </section>
 
 <section class="card policy-card download-card">
@@ -11,16 +11,16 @@
     <summary class="policy-summary">
       <span class="policy-summary-icon" aria-hidden="true"></span>
       <span class="policy-summary-text">
-        <span class="policy-summary-title">Chính sách dữ liệu</span>
-        <span class="policy-summary-hint">Bấm để xem chi tiết</span>
+        <span class="policy-summary-title">{{ t('download.policy_title') }}</span>
+        <span class="policy-summary-hint">{{ t('download.policy_hint') }}</span>
       </span>
       <span class="policy-chevron" aria-hidden="true"></span>
     </summary>
     <div class="policy-body">
-      <p class="policy-lead">Body Exporter thu thập một số thông tin kỹ thuật tối thiểu để plugin hoạt động ổn định — kích hoạt license, hỗ trợ khi có lỗi và cải thiện phần mềm theo thời gian.</p>
-      <p>Thông tin có thể được ghi nhận gồm: mã nhận diện máy (dùng để gắn license), phiên bản plugin và SolidWorks đang dùng, thời điểm cài đặt và lần dùng gần nhất, địa chỉ IP để ước lượng khu vực (thành phố/quốc gia), và trạng thái license hiện tại.</p>
-      <p class="policy-safe">Chúng tôi <strong>không đọc, không lưu và không gửi</strong> bất kỳ nội dung nào từ file SolidWorks của bạn — bao gồm model 3D, tên part hay file export.</p>
-      <p class="policy-foot">Dữ liệu thu thập chỉ dùng nội bộ, không phục vụ quảng cáo và không chia sẻ cho bên thứ ba. Liên hệ: <a href="mailto:{{ support_email }}">{{ support_email }}</a></p>
+      <p class="policy-lead">{{ t('download.policy_lead') }}</p>
+      <p>{{ t('download.policy_p2') }}</p>
+      <p class="policy-safe">{{ t('download.policy_safe') | safe }}</p>
+      <p class="policy-foot">{{ t('download.policy_foot') }} <a href="mailto:{{ support_email }}">{{ support_email }}</a></p>
     </div>
   </details>
 
@@ -29,12 +29,12 @@
     <form method="post" action="/download/accept" class="consent-form">
       <label class="consent-check">
         <input type="checkbox" name="agree_policy" value="1" required {% if download_consent %}checked{% endif %}>
-        <span>Tôi đã đọc và đồng ý với <strong>Chính sách dữ liệu</strong>.</span>
+        <span>{{ t('download.consent') | safe }}</span>
       </label>
       {% if content.download_url %}
-      <button type="submit" class="btn btn-primary btn-lg btn-download">Tải bản {{ content.download_version }}</button>
+      <button type="submit" class="btn btn-primary btn-lg btn-download">{{ t('download.btn', version=content.download_version) }}</button>
       {% else %}
-      <p class="download-unavailable">File đã được gỡ để gỡ lỗi. Vui lòng liên hệ <a href="mailto:{{ support_email }}">{{ support_email }}</a> để được hỗ trợ.</p>
+      <p class="download-unavailable">{{ t('download.unavailable', email=support_email) | safe }}</p>
       {% endif %}
     </form>
   </div>
@@ -45,21 +45,21 @@
     <summary class="policy-summary">
       <span class="policy-summary-icon guide-icon-install" aria-hidden="true"></span>
       <span class="policy-summary-text">
-        <span class="policy-summary-title">Hướng dẫn cài đặt</span>
-        <span class="policy-summary-hint">Bấm để xem chi tiết</span>
+        <span class="policy-summary-title">{{ t('download.guide_install') }}</span>
+        <span class="policy-summary-hint">{{ t('download.policy_hint') }}</span>
       </span>
       <span class="policy-chevron" aria-hidden="true"></span>
     </summary>
     <div class="policy-body guide-body">
       <ol class="guide-steps">
-        <li><strong>Đóng SolidWorks</strong> (tránh DLL bị khóa khi cài).</li>
-        <li>Giải nén ZIP → chạy <code>Install-BodyExporter.cmd</code> <strong>Run as administrator</strong>.</li>
-        <li>Mở SolidWorks → <strong>Tools → Add-Ins</strong> → bật <em>SolidWorks Body Exporter</em>.</li>
-        <li>Dùng shortcut <strong>Body Exporter</strong> trên Desktop để mở cửa sổ export.</li>
+        <li>{{ t('download.install_1') | safe }}</li>
+        <li>{{ t('download.install_2') | safe }}</li>
+        <li>{{ t('download.install_3') | safe }}</li>
+        <li>{{ t('download.install_4') | safe }}</li>
       </ol>
       {% if install_notes_extra %}
       <div class="install-notes prose guide-admin-notes">
-        <p class="guide-notes-label">Ghi chú thêm</p>
+        <p class="guide-notes-label">{{ t('download.guide_notes') }}</p>
         {{ install_notes_extra | safe }}
       </div>
       {% endif %}
@@ -70,20 +70,20 @@
     <summary class="policy-summary">
       <span class="policy-summary-icon guide-icon-use" aria-hidden="true"></span>
       <span class="policy-summary-text">
-        <span class="policy-summary-title">Hướng dẫn sử dụng</span>
-        <span class="policy-summary-hint">Bấm để xem chi tiết</span>
+        <span class="policy-summary-title">{{ t('download.guide_use') }}</span>
+        <span class="policy-summary-hint">{{ t('download.policy_hint') }}</span>
       </span>
       <span class="policy-chevron" aria-hidden="true"></span>
     </summary>
     <div class="policy-body guide-body">
       <ol class="guide-steps">
-        <li>Mở file <strong>.SLDPRT</strong> trong SolidWorks.</li>
-        <li>Mở <strong>Body Exporter</strong> (shortcut Desktop hoặc launcher trong thư mục cài).</li>
-        <li>Plugin quét danh sách body — chỉnh <strong>tên hiển thị</strong> và trục <strong>Length / Width / Thickness</strong>.</li>
-        <li><strong>Copy All</strong> — dán vào Excel; hoặc menu <strong>Export</strong> → xuất file Excel.</li>
-        <li>Lần đầu: <strong>License</strong> → trial 14 ngày (cần internet) hoặc key từ <a href="/buy">/buy</a>.</li>
+        <li>{{ t('download.use_1') | safe }}</li>
+        <li>{{ t('download.use_2') | safe }}</li>
+        <li>{{ t('download.use_3') | safe }}</li>
+        <li>{{ t('download.use_4') | safe }}</li>
+        <li>{{ t('download.use_5') | safe }}</li>
       </ol>
-      <p class="muted fine-print">Bấm Save trong cửa sổ export để lưu metadata vào file Part.</p>
+      <p class="muted fine-print">{{ t('download.use_foot') }}</p>
     </div>
   </details>
 
@@ -91,42 +91,42 @@
     <summary class="policy-summary">
       <span class="policy-summary-icon guide-icon-excel" aria-hidden="true"></span>
       <span class="policy-summary-text">
-        <span class="policy-summary-title">Export Excel &amp; placeholder</span>
-        <span class="policy-summary-hint">Bấm để xem chi tiết</span>
+        <span class="policy-summary-title">{{ t('download.guide_excel') }}</span>
+        <span class="policy-summary-hint">{{ t('download.policy_hint') }}</span>
       </span>
       <span class="policy-chevron" aria-hidden="true"></span>
     </summary>
     <div class="policy-body guide-body">
-      <p class="policy-lead">Tạo file <code>.xlsx</code> mẫu của công ty, chèn <strong>placeholder</strong> vào ô cần điền — plugin thay bằng dữ liệu từng body khi export.</p>
+      <p class="policy-lead">{{ t('download.excel_lead') | safe }}</p>
       <ol class="guide-steps">
-        <li><strong>Export ▾ → Excel template panel…</strong> — <em>Add new…</em> / <em>Change…</em> chọn file mẫu (một dòng có placeholder).</li>
-        <li><strong>Export ▾ → Fill Excel template…</strong> — chọn nơi lưu file kết quả.</li>
-        <li>Body đầu tiên ghi đè dòng placeholder; các body tiếp theo chèn xuống các dòng bên dưới.</li>
+        <li>{{ t('download.excel_1') | safe }}</li>
+        <li>{{ t('download.excel_2') | safe }}</li>
+        <li>{{ t('download.excel_3') | safe }}</li>
       </ol>
-      <p><strong>Placeholder hỗ trợ</strong> (không phân biệt hoa thường):</p>
+      <p><strong>{{ t('download.excel_table_title') }}</strong></p>
       <div class="placeholder-table-wrap">
         <table class="placeholder-table">
           <thead>
-            <tr><th>Gõ trong Excel</th><th>Dữ liệu điền</th></tr>
+            <tr><th>{{ t('download.excel_th_token') }}</th><th>{{ t('download.excel_th_data') }}</th></tr>
           </thead>
           <tbody>
-            <tr><td><code>{% raw %}{{Body Name}}{% endraw %}</code></td><td>Tên body / part</td></tr>
-            <tr><td><code>{% raw %}{{Length}}{% endraw %}</code></td><td>Chiều dài (mm)</td></tr>
-            <tr><td><code>{% raw %}{{Width}}{% endraw %}</code></td><td>Chiều rộng (mm)</td></tr>
-            <tr><td><code>{% raw %}{{Thickness}}{% endraw %}</code></td><td>Chiều dày (mm)</td></tr>
-            <tr><td><code>{% raw %}{{Quantity}}{% endraw %}</code> · <code>{% raw %}{{Qty}}{% endraw %}</code></td><td>Số lượng</td></tr>
-            <tr><td><code>{% raw %}{{Appearance}}{% endraw %}</code> · <code>{% raw %}{{Color}}{% endraw %}</code></td><td>Màu / vật liệu</td></tr>
-            <tr><td><code>{% raw %}{{Preview}}{% endraw %}</code></td><td>Ảnh thumbnail (PNG trong ô)</td></tr>
+            <tr><td><code>{% raw %}{{Body Name}}{% endraw %}</code></td><td>{{ t('download.excel_row_name') }}</td></tr>
+            <tr><td><code>{% raw %}{{Length}}{% endraw %}</code></td><td>{{ t('download.excel_row_len') }}</td></tr>
+            <tr><td><code>{% raw %}{{Width}}{% endraw %}</code></td><td>{{ t('download.excel_row_wid') }}</td></tr>
+            <tr><td><code>{% raw %}{{Thickness}}{% endraw %}</code></td><td>{{ t('download.excel_row_thk') }}</td></tr>
+            <tr><td><code>{% raw %}{{Quantity}}{% endraw %}</code> · <code>{% raw %}{{Qty}}{% endraw %}</code></td><td>{{ t('download.excel_row_qty') }}</td></tr>
+            <tr><td><code>{% raw %}{{Appearance}}{% endraw %}</code> · <code>{% raw %}{{Color}}{% endraw %}</code></td><td>{{ t('download.excel_row_app') }}</td></tr>
+            <tr><td><code>{% raw %}{{Preview}}{% endraw %}</code></td><td>{{ t('download.excel_row_prev') }}</td></tr>
           </tbody>
         </table>
       </div>
-      <p class="muted fine-print">Tiếng Việt: {% raw %}{{Ten chi tiet}}{% endraw %}, {% raw %}{{Chieu dai}}{% endraw %}, {% raw %}{{Chieu rong}}{% endraw %}, {% raw %}{{Chieu day}}{% endraw %}, {% raw %}{{So luong}}{% endraw %}, {% raw %}{{Mau sac}}{% endraw %}… Placeholder lạ sẽ báo sau khi export.</p>
+      <p class="muted fine-print">{{ t('download.excel_foot') }}</p>
     </div>
   </details>
 </section>
 
 <section class="card card-dim card-compact">
-  <p class="muted" style="margin:0">Trial 14 ngày sau khi cài — cần internet lần đầu.</p>
-  <a class="btn btn-ghost" href="/buy" style="margin-top:0.75rem;display:inline-flex">Mua license</a>
+  <p class="muted" style="margin:0">{{ t('download.trial_foot') }}</p>
+  <a class="btn btn-ghost" href="/buy" style="margin-top:0.75rem;display:inline-flex">{{ t('download.trial_buy') }}</a>
 </section>
 {% endblock %}

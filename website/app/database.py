@@ -38,6 +38,11 @@ _SITE_CONTENT_ALTER = [
     ("sepay_webhook_api_key", "VARCHAR(300) DEFAULT ''"),
     ("license_term_days", "INTEGER DEFAULT 365"),
     ("author_name", "VARCHAR(120) DEFAULT 'Gió'"),
+    ("hero_subtitle_en", "TEXT DEFAULT ''"),
+    ("hero_bullets_en", "TEXT DEFAULT ''"),
+    ("about_html_en", "TEXT DEFAULT ''"),
+    ("buy_intro_en", "TEXT DEFAULT ''"),
+    ("buy_footer_en", "TEXT DEFAULT ''"),
 ]
 
 

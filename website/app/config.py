@@ -40,6 +40,22 @@ SEO_KEYWORDS = (
     )
     .strip()
 )
+SEO_DESCRIPTION_EN = (
+    os.getenv(
+        "SEO_DESCRIPTION_EN",
+        "Body Exporter — SolidWorks add-in to export body/part data to Excel and templates. "
+        "Online licensing, 14-day trial, woodworking and nesting workflows.",
+    )
+    .strip()
+)
+SEO_KEYWORDS_EN = (
+    os.getenv(
+        "SEO_KEYWORDS_EN",
+        "SolidWorks, add-in, Body Exporter, export bodies, Excel, license, CAD plugin, "
+        "woodworking, nesting, bill of materials",
+    )
+    .strip()
+)
 SEO_OG_IMAGE = os.getenv("SEO_OG_IMAGE", "").strip()
 
 SEPAY_QR_BASE_URL = os.getenv(

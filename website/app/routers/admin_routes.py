@@ -115,13 +115,18 @@ def save_content(
     request: Request,
     hero_title: str = Form(""),
     hero_subtitle: str = Form(""),
+    hero_subtitle_en: str = Form(""),
     hero_bullets: str = Form(""),
+    hero_bullets_en: str = Form(""),
     about_html: str = Form(""),
+    about_html_en: str = Form(""),
     download_version: str = Form(""),
     download_url: str = Form(""),
     download_notes: str = Form(""),
     buy_intro: str = Form(""),
+    buy_intro_en: str = Form(""),
     buy_footer: str = Form(""),
+    buy_footer_en: str = Form(""),
     sepay_qr_base_url: str = Form(""),
     license_price_vnd: int = Form(1590000),
     license_term_days: int = Form(365),
@@ -138,13 +143,18 @@ def save_content(
     c = get_content(db)
     c.hero_title = hero_title.strip()
     c.hero_subtitle = hero_subtitle.strip()
+    c.hero_subtitle_en = hero_subtitle_en.strip()
     c.hero_bullets = hero_bullets.strip()
+    c.hero_bullets_en = hero_bullets_en.strip()
     c.about_html = about_html.strip()
+    c.about_html_en = about_html_en.strip()
     c.download_version = download_version.strip()
     c.download_url = download_url.strip()
     c.download_notes = download_notes.strip()
     c.buy_intro = buy_intro.strip()
+    c.buy_intro_en = buy_intro_en.strip()
     c.buy_footer = buy_footer.strip()
+    c.buy_footer_en = buy_footer_en.strip()
     c.sepay_qr_base_url = sepay_qr_base_url.strip()
     c.license_price_vnd = max(1, license_price_vnd)
     c.license_term_days = max(1, int(license_term_days))

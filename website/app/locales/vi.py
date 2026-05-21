@@ -1,0 +1,131 @@
+"""Vietnamese UI strings (public site)."""
+
+MESSAGES = {
+    "nav.home": "Giới thiệu",
+    "nav.download": "Tải plugin",
+    "nav.buy": "Mua license",
+    "lang.vi": "Tiếng Việt",
+    "lang.en": "English",
+    "footer.rights": "Bản quyền",
+    "home.hero_title_default": "SolidWorks Body Exporter",
+    "home.hero_subtitle_default": (
+        "Xuất thông tin body/part từ SolidWorks — Excel, template, workflow nhanh cho xưởng mộc."
+    ),
+    "home.bullets_default": (
+        "Kéo thả kích thước L×W×T\n"
+        "Export Excel & template {{placeholder}}\n"
+        "License online — trial 14 ngày"
+    ),
+    "home.cta_download": "Tải plugin",
+    "home.cta_buy": "Mua license",
+    "download.title": "Tải plugin",
+    "download.version": "Phiên bản",
+    "download.policy_title": "Chính sách dữ liệu",
+    "download.policy_hint": "Bấm để xem chi tiết",
+    "download.policy_lead": (
+        "Body Exporter thu thập một số thông tin kỹ thuật tối thiểu để plugin hoạt động ổn định — "
+        "kích hoạt license, hỗ trợ khi có lỗi và cải thiện phần mềm theo thời gian."
+    ),
+    "download.policy_p2": (
+        "Thông tin có thể được ghi nhận gồm: mã nhận diện máy (dùng để gắn license), "
+        "phiên bản plugin và SolidWorks đang dùng, thời điểm cài đặt và lần dùng gần nhất, "
+        "địa chỉ IP để ước lượng khu vực (thành phố/quốc gia), và trạng thái license hiện tại."
+    ),
+    "download.policy_safe": (
+        "Chúng tôi <strong>không đọc, không lưu và không gửi</strong> bất kỳ nội dung nào từ file "
+        "SolidWorks của bạn — bao gồm model 3D, tên part hay file export."
+    ),
+    "download.policy_foot": (
+        "Dữ liệu thu thập chỉ dùng nội bộ, không phục vụ quảng cáo và không chia sẻ cho bên thứ ba. Liên hệ:"
+    ),
+    "download.consent": "Tôi đã đọc và đồng ý với <strong>Chính sách dữ liệu</strong>.",
+    "download.btn": "Tải bản {version}",
+    "download.unavailable": (
+        "File đã được gỡ để gỡ lỗi. Vui lòng liên hệ "
+        '<a href="mailto:{email}">{email}</a> để được hỗ trợ.'
+    ),
+    "download.policy_error": "Bạn cần đồng ý chính sách thu thập dữ liệu để tải plugin.",
+    "download.policy_error_unavailable": "File đã được gỡ để gỡ lỗi. Vui lòng liên hệ {email} để được hỗ trợ.",
+    "download.guide_install": "Hướng dẫn cài đặt",
+    "download.guide_use": "Hướng dẫn sử dụng",
+    "download.guide_excel": "Export Excel & placeholder",
+    "download.guide_notes": "Ghi chú thêm",
+    "download.install_1": "<strong>Đóng SolidWorks</strong> (tránh DLL bị khóa khi cài).",
+    "download.install_2": (
+        "Giải nén ZIP → chạy <code>Install-BodyExporter.cmd</code> <strong>Run as administrator</strong>."
+    ),
+    "download.install_3": (
+        "Mở SolidWorks → <strong>Tools → Add-Ins</strong> → bật <em>SolidWorks Body Exporter</em>."
+    ),
+    "download.install_4": "Dùng shortcut <strong>Body Exporter</strong> trên Desktop để mở cửa sổ export.",
+    "download.use_1": "Mở file <strong>.SLDPRT</strong> trong SolidWorks.",
+    "download.use_2": "Mở <strong>Body Exporter</strong> (shortcut Desktop hoặc launcher trong thư mục cài).",
+    "download.use_3": (
+        "Plugin quét danh sách body — chỉnh <strong>tên hiển thị</strong> và trục "
+        "<strong>Length / Width / Thickness</strong>."
+    ),
+    "download.use_4": (
+        "<strong>Copy All</strong> — dán vào Excel; hoặc menu <strong>Export</strong> → xuất file Excel."
+    ),
+    "download.use_5": (
+        "Lần đầu: <strong>License</strong> → trial 14 ngày (cần internet) hoặc key từ <a href=\"/buy\">/buy</a>."
+    ),
+    "download.use_foot": "Bấm Save trong cửa sổ export để lưu metadata vào file Part.",
+    "download.excel_lead": (
+        "Tạo file <code>.xlsx</code> mẫu của công ty, chèn <strong>placeholder</strong> vào ô cần điền — "
+        "plugin thay bằng dữ liệu từng body khi export."
+    ),
+    "download.excel_1": (
+        "<strong>Export ▾ → Excel template panel…</strong> — <em>Add new…</em> / <em>Change…</em> "
+        "chọn file mẫu (một dòng có placeholder)."
+    ),
+    "download.excel_2": "<strong>Export ▾ → Fill Excel template…</strong> — chọn nơi lưu file kết quả.",
+    "download.excel_3": "Body đầu tiên ghi đè dòng placeholder; các body tiếp theo chèn xuống các dòng bên dưới.",
+    "download.excel_table_title": "Placeholder hỗ trợ (không phân biệt hoa thường):",
+    "download.excel_th_token": "Gõ trong Excel",
+    "download.excel_th_data": "Dữ liệu điền",
+    "download.excel_row_name": "Tên body / part",
+    "download.excel_row_len": "Chiều dài (mm)",
+    "download.excel_row_wid": "Chiều rộng (mm)",
+    "download.excel_row_thk": "Chiều dày (mm)",
+    "download.excel_row_qty": "Số lượng",
+    "download.excel_row_app": "Màu / vật liệu",
+    "download.excel_row_prev": "Ảnh thumbnail (PNG trong ô)",
+    "download.excel_foot": "Placeholder lạ sẽ báo sau khi export.",
+    "download.trial_foot": "Trial 14 ngày sau khi cài — cần internet lần đầu.",
+    "download.trial_buy": "Mua license",
+    "buy.title": "Mua license",
+    "buy.email_label": "Email nhận license",
+    "buy.email_hint": "Ghi đúng email này trong nội dung chuyển khoản: <code>BE {email}</code>",
+    "buy.btn_qr": "Hiện QR chuyển khoản",
+    "buy.btn_card": "Thanh toán thẻ / SePay",
+    "buy.transfer_title": "Chuyển khoản — {amount} ₫",
+    "buy.bank": "Ngân hàng",
+    "buy.account": "Số tài khoản",
+    "buy.amount": "Số tiền",
+    "buy.memo": "Nội dung CK",
+    "buy.wait_hint": (
+        "<strong>Chưa có email ngay sau khi bấm nút.</strong> Key gửi tới <strong>{email}</strong> "
+        "sau khi ngân hàng xác nhận và SePay gọi webhook (thường 1–10 phút). "
+        "Nội dung CK phải có <code>{memo}</code>. Kiểm tra cả thư mục spam."
+    ),
+    "buy.success_title": "Cảm ơn bạn",
+    "buy.success_with_email": (
+        "License sẽ gửi tới <strong>{email}</strong> sau khi thanh toán được xác nhận "
+        "(webhook SePay), thường trong vài phút."
+    ),
+    "buy.success_no_email": "License sẽ gửi qua email bạn đã nhập khi thanh toán được xác nhận.",
+    "buy.success_spam": "Chưa thấy mail? Đợi thêm, kiểm tra spam, đảm bảo nội dung CK đúng <code>BE {email}</code>.",
+    "buy.success_download": "Tải & cài plugin",
+    "page.download": "Tải plugin Body Exporter",
+    "page.buy": "Mua license Body Exporter",
+    "page.buy_success": "Thanh toán thành công — Body Exporter",
+    "error.404.title": "Không tìm thấy trang",
+    "error.404.lead": "Đường dẫn không tồn tại hoặc đã đổi.",
+    "error.404.home": "Trang chủ",
+    "error.404.download": "Tải plugin",
+    "error.500.title": "Có lỗi xảy ra",
+    "error.500.lead": "Thử tải lại trang. Nếu vẫn lỗi, liên hệ hỗ trợ.",
+    "error.500.home": "Trang chủ",
+    "error.500.contact": "Liên hệ",
+}

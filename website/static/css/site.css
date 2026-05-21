@@ -62,6 +62,29 @@ body {
 }
 .nav-cta.active { border-color: var(--accent); color: var(--accent); }
 
+.lang-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: 0.5rem;
+  padding-left: 0.75rem;
+  border-left: 1px solid var(--border);
+  font-size: 0.82rem;
+}
+.lang-switch a {
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 500;
+}
+.lang-switch a:hover,
+.lang-switch a.active {
+  color: var(--accent);
+}
+.lang-sep {
+  color: var(--border);
+  user-select: none;
+}
+
 .site-main {
   flex: 1;
   width: min(920px, 100%);

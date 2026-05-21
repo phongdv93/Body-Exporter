@@ -2,20 +2,20 @@
 {% block title %}{{ page_title }}{% endblock %}
 {% block content %}
 <section class="page-head">
-  <h1>Mua license</h1>
-  <p class="lead">{{ content.buy_intro }}</p>
+  <h1>{{ t('buy.title') }}</h1>
+  <p class="lead">{{ buy_intro }}</p>
 </section>
 
 <section class="card buy-form-card">
   <form method="post" action="/buy" class="buy-form">
-    <label for="email">Email nhận license</label>
+    <label for="email">{{ t('buy.email_label') }}</label>
     <input type="email" id="email" name="email" required placeholder="you@company.com"
            value="{{ email }}" autocomplete="email">
-    <p class="hint">Ghi đúng email này trong nội dung chuyển khoản: <code>BE {{ email or 'email@ban.com' }}</code></p>
+    <p class="hint">{{ t('buy.email_hint', email=email or 'email@example.com') | safe }}</p>
     <div class="pay-methods">
-      <button type="submit" name="pay_method" value="qr" class="btn btn-primary">Hiện QR chuyển khoản</button>
+      <button type="submit" name="pay_method" value="qr" class="btn btn-primary">{{ t('buy.btn_qr') }}</button>
       {% if pg_available %}
-      <button type="submit" name="pay_method" value="card" class="btn btn-ghost">Thanh toán thẻ / SePay</button>
+      <button type="submit" name="pay_method" value="card" class="btn btn-ghost">{{ t('buy.btn_card') }}</button>
       {% endif %}
     </div>
   </form>
@@ -23,27 +23,25 @@
 
 {% if email and qr_url %}
 <section class="card payment-panel">
-  <h2>Chuyển khoản — {{ '{:,}'.format(amount_vnd).replace(',', '.') }} ₫</h2>
+  <h2>{{ t('buy.transfer_title', amount=('{:,}'.format(amount_vnd).replace(',', '.'))) }}</h2>
   <div class="pay-grid">
     <div class="qr-wrap">
       <img src="{{ qr_url }}" alt="VietQR Sepay" width="240" height="240" loading="lazy">
     </div>
     <dl class="bank-dl">
-      {% if bank.bank %}<dt>Ngân hàng</dt><dd>{{ bank.bank }}</dd>{% endif %}
-      {% if bank.account %}<dt>Số tài khoản</dt><dd><code>{{ bank.account }}</code></dd>{% endif %}
-      <dt>Số tiền</dt><dd><strong>{{ '{:,}'.format(amount_vnd).replace(',', '.') }} VND</strong></dd>
-      <dt>Nội dung CK</dt><dd><code>{{ memo }}</code></dd>
+      {% if bank.bank %}<dt>{{ t('buy.bank') }}</dt><dd>{{ bank.bank }}</dd>{% endif %}
+      {% if bank.account %}<dt>{{ t('buy.account') }}</dt><dd><code>{{ bank.account }}</code></dd>{% endif %}
+      <dt>{{ t('buy.amount') }}</dt><dd><strong>{{ '{:,}'.format(amount_vnd).replace(',', '.') }} VND</strong></dd>
+      <dt>{{ t('buy.memo') }}</dt><dd><code>{{ memo }}</code></dd>
     </dl>
   </div>
-  <p class="hint buy-email-hint">
-    <strong>Chưa có email ngay sau khi bấm nút.</strong> Key gửi tới <strong>{{ email }}</strong>
-    sau khi ngân hàng xác nhận và SePay gọi webhook (thường 1–10 phút).
-    Nội dung CK phải có <code>{{ memo }}</code>. Kiểm tra cả thư mục spam.
-  </p>
+  <p class="hint buy-email-hint">{{ t('buy.wait_hint', email=email, memo=memo) | safe }}</p>
 </section>
 {% endif %}
 
+{% if buy_footer %}
 <section class="card card-dim prose-footer">
-  {{ content.buy_footer | safe }}
+  {{ buy_footer | safe }}
 </section>
+{% endif %}
 {% endblock %}

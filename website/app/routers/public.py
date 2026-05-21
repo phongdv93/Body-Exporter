@@ -9,6 +9,19 @@ from sqlalchemy.orm import Session
 from app import config
 from app.auth import get_db
 from app.database import get_content
+from app.i18n import (
+    LANG_COOKIE,
+    LANG_COOKIE_MAX_AGE,
+    localized_bullets,
+    localized_html_field,
+    localized_text,
+    normalize_lang,
+    resolve_lang,
+    safe_redirect_path,
+    schema_website_json,
+    seo_meta,
+    translate,
+)
 from app.template_response import html_response
 from app.sepay import (
     build_pg_checkout_fields,
@@ -62,21 +75,13 @@ def _install_notes_extra(raw: str | None) -> str | None:
 
 def _ctx(request: Request, db: Session, page_title: str | None = None, **extra):
     content = get_content(db)
+    lang = resolve_lang(request)
+    meta_desc, _seo_title = seo_meta(lang, content)
     title = page_title or _dedupe_title(content.hero_title) or "Body Exporter"
-    subtitle = (content.hero_subtitle or "").strip()
-    meta_desc = subtitle[:320] if subtitle else config.SEO_DESCRIPTION
+    keywords = config.SEO_KEYWORDS_EN if lang == "en" else config.SEO_KEYWORDS
     canonical = f"{config.SITE_URL}{request.url.path.split('?')[0]}"
-    schema_web = json.dumps(
-        {
-            "@context": "https://schema.org",
-            "@type": "WebSite",
-            "name": "Body Exporter",
-            "url": config.SITE_URL,
-            "description": meta_desc[:500],
-            "inLanguage": "vi-VN",
-        },
-        ensure_ascii=False,
-    )
+    schema_web = schema_website_json(lang, meta_desc)
+    og_locale = "en_US" if lang == "en" else "vi_VN"
     schema_app = json.dumps(
         {
             "@context": "https://schema.org",
@@ -97,22 +102,46 @@ def _ctx(request: Request, db: Session, page_title: str | None = None, **extra):
         "content": content,
         "support_email": content.support_email or config.SUPPORT_EMAIL,
         "site_url": config.SITE_URL,
+        "lang": lang,
+        "t": lambda key, **kw: translate(lang, key, **kw),
         "page_title": title,
         "meta_description": meta_desc,
-        "meta_keywords": config.SEO_KEYWORDS,
+        "meta_keywords": keywords,
         "canonical_url": canonical,
+        "og_locale": og_locale,
         "seo_og_image": _og_image_url(),
         "schema_website_json": schema_web,
         "schema_app_json": schema_app,
         "install_notes_extra": _install_notes_extra(content.download_notes),
+        "hero_subtitle": localized_text(content, "hero_subtitle", lang, default_key="home.hero_subtitle_default"),
+        "about_html": localized_html_field(content, "about_html", lang),
+        "buy_intro": localized_html_field(content, "buy_intro", lang),
+        "buy_footer": localized_html_field(content, "buy_footer", lang),
         **extra,
     }
+
+
+@router.get("/lang/{lang_code}")
+def set_language(lang_code: str, request: Request, next: str = "/"):
+    lang = normalize_lang(lang_code)
+    dest = safe_redirect_path(next or request.headers.get("referer"))
+    resp = RedirectResponse(dest, status_code=303)
+    resp.set_cookie(
+        LANG_COOKIE,
+        lang,
+        max_age=LANG_COOKIE_MAX_AGE,
+        httponly=False,
+        samesite="lax",
+        secure=config.SITE_URL.startswith("https://"),
+    )
+    return resp
 
 
 @router.get("/")
 def home(request: Request, db: Session = Depends(get_db)):
     content = get_content(db)
-    bullets = [b.strip() for b in (content.hero_bullets or "").splitlines() if b.strip()]
+    lang = resolve_lang(request)
+    bullets = localized_bullets(content, lang)
     return html_response(
         templates,
         "home.html",
@@ -137,7 +166,7 @@ def download_page(request: Request, db: Session = Depends(get_db)):
         _ctx(
             request,
             db,
-            page_title="Tải plugin Body Exporter",
+            page_title=translate(resolve_lang(request), "page.download"),
             download_consent=_download_consent_ok(request),
         ),
     )
@@ -156,25 +185,24 @@ def download_accept(
             _ctx(
                 request,
                 db,
-                page_title="Tải plugin Body Exporter",
+                page_title=translate(resolve_lang(request), "page.download"),
                 download_consent=False,
-                policy_error="Bạn cần đồng ý chính sách thu thập dữ liệu để tải plugin.",
+                policy_error=translate(resolve_lang(request), "download.policy_error"),
             ),
             status_code=400,
         )
     if not get_content(db).download_url:
+        lang = resolve_lang(request)
+        email = get_content(db).support_email or config.SUPPORT_EMAIL
         return html_response(
             templates,
             "download.html",
             _ctx(
                 request,
                 db,
-                page_title="Tải plugin Body Exporter",
+                page_title=translate(lang, "page.download"),
                 download_consent=False,
-                policy_error=(
-                    "File đã được gỡ để gỡ lỗi. Vui lòng liên hệ "
-                    f"{get_content(db).support_email or config.SUPPORT_EMAIL} để được hỗ trợ."
-                ),
+                policy_error=translate(lang, "download.policy_error_unavailable", email=email),
             ),
             status_code=503,
         )
@@ -269,7 +297,7 @@ def _render_buy(request: Request, db: Session, email: str = ""):
         _ctx(
             request,
             db,
-            page_title="Mua license Body Exporter",
+            page_title=translate(resolve_lang(request), "page.buy"),
             email=email,
             qr_url=qr_url,
             memo=memo,
@@ -288,7 +316,7 @@ def buy_success(request: Request, email: str = "", db: Session = Depends(get_db)
         _ctx(
             request,
             db,
-            page_title="Thanh toán thành công — Body Exporter",
+            page_title=translate(resolve_lang(request), "page.buy_success"),
             email=email.strip(),
         ),
     )

@@ -6,16 +6,20 @@ from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app import config
+from app.i18n import resolve_lang, translate
 from app.template_response import html_response
 
 templates = Jinja2Templates(directory=str(config.TEMPLATES_DIR))
 
 
 def _ctx(request: Request) -> dict:
+    lang = resolve_lang(request)
     return {
         "request": request,
         "site_url": config.SITE_URL,
         "support_email": config.SUPPORT_EMAIL,
+        "lang": lang,
+        "t": lambda key, **kw: translate(lang, key, **kw),
     }
 
 

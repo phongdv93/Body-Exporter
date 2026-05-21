@@ -49,6 +49,13 @@ Then log in at `/admin` with `ADMIN_USERNAME` / `ADMIN_PASSWORD` from `.env`.
 - Site: http://127.0.0.1:8080  
 - Admin: http://127.0.0.1:8080/admin (user/password from `.env`)
 
+## Ngôn ngữ (VI / EN)
+
+- Công khai: **Tiếng Việt | English** trên header → cookie `be_lang` (400 ngày).
+- URL: `/lang/en?next=/download` hoặc trình duyệt gửi `Accept-Language: en`.
+- Chuỗi UI: `website/app/locales/vi.py`, `en.py`.
+- Nội dung CMS tiếng Anh (tùy chọn): **Admin → Chỉnh nội dung → English** (`hero_subtitle_en`, `about_html_en`, …). Để trống EN → fallback tiếng Việt hoặc bản dịch mặc định trong locale.
+
 ## SEO & Google Search Console
 
 - Every public page: `<title>`, `description`, `keywords`, `canonical`, Open Graph, Twitter card, JSON-LD (`WebSite` + `SoftwareApplication`).

@@ -788,11 +788,21 @@
                         <Button Content="Copy All"
                                 ToolTip="Copy All rows (Ctrl+C when focus is outside the grid; in grid: copy selection)"
                                 Width="90" Height="32"
-                                Margin="0,0,0,0"
+                                Margin="0,0,8,0"
                                 Click="CopyAll_Click"
                                 FontWeight="SemiBold" FontSize="12"
                                 Foreground="White"
                                 Background="{StaticResource AccentGradient}"
+                                Template="{StaticResource GradientButtonTemplate}" />
+
+                        <Button Content="Suggest order"
+                                ToolTip="Sort rows by keyword rules (edit %AppData%\SolidWorksBodyExporter\sort-rules.json). Not AI — workshop priority tiers."
+                                Width="108" Height="32"
+                                Margin="0,0,0,0"
+                                Click="SuggestSort_Click"
+                                FontWeight="SemiBold" FontSize="12"
+                                Foreground="#FF334155"
+                                Background="#FFE8EDF5"
                                 Template="{StaticResource GradientButtonTemplate}" />
 
                         <!-- Divider -->

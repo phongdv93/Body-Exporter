@@ -2,12 +2,12 @@
 {% block title %}{{ page_title }}{% endblock %}
 {% block content %}
 <section class="hero">
-  <p class="eyebrow">Add-in SolidWorks</p>
+  <p class="eyebrow">SolidWorks add-in</p>
   <h1>{{ content.hero_title }}</h1>
-  <p class="lead">{{ content.hero_subtitle }}</p>
+  <p class="lead">{{ hero_subtitle }}</p>
   <div class="hero-actions">
-    <a class="btn btn-primary" href="/download">Tải plugin</a>
-    <a class="btn btn-ghost" href="/buy">Mua license</a>
+    <a class="btn btn-primary" href="/download">{{ t('home.cta_download') }}</a>
+    <a class="btn btn-ghost" href="/buy">{{ t('home.cta_buy') }}</a>
   </div>
   {% if bullets %}
   <ul class="feature-list">
@@ -17,7 +17,9 @@
   </ul>
   {% endif %}
 </section>
+{% if about_html %}
 <section class="card prose">
-  {{ content.about_html | safe }}
+  {{ about_html | safe }}
 </section>
+{% endif %}
 {% endblock %}

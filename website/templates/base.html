@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="{{ lang }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,6 +10,8 @@
   <meta name="description" content="{{ meta_description | default('') | e }}">
   <meta name="keywords" content="{{ meta_keywords | default('') | e }}">
   <link rel="canonical" href="{{ canonical_url | default(site_url ~ '/') }}">
+  <link rel="alternate" hreflang="vi" href="{{ site_url }}{{ request.url.path }}">
+  <link rel="alternate" hreflang="en" href="{{ site_url }}/lang/en?next={{ request.url.path }}">
   <link rel="sitemap" type="application/xml" title="Sitemap" href="{{ site_url }}/sitemap.xml">
   <meta name="robots" content="index, follow">
   <meta property="og:type" content="website">
@@ -17,7 +19,7 @@
   <meta property="og:site_name" content="Body Exporter">
   <meta property="og:title" content="{{ page_title | default('Body Exporter') | e }}">
   <meta property="og:description" content="{{ meta_description | default('') | e }}">
-  <meta property="og:locale" content="vi_VN">
+  <meta property="og:locale" content="{{ og_locale | default('vi_VN') }}">
   <meta property="og:image" content="{{ seo_og_image | e }}">
   <meta property="og:image:secure_url" content="{{ seo_og_image | e }}">
   <meta property="og:image:type" content="image/png">
@@ -40,9 +42,14 @@
   <header class="site-header">
     <a class="logo" href="/">Body<span>Exporter</span></a>
     <nav>
-      <a href="/" {% if request.url.path == '/' %}class="active"{% endif %}>Giới thiệu</a>
-      <a href="/download" {% if request.url.path.startswith('/download') %}class="active"{% endif %}>Tải plugin</a>
-      <a href="/buy" class="nav-cta {% if request.url.path.startswith('/buy') %}active{% endif %}">Mua license</a>
+      <a href="/" {% if request.url.path == '/' %}class="active"{% endif %}>{{ t('nav.home') }}</a>
+      <a href="/download" {% if request.url.path.startswith('/download') %}class="active"{% endif %}>{{ t('nav.download') }}</a>
+      <a href="/buy" class="nav-cta {% if request.url.path.startswith('/buy') %}active{% endif %}">{{ t('nav.buy') }}</a>
+      <span class="lang-switch" aria-label="Language">
+        <a href="/lang/vi?next={{ request.url.path }}" class="{% if lang == 'vi' %}active{% endif %}" hreflang="vi">{{ t('lang.vi') }}</a>
+        <span class="lang-sep" aria-hidden="true">|</span>
+        <a href="/lang/en?next={{ request.url.path }}" class="{% if lang == 'en' %}active{% endif %}" hreflang="en">{{ t('lang.en') }}</a>
+      </span>
     </nav>
   </header>
   <main class="site-main">

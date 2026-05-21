@@ -1,16 +1,16 @@
 {% extends "error_layout.html" %}
-{% block title %}Lỗi máy chủ — Body Exporter{% endblock %}
+{% block title %}{% if lang == 'en' %}Server error{% else %}Lỗi máy chủ{% endif %} — Body Exporter{% endblock %}
 {% block body_class %} error-page--500{% endblock %}
 {% block content %}
-<article class="error-page__panel">
+<div class="error-page__panel">
   <div class="error-page__code-wrap">
     <p class="error-page__code" aria-hidden="true">500</p>
   </div>
-  <h1 class="error-page__title">Có lỗi xảy ra</h1>
-  <p class="error-page__lead">Thử tải lại trang. Nếu vẫn lỗi, liên hệ hỗ trợ.</p>
+  <h1 class="error-page__title">{{ t('error.500.title') }}</h1>
+  <p class="error-page__lead">{{ t('error.500.lead') }}</p>
   <div class="error-page__actions">
-    <a class="btn btn-primary" href="/">Trang chủ</a>
-    <a class="btn btn-ghost" href="mailto:{{ support_email }}">Liên hệ</a>
+    <a class="btn btn-primary" href="/">{{ t('error.500.home') }}</a>
+    <a class="btn btn-ghost" href="mailto:{{ support_email }}">{{ t('error.500.contact') }}</a>
   </div>
-</article>
+</div>
 {% endblock %}
