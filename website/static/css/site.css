@@ -520,10 +520,6 @@ body {
   line-height: 1.55;
 }
 .download-unavailable a { color: var(--accent); }
-.download-again {
-  margin: 0.85rem 0 0;
-  text-align: center;
-}
 
 /* Download page — collapsible guides */
 .guide-stack {
