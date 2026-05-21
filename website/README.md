@@ -54,7 +54,7 @@ Then log in at `/admin` with `ADMIN_USERNAME` / `ADMIN_PASSWORD` from `.env`.
 - Công khai: **Tiếng Việt | English** trên header → cookie `be_lang` (400 ngày).
 - URL: `/lang/en?next=/download` hoặc trình duyệt gửi `Accept-Language: en`.
 - Chuỗi UI: `website/app/locales/vi.py`, `en.py`.
-- Nội dung CMS tiếng Anh (tùy chọn): **Admin → Chỉnh nội dung → English** (`hero_subtitle_en`, `about_html_en`, …). Để trống EN → fallback tiếng Việt hoặc bản dịch mặc định trong locale.
+- Nội dung marketing / meta / `/buy` / `/download`: **Admin → Chỉnh nội dung** (tiếng Việt + **English**). Site chỉ đọc database; để trống EN → dùng cột tiếng Việt. `/buy`: tiêu đề, intro, ghi chú form/QR, footer, `/buy/success`. `/download`: intro, policy, guides (HTML). Nhãn nút/menu mặc định vẫn từ locale nếu không có HTML tùy chỉnh.
 
 ## SEO & Google Search Console
 

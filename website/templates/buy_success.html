@@ -5,12 +5,16 @@
 {% endblock %}
 {% block content %}
 <section class="card center">
-  <h1>{{ t('buy.success_title') }}</h1>
+  <h1>{{ buy_success_title or t('buy.success_title') }}</h1>
+  {% if buy_success_html %}
+  <div class="prose buy-success-cms">{{ buy_success_html | safe }}</div>
+  {% else %}
   {% if email %}
   <p>{{ t('buy.success_with_email', email=email) | safe }}</p>
   <p class="muted">{{ t('buy.success_spam', email=email) | safe }}</p>
   {% else %}
   <p>{{ t('buy.success_no_email') }}</p>
+  {% endif %}
   {% endif %}
   <a class="btn btn-primary" href="/download">{{ t('buy.success_download') }}</a>
 </section>

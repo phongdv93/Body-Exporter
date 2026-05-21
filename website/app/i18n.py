@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 from urllib.parse import urlparse
 
@@ -65,66 +66,58 @@ def lang_url(path: str, lang: str) -> str:
     return f"/lang/{lang}?next={base}"
 
 
-def localized_text(content: SiteContent, field: str, lang: str, *, default_key: str | None = None) -> str:
-    """CMS text for active language only — EN never falls back to Vietnamese copy."""
+def _strip_html(html: str) -> str:
+    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", html or "")).strip()
+
+
+def cms_text(content: SiteContent, field: str, lang: str) -> str:
+    """Marketing copy from be_site_content only (field / field_en). EN may fall back to VI column."""
     lang = normalize_lang(lang)
     if lang == "en":
         en_val = (getattr(content, f"{field}_en", None) or "").strip()
         if en_val:
             return en_val
-        return translate(lang, default_key) if default_key else ""
-
-    vi_val = (getattr(content, field, None) or "").strip()
-    if vi_val:
-        return vi_val
-    return translate(lang, default_key) if default_key else ""
+    return (getattr(content, field, None) or "").strip()
 
 
-def localized_html_field(
-    content: SiteContent, field: str, lang: str, *, default_key: str | None = None
-) -> str:
-    """HTML block for active language; optional locale default when CMS field empty."""
-    lang = normalize_lang(lang)
-    if lang == "en":
-        en_val = (getattr(content, f"{field}_en", None) or "").strip()
-        if en_val:
-            return en_val
-        return translate(lang, default_key) if default_key else ""
-
-    return (getattr(content, field, None) or "").strip() or (
-        translate(lang, default_key) if default_key else ""
-    )
+def cms_html(content: SiteContent, field: str, lang: str) -> str:
+    return cms_text(content, field, lang)
 
 
-def page_meta(lang: str, page: str) -> tuple[str, str]:
-    """Per-route title + meta description from locale files."""
-    lang = normalize_lang(lang)
-    page = (page or "home").strip().lower()
-    title = translate(lang, f"page.{page}")
-    desc = translate(lang, f"meta.{page}")
-    return desc[:320], title
-
-
-def localized_bullets(content: SiteContent, lang: str) -> list[str]:
-    lang = normalize_lang(lang)
-    if lang == "en":
-        raw = (content.hero_bullets_en or "").strip() or translate(lang, "home.bullets_default")
-    else:
-        raw = (content.hero_bullets or "").strip() or translate(lang, "home.bullets_default")
+def cms_bullets(content: SiteContent, lang: str) -> list[str]:
+    raw = cms_text(content, "hero_bullets", lang)
     return [line.strip() for line in raw.splitlines() if line.strip()]
 
 
-def seo_meta(lang: str, content: SiteContent) -> tuple[str, str]:
+def page_meta_from_cms(lang: str, content: SiteContent, page: str) -> tuple[str, str]:
+    """Title from locale UI; description from CMS (Admin → Chỉnh nội dung)."""
     from app import config
 
     lang = normalize_lang(lang)
-    title = (content.hero_title or "Body Exporter").strip()
-    subtitle = localized_text(content, "hero_subtitle", lang, default_key="home.hero_subtitle_default")
-    if subtitle:
-        return subtitle[:320], title
-    if lang == "en":
-        return (config.SEO_DESCRIPTION_EN or config.SEO_DESCRIPTION)[:320], title
-    return (config.SEO_DESCRIPTION or "")[:320], title
+    page = (page or "home").strip().lower()
+    if page == "buy":
+        title = cms_text(content, "buy_title", lang) or translate(lang, "page.buy")
+    elif page == "buy_success":
+        title = cms_text(content, "buy_success_title", lang) or translate(lang, "page.buy_success")
+    else:
+        title = translate(lang, f"page.{page}")
+
+    if page == "home":
+        desc = cms_text(content, "hero_subtitle", lang)
+    elif page == "buy":
+        desc = _strip_html(cms_html(content, "buy_intro", lang)) or cms_text(content, "buy_title", lang)
+        if not desc:
+            desc = cms_text(content, "hero_subtitle", lang)
+    elif page == "buy_success":
+        desc = _strip_html(cms_html(content, "buy_success_html", lang)) or cms_text(content, "hero_subtitle", lang)
+    elif page == "download":
+        desc = _strip_html(cms_text(content, "download_intro", lang)) or cms_text(content, "hero_subtitle", lang)
+    else:
+        desc = cms_text(content, "hero_subtitle", lang)
+
+    if not desc:
+        desc = (config.SEO_DESCRIPTION_EN if lang == "en" else config.SEO_DESCRIPTION) or ""
+    return desc[:320], title
 
 
 def schema_website_json(lang: str, meta_description: str) -> str:

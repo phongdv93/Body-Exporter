@@ -47,24 +47,58 @@
       <textarea name="hero_bullets_en">{{ content.hero_bullets_en }}</textarea>
       <label>About (HTML, EN)</label>
       <textarea name="about_html_en">{{ content.about_html_en }}</textarea>
+      <label>/buy — tiêu đề (EN)</label>
+      <input type="text" name="buy_title_en" value="{{ content.buy_title_en }}">
       <label>/buy intro (EN)</label>
       <textarea name="buy_intro_en">{{ content.buy_intro_en }}</textarea>
+      <label>/buy — ghi chú form email (HTML, EN)</label>
+      <textarea name="buy_form_note_en">{{ content.buy_form_note_en }}</textarea>
+      <label>/buy — ghi chú sau QR (HTML, EN)</label>
+      <textarea name="buy_payment_note_en">{{ content.buy_payment_note_en }}</textarea>
       <label>/buy footer (HTML, EN)</label>
       <textarea name="buy_footer_en">{{ content.buy_footer_en }}</textarea>
+      <label>/buy/success — tiêu đề (EN)</label>
+      <input type="text" name="buy_success_title_en" value="{{ content.buy_success_title_en }}">
+      <label>/buy/success — nội dung (HTML, EN)</label>
+      <textarea name="buy_success_html_en" rows="6">{{ content.buy_success_html_en }}</textarea>
+      <label>/download — mô tả ngắn (EN)</label>
+      <textarea name="download_intro_en">{{ content.download_intro_en }}</textarea>
+      <label>/download — chính sách dữ liệu (HTML, EN). Để trống = dùng khối mặc định trên site.</label>
+      <textarea name="download_policy_html_en">{{ content.download_policy_html_en }}</textarea>
+      <label>/download — hướng dẫn cài / dùng / Excel (HTML, EN). Để trống = dùng khối mặc định trên site.</label>
+      <textarea name="download_guides_html_en" rows="8">{{ content.download_guides_html_en }}</textarea>
+      <label>Ghi chú cài đặt thêm dưới bước cài (HTML, EN)</label>
+      <textarea name="download_notes_en">{{ content.download_notes_en }}</textarea>
 
       <h2>Tải plugin</h2>
       <label>Phiên bản</label>
       <input type="text" name="download_version" value="{{ content.download_version }}">
       <label>URL file ZIP (Google Drive direct / R2 / …)</label>
       <input type="url" name="download_url" value="{{ content.download_url }}">
+      <label>Mô tả ngắn /download (tùy chọn)</label>
+      <textarea name="download_intro">{{ content.download_intro }}</textarea>
+      <label>Chính sách dữ liệu /download (HTML, tùy chọn — thay khối mặc định)</label>
+      <textarea name="download_policy_html" rows="6">{{ content.download_policy_html }}</textarea>
+      <label>Hướng dẫn cài / dùng / Excel (HTML, tùy chọn — thay toàn bộ guide mặc định)</label>
+      <textarea name="download_guides_html" rows="8">{{ content.download_guides_html }}</textarea>
       <label>Ghi chú cài đặt thêm (HTML, tùy chọn)</label>
-      <textarea name="download_notes" placeholder="Chỉ hiện dưới bước cài trên /download nếu khác hướng dẫn mặc định. Để trống = không hiện.">{{ content.download_notes }}</textarea>
+      <textarea name="download_notes" placeholder="Chỉ hiện dưới bước cài nếu dùng guide mặc định. Để trống = không hiện.">{{ content.download_notes }}</textarea>
 
-      <h2>Thanh toán</h2>
-      <label>Đoạn intro /buy</label>
+      <h2>Mua license (/buy)</h2>
+      <label>Tiêu đề trang</label>
+      <input type="text" name="buy_title" value="{{ content.buy_title }}" placeholder="Mua license">
+      <label>Đoạn intro (HTML)</label>
       <textarea name="buy_intro">{{ content.buy_intro }}</textarea>
-      <label>Đoạn footer /buy (HTML)</label>
+      <label>Ghi chú dưới ô email (HTML, tùy chọn)</label>
+      <textarea name="buy_form_note" placeholder="Để trống = dùng gợi ý mặc định trên site.">{{ content.buy_form_note }}</textarea>
+      <label>Ghi chú sau QR chuyển khoản (HTML, tùy chọn)</label>
+      <textarea name="buy_payment_note">{{ content.buy_payment_note }}</textarea>
+      <label>Footer /buy (HTML)</label>
       <textarea name="buy_footer">{{ content.buy_footer }}</textarea>
+      <label>Tiêu đề /buy/success</label>
+      <input type="text" name="buy_success_title" value="{{ content.buy_success_title }}" placeholder="Cảm ơn bạn">
+      <label>Nội dung /buy/success (HTML, tùy chọn — thay đoạn mặc định)</label>
+      <textarea name="buy_success_html" rows="6">{{ content.buy_success_html }}</textarea>
       <label>Giá (VND)</label>
       <input type="number" name="license_price_vnd" value="{{ content.license_price_vnd }}" min="1">
       <label>Số ngày license khi bán (SePay / tạo tay)</label>

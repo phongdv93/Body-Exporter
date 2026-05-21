@@ -123,6 +123,7 @@ MESSAGES = {
     "buy.email_hint": "Use this exact email in the transfer memo: <code>BE {email}</code>",
     "buy.btn_qr": "Show bank QR",
     "buy.btn_card": "Pay by card / SePay",
+    "buy.redirect_sepay": "Redirecting to SePay…",
     "buy.transfer_title": "Bank transfer — {amount} ₫",
     "buy.bank": "Bank",
     "buy.account": "Account number",

@@ -12,13 +12,13 @@ from app.database import get_content
 from app.i18n import (
     LANG_COOKIE,
     LANG_COOKIE_MAX_AGE,
-    localized_bullets,
-    localized_html_field,
-    localized_text,
+    cms_bullets,
+    cms_html,
+    cms_text,
     normalize_lang,
+    page_meta_from_cms,
     resolve_lang,
     safe_redirect_path,
-    page_meta,
     schema_website_json,
     translate,
 )
@@ -84,10 +84,10 @@ def _ctx(
     content = get_content(db)
     lang = resolve_lang(request)
     if seo_page:
-        meta_desc, default_title = page_meta(lang, seo_page)
+        meta_desc, default_title = page_meta_from_cms(lang, content, seo_page)
         title = page_title or default_title
     else:
-        meta_desc, default_title = page_meta(lang, "home")
+        meta_desc, default_title = page_meta_from_cms(lang, content, "home")
         title = page_title or _dedupe_title(content.hero_title) or default_title
     keywords = config.SEO_KEYWORDS_EN if lang == "en" else config.SEO_KEYWORDS
     canonical = f"{config.SITE_URL}{request.url.path.split('?')[0]}"
@@ -123,11 +123,19 @@ def _ctx(
         "seo_og_image": _og_image_url(),
         "schema_website_json": schema_web,
         "schema_app_json": schema_app,
-        "install_notes_extra": _install_notes_extra(content.download_notes),
-        "hero_subtitle": localized_text(content, "hero_subtitle", lang, default_key="home.hero_subtitle_default"),
-        "about_html": localized_html_field(content, "about_html", lang),
-        "buy_intro": localized_html_field(content, "buy_intro", lang, default_key="buy.intro_default"),
-        "buy_footer": localized_html_field(content, "buy_footer", lang, default_key="buy.footer_default"),
+        "install_notes_extra": _install_notes_extra(cms_html(content, "download_notes", lang)),
+        "hero_subtitle": cms_text(content, "hero_subtitle", lang),
+        "about_html": cms_html(content, "about_html", lang),
+        "buy_title": cms_text(content, "buy_title", lang),
+        "buy_intro": cms_html(content, "buy_intro", lang),
+        "buy_form_note": cms_html(content, "buy_form_note", lang),
+        "buy_payment_note": cms_html(content, "buy_payment_note", lang),
+        "buy_footer": cms_html(content, "buy_footer", lang),
+        "buy_success_title": cms_text(content, "buy_success_title", lang),
+        "buy_success_html": cms_html(content, "buy_success_html", lang),
+        "download_intro": cms_text(content, "download_intro", lang),
+        "download_policy_html": cms_html(content, "download_policy_html", lang),
+        "download_guides_html": cms_html(content, "download_guides_html", lang),
         **extra,
     }
 
@@ -152,7 +160,7 @@ def set_language(lang_code: str, request: Request, next: str = "/"):
 def home(request: Request, db: Session = Depends(get_db)):
     content = get_content(db)
     lang = resolve_lang(request)
-    bullets = localized_bullets(content, lang)
+    bullets = cms_bullets(content, lang)
     return html_response(
         templates,
         "home.html",
@@ -255,11 +263,11 @@ def buy_post(
 ):
     email = email.strip()
     if pay_method == "card" and pg_checkout_available_for_content(get_content(db)):
-        return _redirect_pg_checkout(email, db)
+        return _redirect_pg_checkout(request, email, db)
     return _render_buy(request, db, email=email)
 
 
-def _redirect_pg_checkout(email: str, db: Session):
+def _redirect_pg_checkout(request: Request, email: str, db: Session):
     import html
     from urllib.parse import quote
 
@@ -286,9 +294,11 @@ def _redirect_pg_checkout(email: str, db: Session):
         for k, v in fields.items()
     )
     action = pg_checkout_init_url_for_env(envn)
-    page = f"""<!DOCTYPE html><html><head><meta charset="utf-8"><title>Redirect…</title>
+    lang = resolve_lang(request)
+    wait_msg = translate(lang, "buy.redirect_sepay")
+    page = f"""<!DOCTYPE html><html lang="{lang}"><head><meta charset="utf-8"><title>Redirect…</title>
     <link rel="stylesheet" href="/static/css/site.css"></head>
-    <body class="redirect-page"><p>Đang chuyển sang SePay…</p>
+    <body class="redirect-page"><p>{html.escape(wait_msg)}</p>
     <form id="f" method="POST" action="{action}">{inputs}</form>
     <script>document.getElementById('f').submit();</script></body></html>"""
     return HTMLResponse(page)

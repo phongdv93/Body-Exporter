@@ -2,8 +2,10 @@
 {% block title %}{{ page_title }}{% endblock %}
 {% block content %}
 <section class="page-head">
-  <h1>{{ t('buy.title') }}</h1>
+  <h1>{{ buy_title or t('buy.title') }}</h1>
+  {% if buy_intro %}
   <p class="lead">{{ buy_intro | safe }}</p>
+  {% endif %}
 </section>
 
 <section class="card buy-form-card">
@@ -11,7 +13,11 @@
     <label for="email">{{ t('buy.email_label') }}</label>
     <input type="email" id="email" name="email" required placeholder="you@company.com"
            value="{{ email }}" autocomplete="email">
+    {% if buy_form_note %}
+    <p class="hint">{{ buy_form_note | safe }}</p>
+    {% else %}
     <p class="hint">{{ t('buy.email_hint', email=email or 'email@example.com') | safe }}</p>
+    {% endif %}
     <div class="pay-methods">
       <button type="submit" name="pay_method" value="qr" class="btn btn-primary">{{ t('buy.btn_qr') }}</button>
       {% if pg_available %}
@@ -35,7 +41,11 @@
       <dt>{{ t('buy.memo') }}</dt><dd><code>{{ memo }}</code></dd>
     </dl>
   </div>
+  {% if buy_payment_note %}
+  <p class="hint buy-email-hint">{{ buy_payment_note | safe }}</p>
+  {% else %}
   <p class="hint buy-email-hint">{{ t('buy.wait_hint', email=email, memo=memo) | safe }}</p>
+  {% endif %}
 </section>
 {% endif %}
 

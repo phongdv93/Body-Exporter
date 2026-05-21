@@ -118,6 +118,7 @@ MESSAGES = {
     "buy.email_hint": "Ghi đúng email này trong nội dung chuyển khoản: <code>BE {email}</code>",
     "buy.btn_qr": "Hiện QR chuyển khoản",
     "buy.btn_card": "Thanh toán thẻ / SePay",
+    "buy.redirect_sepay": "Đang chuyển sang SePay…",
     "buy.transfer_title": "Chuyển khoản — {amount} ₫",
     "buy.bank": "Ngân hàng",
     "buy.account": "Số tài khoản",

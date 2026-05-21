@@ -3,10 +3,18 @@
 {% block content %}
 <section class="page-head">
   <h1>{{ t('download.title') }}</h1>
+  {% if download_intro %}
+  <p class="lead">{{ download_intro | safe }}</p>
+  {% endif %}
   <p class="muted">{{ t('download.version') }} <strong>{{ content.download_version }}</strong></p>
 </section>
 
 <section class="card policy-card download-card">
+  {% if download_policy_html %}
+  <div class="policy-body prose download-policy-cms">
+    {{ download_policy_html | safe }}
+  </div>
+  {% else %}
   <details class="policy-details">
     <summary class="policy-summary">
       <span class="policy-summary-icon" aria-hidden="true"></span>
@@ -23,6 +31,7 @@
       <p class="policy-foot">{{ t('download.policy_foot') }} <a href="mailto:{{ support_email }}">{{ support_email }}</a></p>
     </div>
   </details>
+  {% endif %}
 
   <div class="download-consent-panel">
     {% if policy_error %}<p class="flash-err">{{ policy_error }}</p>{% endif %}
@@ -40,6 +49,11 @@
   </div>
 </section>
 
+{% if download_guides_html %}
+<section class="card prose download-guides-cms">
+  {{ download_guides_html | safe }}
+</section>
+{% else %}
 <section class="guide-stack">
   <details class="policy-details guide-details">
     <summary class="policy-summary">
@@ -124,6 +138,7 @@
     </div>
   </details>
 </section>
+{% endif %}
 
 <section class="card card-dim card-compact">
   <p class="muted" style="margin:0">{{ t('download.trial_foot') }}</p>
