@@ -119,4 +119,5 @@ PADDLE_CLIENT_TOKEN = os.getenv("PADDLE_CLIENT_TOKEN", "").strip()
 PADDLE_API_KEY = os.getenv("PADDLE_API_KEY", "").strip()
 PADDLE_WEBHOOK_SECRET = os.getenv("PADDLE_WEBHOOK_SECRET", "").strip()
 PADDLE_PRICE_ID = os.getenv("PADDLE_PRICE_ID", "").strip()
-PADDLE_ENV = os.getenv("PADDLE_ENV", "sandbox").strip().lower()
+_paddle_env_raw = os.getenv("PADDLE_ENV", "sandbox").strip().lower()
+PADDLE_ENV = _paddle_env_raw if _paddle_env_raw in ("sandbox", "production") else "sandbox"

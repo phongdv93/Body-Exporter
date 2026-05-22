@@ -64,16 +64,30 @@
 
   const paddleBtn = document.getElementById("btn-paddle-checkout");
   const cfgEl = document.getElementById("paddle-config");
-  if (paddleBtn && cfgEl) {
-    let cfg = {};
-    try {
-      cfg = JSON.parse(cfgEl.textContent || "{}");
-    } catch (e) {
+  if (!paddleBtn || !cfgEl) return;
+
+  let cfg = {};
+  try {
+    cfg = JSON.parse(cfgEl.textContent || "{}");
+  } catch (e) {
+    console.error("Invalid paddle-config JSON", e);
+    return;
+  }
+
+  let paddleReady = false;
+
+  function whenPaddleReady(cb, attempts) {
+    if (typeof Paddle !== "undefined") {
+      cb();
       return;
     }
+    if (attempts <= 0) return;
+    setTimeout(() => whenPaddleReady(cb, attempts - 1), 200);
+  }
 
-    function initPaddle() {
-      if (typeof Paddle === "undefined" || !cfg.client_token) return false;
+  function initPaddleOnce() {
+    if (paddleReady || typeof Paddle === "undefined" || !cfg.client_token) return false;
+    try {
       if (cfg.environment === "sandbox" && Paddle.Environment && Paddle.Environment.set) {
         Paddle.Environment.set("sandbox");
       }
@@ -81,42 +95,40 @@
         token: cfg.client_token,
         checkout: { settings: { displayMode: "overlay" } },
       });
+      paddleReady = true;
+      paddleBtn.disabled = false;
       return true;
+    } catch (err) {
+      console.error("Paddle.Initialize failed", err);
+      return false;
     }
-
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", initPaddle);
-    } else {
-      initPaddle();
-    }
-
-    paddleBtn.addEventListener("click", () => {
-      const email = (emailInput && emailInput.value.trim()) || "";
-      if (!email) {
-        emailInput && emailInput.focus();
-        return;
-      }
-      if (typeof Paddle === "undefined") {
-        alert("Payment is loading. Please try again in a moment.");
-        return;
-      }
-      if (!initPaddle()) {
-        alert("Payment is not ready. Please refresh the page.");
-        return;
-      }
-      try {
-        Paddle.Checkout.open({
-          items: [{ priceId: cfg.price_id, quantity: 1 }],
-          customer: { email: email },
-          customData: { buyer_email: email },
-          settings: {
-            successUrl: cfg.success_url + "?email=" + encodeURIComponent(email),
-          },
-        });
-      } catch (err) {
-        console.error(err);
-        alert("Could not open checkout. Contact support.");
-      }
-    });
   }
+
+  paddleBtn.disabled = true;
+  whenPaddleReady(() => initPaddleOnce(), 40);
+
+  paddleBtn.addEventListener("click", () => {
+    const email = (emailInput && emailInput.value.trim()) || "";
+    if (!email) {
+      emailInput && emailInput.focus();
+      return;
+    }
+    if (!paddleReady && !initPaddleOnce()) {
+      alert("Cổng thanh toán đang tải. Vui lòng đợi vài giây rồi thử lại.");
+      return;
+    }
+    try {
+      Paddle.Checkout.open({
+        items: [{ priceId: cfg.price_id, quantity: 1 }],
+        customer: { email: email },
+        customData: { buyer_email: email },
+        settings: {
+          successUrl: cfg.success_url + "?email=" + encodeURIComponent(email),
+        },
+      });
+    } catch (err) {
+      console.error(err);
+      alert("Không mở được cổng thanh toán. Thử refresh trang hoặc email " + (cfg.support_email || "hotro@bodyexporter.com"));
+    }
+  });
 })();

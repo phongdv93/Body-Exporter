@@ -35,6 +35,9 @@ async def paddle_webhook(request: Request, db: Session = Depends(get_db)):
     except Exception:
         return JSONResponse({"error": "invalid_json"}, status_code=400)
 
+    event_type = (payload.get("event_type") or "").strip()
+    log.info("Paddle webhook: %s", event_type)
+
     result = handle_paddle_webhook(db, payload)
     if result.get("status") == "error":
         return JSONResponse(result, status_code=500)

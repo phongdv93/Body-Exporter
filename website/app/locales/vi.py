@@ -131,7 +131,7 @@ MESSAGES = {
     "buy.mode_intl": "Quốc tế · thẻ",
     "buy.intl_hint": "Thanh toán bằng thẻ / PayPal (khoảng <strong>${usd} USD</strong>). License gửi email sau khi thanh toán thành công.",
     "buy.paddle_hint": "Cổng Paddle — hỗ trợ thẻ quốc tế.",
-    "buy.btn_paddle": "Thanh toán quốc tế (Paddle)",
+    "buy.btn_paddle": "Thanh toán quốc tế (thẻ / PayPal)",
     "buy.intl_unavailable": "Thanh toán quốc tế tạm chưa bật. Liên hệ <a href=\"mailto:{email}\">{email}</a>.",
     "buy.vietqr_unavailable": "Chuyển khoản VN tạm chưa cấu hình. Liên hệ <a href=\"mailto:{email}\">{email}</a>.",
     "buy.checkout_unavailable": "Chưa cấu hình thanh toán. Email <a href=\"mailto:{email}\">{email}</a>.",

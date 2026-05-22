@@ -82,7 +82,18 @@ Link ba trang policy cũng có ở **footer** mọi trang công khai. Tùy chọ
 - IP **khác**: mặc định **Paddle**; công tắc sang VietQR nếu cần.
 - Cookie `be_pay_mode` = `vn` | `intl` (hoặc `?pay=vn` / `?pay=intl`).
 
-**Paddle (Render env):** `PADDLE_CLIENT_TOKEN`, `PADDLE_PRICE_ID`, `PADDLE_WEBHOOK_SECRET`, `PADDLE_ENV=sandbox|production`. Webhook: `https://bodyexporter.com/webhook/paddle` → cấp license + email (giống SePay CK).
+**Paddle (Render env):**
+
+| Biến | Lấy ở đâu |
+|------|-----------|
+| `PADDLE_CLIENT_TOKEN` | Paddle → Developer tools → Authentication → Client-side token |
+| `PADDLE_API_KEY` | API key (secret) — dùng kiểm tra price + tùy API server |
+| `PADDLE_PRICE_ID` | Catalog → Price (`pri_…`) |
+| `PADDLE_WEBHOOK_SECRET` | Notifications → destination → endpoint secret key |
+| `PADDLE_ENV` | `sandbox` hoặc `production` |
+
+Webhook URL: `https://bodyexporter.com/webhook/paddle` — subscribe `transaction.completed` + `transaction.paid`.  
+Sau deploy: **Admin → Dashboard** xem dòng Paddle (price API OK / lỗi). Thử sandbox trên `/buy?pay=intl`.
 - Optional **`SEO_OG_IMAGE`** in `.env` = full URL of a 1200×630 image for social share.
 
 **Production bắt buộc:** biến `SITE_URL=https://bodyexporter.com` (không dấu `/` cuối). Nếu sai, sitemap sẽ ghi URL `127.0.0.1` → Google không index.

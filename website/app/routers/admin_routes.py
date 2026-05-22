@@ -8,6 +8,7 @@ from app.auth import get_db, login_session, logout_session, require_admin, verif
 from app.client_telemetry import list_machines_for_admin, sync_known_machines_from_crm
 from app.download_tracking import download_stats_for_admin
 from app.database import get_content
+from app.paddle_billing import paddle_admin_status, paddle_configured
 from app.sepay import pg_checkout_available_for_content
 from app.template_response import html_response
 from app.worker_client import sync_client_config_from_site
@@ -101,6 +102,8 @@ def dashboard(request: Request, db: Session = Depends(get_db), _user=Depends(req
             "machine_count": len(machines),
             "download_stats": download_stats,
             "pg_available": pg_checkout_available_for_content(content),
+            "paddle_available": paddle_configured(),
+            "paddle": paddle_admin_status(),
             "site_url": config.SITE_URL.rstrip("/"),
             "env": _env_status(content),
             "telemetry_active_days": config.TELEMETRY_ACTIVE_DAYS,

@@ -154,6 +154,18 @@
       <p class="muted">Giá license: {{ '{:,}'.format(content.license_price_vnd).replace(',', '.') }} ₫</p>
       <p class="muted">Support (web): {{ content.support_email }} — plugin About lấy từ Worker; đổi ở <a href="/admin/content">Chỉnh nội dung</a> → Lưu.</p>
       <p class="muted">SePay cổng thẻ + key DB: {% if pg_available %}đã đủ merchant/secret (admin hoặc .env){% else %}chưa — chỉ QR CK{% endif %}</p>
+      <p class="muted"><strong>Paddle (quốc tế):</strong>
+        {% if paddle.configured %}
+        <span class="ok">đã cấu hình</span> — môi trường <code>{{ paddle.environment }}</code>{% if paddle.env_invalid %} <span style="color:#f3a8a8">(PADDLE_ENV sai — chỉ dùng sandbox hoặc production)</span>{% endif %}
+        {% if paddle.price_api_ok %} · price API OK{% elif paddle.has_api_key %} · <span style="color:#f3a8a8">price/API lỗi (kiểm tra PADDLE_API_KEY + PADDLE_PRICE_ID)</span>{% endif %}
+        {% else %}
+        <span style="color:#f3a8a8">thiếu env</span> (cần <code>PADDLE_CLIENT_TOKEN</code>, <code>PADDLE_PRICE_ID</code>, <code>PADDLE_WEBHOOK_SECRET</code>)
+        {% endif %}
+      </p>
+      <p class="muted">Webhook Paddle: <code>{{ paddle.webhook_url }}</code>
+        — trên my.paddle.com → Notifications → destination → subscribed: <code>transaction.completed</code>, <code>transaction.paid</code>.
+        {% if paddle.has_webhook_secret %} Secret OK{% else %}<span style="color:#f3a8a8"> thiếu PADDLE_WEBHOOK_SECRET</span>{% endif %}
+      </p>
       <p class="muted">Webhook CK: <code>{{ site_url }}/webhook/sepay</code>
         — Worker {% if env.worker %}OK{% else %}<span style="color:#f3a8a8">thiếu</span>{% endif %},
         Resend {% if env.resend %}OK{% else %}<span style="color:#f3a8a8">thiếu</span>{% endif %},
