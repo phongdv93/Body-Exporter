@@ -17,12 +17,15 @@
 <section class="card paddle-checkout-card" id="paddle-root"
   data-msg-opening="{{ t('buy.paddle_opening') | e }}"
   data-msg-overlay="{{ t('buy.paddle_overlay_hint') | e }}"
-  data-msg-js-missing="{{ t('buy.paddle_js_missing') | e }}">
+  data-msg-js-missing="{{ t('buy.paddle_js_missing') | e }}"
+  data-msg-timeout="{{ t('buy.paddle_timeout') | e }}"
+  data-msg-invalid-token="{{ t('buy.paddle_invalid_token_hint') | e }}">
   {% if paddle_error %}
-  <p class="hint flash-err">{{ t('buy.paddle_create_fail', error=paddle_error) }}</p>
+  <p class="hint flash-err">{{ paddle_error | safe }}</p>
   <p><a class="btn btn-secondary" href="/buy">{{ t('buy.paddle_back') }}</a></p>
   {% elif txn_id %}
   <p class="hint muted paddle-domain-hint">{{ t('buy.paddle_domain_hint') | safe }}</p>
+  <p class="hint muted paddle-token-hint">{{ t('buy.paddle_invalid_token_hint') | safe }}</p>
   {% if email %}
   <p class="paddle-vn-cta">
     <a class="btn btn-primary btn-lg" href="/buy?pay=vn&amp;email={{ email | urlencode }}">{{ t('buy.paddle_use_vn') }}</a>
@@ -50,7 +53,7 @@
   <p class="fine-print"><a href="/buy">{{ t('buy.paddle_back') }}</a></p>
   <script type="application/json" id="paddle-config">{{ paddle_checkout_json | safe }}</script>
   <script type="application/json" id="paddle-txn">"{{ txn_id }}"</script>
-  <script src="/static/js/paddle-checkout.js?v=4" defer></script>
+  <script src="/static/js/paddle-checkout.js?v=5" defer></script>
   {% else %}
   <p class="muted">{{ t('buy.enter_email_hint') }}</p>
   <p><a class="btn btn-primary" href="/buy">{{ t('buy.paddle_back') }}</a></p>

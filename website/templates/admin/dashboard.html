@@ -159,6 +159,7 @@
         <span class="ok">đã cấu hình</span> — môi trường <code>{{ paddle.environment }}</code>{% if paddle.env_invalid %} <span style="color:#f3a8a8">(PADDLE_ENV sai — chỉ dùng sandbox hoặc production)</span>{% endif %}
         {% if paddle.price_api_ok %} · price API OK{% elif paddle.has_api_key %} · <span style="color:#f3a8a8">price/API lỗi (kiểm tra PADDLE_API_KEY + PADDLE_PRICE_ID)</span>{% endif %}
         {% if paddle.token_env_mismatch %} · <span style="color:#f3a8a8">token/env lệch (live_ token cần production, test_ cần sandbox)</span>{% endif %}
+        {% if paddle.client_token_issue %} · <span style="color:#f3a8a8">PADDLE_CLIENT_TOKEN sai định dạng (cần live_/test_, không phải pdl_ API key)</span>{% endif %}
         · <span class="muted">Default payment link: <code>{{ site_url }}/buy/paddle</code></span>
         · Server → checkout-service: {% if paddle.checkout_service_reachable %}<span class="ok">OK</span>{% elif paddle.checkout_service_reachable == false %}<span style="color:#f3a8a8">không kết nối được (VN/Render có thể chặn)</span>{% else %}—{% endif %}
         {% else %}

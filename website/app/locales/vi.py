@@ -149,6 +149,18 @@ MESSAGES = {
     "buy.paddle_page_lead": "Thanh toán an toàn qua Paddle (thẻ / PayPal).",
     "buy.paddle_back": "← Quay lại trang mua",
     "buy.paddle_create_fail": "Không tạo được phiên thanh toán Paddle ({error}). Kiểm tra env trên server.",
+    "buy.paddle_missing_client_token": "Thiếu <code>PADDLE_CLIENT_TOKEN</code> trên Render.",
+    "buy.paddle_client_token_is_api_key": (
+        "Sai env: <code>PADDLE_CLIENT_TOKEN</code> đang là <strong>API key</strong> (<code>pdl_live_…</code>). "
+        "Cần <strong>Client-side token</strong> (<code>live_…</code>) — Paddle → Developer tools → Authentication."
+    ),
+    "buy.paddle_client_token_wrong_env": (
+        "Token không khớp <code>PADDLE_ENV</code>: production cần token <code>live_…</code>, sandbox cần <code>test_…</code>."
+    ),
+    "buy.paddle_invalid_token_hint": (
+        "Lỗi «Client token is invalid»: tạo token mới — Paddle → Developer tools → Authentication → "
+        "<strong>Client-side token</strong> (live) → dán vào Render <code>PADDLE_CLIENT_TOKEN</code> → redeploy."
+    ),
     "buy.paddle_default_link": (
         "Paddle chưa có Default payment link. Vào Paddle → Checkout → Checkout settings "
         "→ đặt https://bodyexporter.com/buy/paddle (không phải /webhook/paddle)."

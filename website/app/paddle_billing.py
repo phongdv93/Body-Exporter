@@ -29,6 +29,21 @@ _COMPLETED_EVENTS = frozenset(
 _SIGNATURE_MAX_SKEW_SEC = 300
 
 
+def paddle_client_token_issue() -> str | None:
+    """Return i18n error key if PADDLE_CLIENT_TOKEN format is wrong."""
+    token = (config.PADDLE_CLIENT_TOKEN or "").strip()
+    if not token:
+        return "paddle_missing_client_token"
+    if token.startswith("pdl_"):
+        return "paddle_client_token_is_api_key"
+    env = (config.PADDLE_ENV or "sandbox").strip().lower()
+    if env == "production" and not token.startswith("live_"):
+        return "paddle_client_token_wrong_env"
+    if env == "sandbox" and not token.startswith("test_"):
+        return "paddle_client_token_wrong_env"
+    return None
+
+
 def paddle_configured() -> bool:
     return bool(
         (config.PADDLE_CLIENT_TOKEN or "").strip()
@@ -59,7 +74,8 @@ def paddle_admin_status() -> dict[str, Any]:
             token_env_mismatch = True
         elif token.startswith("test_") and env != "sandbox":
             token_env_mismatch = True
-    ready = paddle_configured()
+    client_token_issue = paddle_client_token_issue()
+    ready = paddle_configured() and not client_token_issue
     price_ok = None
     if ready and api_key and price_id:
         try:
@@ -94,6 +110,7 @@ def paddle_admin_status() -> dict[str, Any]:
         "webhook_url": f"{config.SITE_URL.rstrip('/')}/webhook/paddle",
         "env_invalid": env_invalid,
         "token_env_mismatch": token_env_mismatch,
+        "client_token_issue": client_token_issue,
         "paddle_checkout_page": f"{config.SITE_URL.rstrip('/')}/buy/paddle",
         "checkout_service_reachable": checkout_svc_ok,
     }

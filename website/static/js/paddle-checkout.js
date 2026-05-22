@@ -121,6 +121,9 @@
       }
       const initCfg = {
         token: cfg.client_token,
+        // Empty pwCustomer — do NOT pass customer id here (loads Retain/ProfitWell and
+        // fails with "Client token is invalid" when token/domain is not fully approved).
+        pwCustomer: {},
         checkout: { settings: buildSettings() },
         eventCallback: function (ev) {
           if (!ev) return;
@@ -129,7 +132,13 @@
           }
           if (ev.name === "checkout.error") {
             console.error("Paddle checkout.error", ev);
-            const detail = formatPaddleError(ev);
+            let detail = formatPaddleError(ev);
+            if (/client token is invalid/i.test(detail)) {
+              detail = msg(
+                "msgInvalidToken",
+                "Client token is invalid — create a new Client-side token in Paddle and update PADDLE_CLIENT_TOKEN on Render."
+              );
+            }
             showFallback(detail);
             showBrowserHint();
           }
@@ -155,9 +164,7 @@
   }
 
   function checkoutCustomer() {
-    if (cfg.customer_id) {
-      return { id: cfg.customer_id };
-    }
+    // Email only at open — avoids Retain 401 on profitwell.com with customer id.
     if (email) {
       return { email: email };
     }

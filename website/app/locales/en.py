@@ -153,6 +153,18 @@ MESSAGES = {
     "buy.paddle_page_lead": "Secure checkout via Paddle (card / PayPal).",
     "buy.paddle_back": "← Back to buy page",
     "buy.paddle_create_fail": "Could not start Paddle checkout ({error}). Check server env.",
+    "buy.paddle_missing_client_token": "Missing <code>PADDLE_CLIENT_TOKEN</code> on Render.",
+    "buy.paddle_client_token_is_api_key": (
+        "Wrong env: <code>PADDLE_CLIENT_TOKEN</code> is an <strong>API key</strong> (<code>pdl_live_…</code>). "
+        "Use a <strong>Client-side token</strong> (<code>live_…</code>) from Paddle → Developer tools → Authentication."
+    ),
+    "buy.paddle_client_token_wrong_env": (
+        "Token does not match <code>PADDLE_ENV</code>: production needs <code>live_…</code>, sandbox needs <code>test_…</code>."
+    ),
+    "buy.paddle_invalid_token_hint": (
+        "«Client token is invalid»: create a new token in Paddle → Developer tools → Authentication → "
+        "<strong>Client-side token</strong> (live) → paste into Render <code>PADDLE_CLIENT_TOKEN</code> → redeploy."
+    ),
     "buy.paddle_default_link": (
         "Paddle default payment link is not set. In Paddle → Checkout → Checkout settings, "
         "set https://bodyexporter.com/buy/paddle (not /webhook/paddle)."

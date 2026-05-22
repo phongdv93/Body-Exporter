@@ -94,6 +94,13 @@ Link ba trang policy cũng có ở **footer** mọi trang công khai. Tùy chọ
 
 Webhook URL: `https://bodyexporter.com/webhook/paddle` — subscribe `transaction.completed` + `transaction.paid`.  
 Sau deploy: **Admin → Dashboard** xem dòng Paddle (price API OK / lỗi). Thử sandbox trên `/buy?pay=intl`.
+
+**Lỗi checkout «Something went wrong» / Network 403 / «Client token is invalid»:**
+
+1. `PADDLE_CLIENT_TOKEN` phải là **Client-side token** (`live_…` khi `PADDLE_ENV=production`), **không** dán API key (`pdl_live_apikey_…`).
+2. Paddle → **Developer tools → Authentication** → tạo token mới → copy vào Render → **Redeploy**.
+3. Paddle → **Checkout → Checkout settings** → **Default payment link** = `https://bodyexporter.com/buy/paddle` và domain **Approved**.
+4. Khách VN: dùng **VietQR** trên `/buy` (Paddle hay bị chặn `checkout-service.paddle.com` từ VN/VPN).
 - Optional **`SEO_OG_IMAGE`** in `.env` = full URL of a 1200×630 image for social share.
 
 **Production bắt buộc:** biến `SITE_URL=https://bodyexporter.com` (không dấu `/` cuối). Nếu sai, sitemap sẽ ghi URL `127.0.0.1` → Google không index.

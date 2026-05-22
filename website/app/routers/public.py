@@ -22,6 +22,7 @@ from app.legal_pages import legal_html, legal_page_title
 from app.paddle_billing import (
     create_paddle_checkout_transaction,
     paddle_checkout_settings,
+    paddle_client_token_issue,
     paddle_configured,
     paddle_customer_id_for_email,
 )
@@ -289,6 +290,8 @@ def buy_paddle_page(
     """Dedicated Paddle checkout page (overlay). Avoids /buy JS conflicts."""
     if not paddle_configured():
         return RedirectResponse("/buy", status_code=303)
+    lang = resolve_lang(request)
+    token_issue = paddle_client_token_issue()
     email = email.strip()
     ptxn = (txn or _ptxn or "").strip()
     if (_ptxn or "").strip() and not (txn or "").strip():
@@ -296,16 +299,17 @@ def buy_paddle_page(
         if email:
             qs += f"&email={quote(email)}"
         return RedirectResponse(f"/buy/paddle?{qs}", status_code=303)
-    paddle_error = None
+    paddle_error = translate(lang, f"buy.{token_issue}") if token_issue else None
     customer_id = paddle_customer_id_for_email(email) if email and "@" in email else None
-    if not ptxn and email and "@" in email:
+    if not token_issue and not ptxn and email and "@" in email:
         result = create_paddle_checkout_transaction(email, currency_code="USD")
         ptxn = (result.get("transaction_id") or "").strip()
         customer_id = (result.get("customer_id") or "").strip() or None
         if ptxn:
             url = result.get("checkout_url") or f"/buy/paddle?txn={quote(ptxn)}&email={quote(email)}"
             return RedirectResponse(url, status_code=303)
-        paddle_error = result.get("error_code") or result.get("error") or "paddle_create_failed"
+        err = result.get("error_code") or result.get("error") or "paddle_create_failed"
+        paddle_error = translate(lang, "buy.paddle_create_fail", error=err)
     content = get_content(db)
     pg_ok = pg_checkout_available_for_content(content)
     return html_response(
