@@ -17,10 +17,6 @@
   }
 }
 </script>
-{% if paddle_available %}
-<script src="https://cdn.paddle.com/paddle/v2/paddle.js" defer></script>
-{% endif %}
-<script src="/static/js/buy-pay.js" defer></script>
 {% endblock %}
 {% block content %}
 <section class="page-head">
@@ -149,4 +145,8 @@
 </section>
 {% endif %}
 <p class="muted fine-print buy-page-legal">{{ t('buy.pricing_legal') | safe }}</p>
+{% if paddle_available %}
+<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+{% endif %}
+<script src="/static/js/buy-pay.js"></script>
 {% endblock %}

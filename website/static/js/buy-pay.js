@@ -216,14 +216,54 @@
     }
   }
 
-  function whenPaddleReady(cb, n) {
-    if (typeof Paddle !== "undefined") return cb();
-    if (n <= 0) return;
-    setTimeout(() => whenPaddleReady(cb, n - 1), 200);
+  function waitForGlobalPaddle(maxMs) {
+    const limit = maxMs || 15000;
+    const start = Date.now();
+    return new Promise((resolve, reject) => {
+      (function tick() {
+        if (typeof Paddle !== "undefined") {
+          resolve();
+          return;
+        }
+        if (Date.now() - start >= limit) {
+          reject(new Error("paddle_script"));
+          return;
+        }
+        setTimeout(tick, 100);
+      })();
+    });
+  }
+
+  function loadPaddleScript() {
+    return new Promise((resolve, reject) => {
+      if (typeof Paddle !== "undefined") {
+        resolve();
+        return;
+      }
+      const src = "https://cdn.paddle.com/paddle/v2/paddle.js";
+      const existing = document.querySelector('script[src*="paddle.com/paddle"]');
+      if (existing) {
+        if (typeof Paddle !== "undefined") {
+          resolve();
+          return;
+        }
+        existing.addEventListener("load", () => waitForGlobalPaddle().then(resolve, reject));
+        existing.addEventListener("error", () => reject(new Error("paddle_script")));
+        waitForGlobalPaddle().then(resolve, reject);
+        return;
+      }
+      const s = document.createElement("script");
+      s.src = src;
+      s.async = false;
+      s.onload = () => waitForGlobalPaddle().then(resolve, reject);
+      s.onerror = () => reject(new Error("paddle_script"));
+      document.head.appendChild(s);
+    });
   }
 
   function initPaddleOnce() {
-    if (paddleReady || typeof Paddle === "undefined" || !paddleCfg.client_token) return false;
+    if (paddleReady) return true;
+    if (typeof Paddle === "undefined" || !paddleCfg.client_token) return false;
     try {
       if (paddleCfg.environment === "sandbox" && Paddle.Environment && Paddle.Environment.set) {
         Paddle.Environment.set("sandbox");
@@ -244,25 +284,36 @@
       paddleReady = true;
       return true;
     } catch (err) {
-      console.error(err);
+      console.error("Paddle.Initialize failed", err);
       return false;
     }
   }
 
-  if (paddleAvailable) {
-    whenPaddleReady(() => initPaddleOnce(), 50);
-  }
+  let paddleInitPromise = null;
 
   function ensurePaddleReady() {
-    return new Promise((resolve, reject) => {
-      whenPaddleReady(() => {
+    if (!paddleCfg.client_token) {
+      return Promise.reject(new Error("paddle_config"));
+    }
+    if (paddleReady) {
+      return Promise.resolve();
+    }
+    if (paddleInitPromise) return paddleInitPromise;
+    paddleInitPromise = loadPaddleScript()
+      .then(() => {
         if (!initPaddleOnce()) {
-          reject(new Error("paddle_init"));
-          return;
+          throw new Error("paddle_init");
         }
-        resolve();
-      }, 50);
-    });
+      })
+      .catch((err) => {
+        paddleInitPromise = null;
+        throw err;
+      });
+    return paddleInitPromise;
+  }
+
+  if (paddleAvailable && paddleCfg.client_token) {
+    ensurePaddleReady().catch(() => {});
   }
 
   function openPaddleCheckout(email) {
@@ -321,7 +372,18 @@
       .then(() => openPaddleCheckout(email))
       .catch((err) => {
         console.error(err);
-        alert(root.dataset.msgPaddleLoading || "Loading…");
+        const code = err && err.message;
+        if (code === "paddle_config") {
+          alert(root.dataset.msgPaddleFail || "Paddle not configured");
+        } else if (code === "paddle_script") {
+          alert(
+            "Không tải được Paddle.js. Tắt adblock hoặc thử trình duyệt khác."
+          );
+        } else if (code === "paddle_init") {
+          alert(root.dataset.msgPaddleFail || "Paddle init failed");
+        } else {
+          alert(root.dataset.msgPaddleLoading || "Loading…");
+        }
       })
       .finally(() => {
         /* overlay open keeps loading off until checkout.closed via eventCallback */
