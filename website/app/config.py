@@ -63,6 +63,8 @@ SEPAY_QR_BASE_URL = os.getenv(
     "https://qr.sepay.vn/img?bank=ACB&acc=4518527&amount=1590000&des=Body%20Export%20License",
 )
 LICENSE_PRICE_VND = int(os.getenv("LICENSE_PRICE_VND", "1590000"))
+# Max license years per checkout (VietQR amount multiple + Paddle quantity).
+MAX_LICENSE_YEARS = max(1, min(10, int(os.getenv("MAX_LICENSE_YEARS", "5"))))
 # Shown on /buy for international checkout (Paddle, etc.). Override or leave empty to derive from VND.
 _license_usd = os.getenv("LICENSE_PRICE_USD", "").strip()
 USD_VND_RATE = float(os.getenv("USD_VND_RATE", "25000") or "25000")

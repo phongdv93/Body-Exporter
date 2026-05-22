@@ -4,32 +4,64 @@
 
   const emailInput = document.getElementById("email");
   const emailHint = document.getElementById("email-hint");
-  const step1 = document.getElementById("checkout-step-1");
-  const step2 = document.getElementById("checkout-step-2");
-  const stepInd1 = document.getElementById("checkout-step-indicator-1");
-  const stepInd2 = document.getElementById("checkout-step-indicator-2");
-  const stepsNav = document.querySelector(".checkout-steps");
+  const yearsInput = document.getElementById("license-years");
+  const yearsMinus = document.getElementById("years-minus");
+  const yearsPlus = document.getElementById("years-plus");
   const btnContinue = document.getElementById("btn-checkout-continue");
-  const btnEditEmail = document.getElementById("btn-edit-email");
-  const confirmedEmail = document.getElementById("confirmed-email");
   const pricingCard = document.getElementById("pricing");
-  const vnMount = document.getElementById("vn-qr-mount");
-  const panels = {
-    vn: document.getElementById("pay-panel-vn"),
-    intl: document.getElementById("pay-panel-intl"),
-  };
   const modeButtons = root.querySelectorAll(".pay-mode-btn");
+  const payModal = document.getElementById("pay-modal");
+  const payModalBody = document.getElementById("pay-modal-body");
+  const payModalClose = document.getElementById("pay-modal-close");
+  const payModalBackdrop = document.getElementById("pay-modal-backdrop");
+  const payModalTitle = document.getElementById("pay-modal-title");
+
+  const unitVnd = parseInt(root.dataset.unitPriceVnd || "0", 10) || 0;
+  const maxYears = parseInt(root.dataset.maxYears || "5", 10) || 5;
+  const usdRate = parseFloat(root.dataset.usdRate || "25000") || 25000;
+  const priceUsdUnit = parseFloat(root.dataset.priceUsd || "") || 0;
   const cookieName = root.dataset.cookieName || "be_pay_mode";
   const paddleAvailable = root.dataset.paddleAvailable === "1";
   let currentMode = root.dataset.payMode || "vn";
-  let checkoutStep = 1;
 
   function validEmail(v) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((v || "").trim());
   }
 
-  function isIntlPaddle() {
-    return currentMode === "intl" && paddleAvailable;
+  function getYears() {
+    let y = parseInt(yearsInput && yearsInput.value, 10);
+    if (!y || y < 1) y = 1;
+    if (y > maxYears) y = maxYears;
+    return y;
+  }
+
+  function setYears(y) {
+    y = Math.max(1, Math.min(maxYears, y));
+    if (yearsInput) yearsInput.value = String(y);
+    syncPricingTotals();
+  }
+
+  function fmtVnd(n) {
+    return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  }
+
+  function syncPricingTotals() {
+    const y = getYears();
+    const totalVnd = unitVnd * y;
+    const elVn = document.getElementById("pricing-amount-vn");
+    if (elVn && unitVnd > 0) {
+      elVn.innerHTML = "<strong>" + fmtVnd(totalVnd) + " VND</strong>";
+    }
+    const elUsd = document.getElementById("pricing-amount-usd");
+    if (elUsd && priceUsdUnit > 0) {
+      const totalUsd = (priceUsdUnit * y).toFixed(2).replace(/\.?0+$/, "");
+      elUsd.innerHTML = "<strong>$" + totalUsd + " USD</strong>";
+    }
+    const subIntl = document.getElementById("pricing-sub-intl");
+    if (subIntl && unitVnd > 0) {
+      subIntl.textContent =
+        (y > 1 ? y + " × " : "") + fmtVnd(unitVnd) + " VND / " + (root.dataset.msgPerYear || "year");
+    }
   }
 
   function setCookie(mode) {
@@ -50,11 +82,6 @@
     });
   }
 
-  function syncStepsNav() {
-    if (!stepsNav) return;
-    stepsNav.classList.toggle("checkout-steps--intl-paddle", isIntlPaddle());
-  }
-
   function setPayMode(mode) {
     currentMode = mode;
     root.dataset.payMode = mode;
@@ -63,17 +90,20 @@
       btn.classList.toggle("active", on);
       btn.setAttribute("aria-selected", on ? "true" : "false");
     });
-    if (panels.vn) panels.vn.classList.toggle("is-hidden", mode !== "vn");
-    if (panels.intl) panels.intl.classList.toggle("is-hidden", mode !== "intl");
     syncPricingMode(mode);
-    syncStepsNav();
     setCookie(mode);
-    if (checkoutStep === 2 && !isIntlPaddle()) loadStep2Payment();
   }
 
   modeButtons.forEach((btn) => {
     btn.addEventListener("click", () => setPayMode(btn.dataset.payMode));
   });
+
+  if (yearsMinus) yearsMinus.addEventListener("click", () => setYears(getYears() - 1));
+  if (yearsPlus) yearsPlus.addEventListener("click", () => setYears(getYears() + 1));
+  if (yearsInput) {
+    yearsInput.addEventListener("change", () => setYears(getYears()));
+    yearsInput.addEventListener("input", () => setYears(getYears()));
+  }
 
   function escapeHtml(s) {
     return String(s)
@@ -83,36 +113,49 @@
       .replace(/"/g, "&quot;");
   }
 
-  function showStep(n) {
-    checkoutStep = n;
-    if (step1) step1.classList.toggle("is-hidden", n !== 1);
-    if (step2) step2.classList.toggle("is-hidden", n !== 2);
-    if (stepInd1) stepInd1.classList.toggle("is-active", n === 1);
-    if (stepInd2) stepInd2.classList.toggle("is-active", n === 2);
-    if (stepInd1) stepInd1.classList.toggle("is-done", n === 2);
+  function openModal() {
+    if (!payModal) return;
+    payModal.classList.remove("is-hidden");
+    document.body.classList.add("pay-modal-open");
   }
 
-  function renderVietQR(data) {
-    if (!vnMount) return;
+  function closeModal() {
+    if (!payModal) return;
+    payModal.classList.add("is-hidden");
+    document.body.classList.remove("pay-modal-open");
+  }
+
+  if (payModalClose) payModalClose.addEventListener("click", closeModal);
+  if (payModalBackdrop) payModalBackdrop.addEventListener("click", closeModal);
+
+  function renderVnModal(data) {
+    if (!payModalBody) return;
     const bank = data.bank || {};
-    let html = '<div class="pay-grid"><div class="qr-wrap">';
+    let html = '<div class="pay-modal-grid">';
+    html += '<div class="pay-modal-summary">';
+    html += "<h3>" + escapeHtml(data.labels.product || "Body Exporter") + "</h3>";
     html +=
-      '<img src="' +
-      escapeHtml(data.qr_url) +
-      '" alt="VietQR" width="240" height="240" loading="lazy"></div><dl class="bank-dl">';
+      "<p class=\"pay-modal-years\"><span>" +
+      escapeHtml(data.labels.years || "Years") +
+      "</span> <strong>" +
+      escapeHtml(String(data.years)) +
+      "</strong></p>";
+    if (data.summary_html) {
+      html += "<p class=\"pay-modal-total\">" + data.summary_html + "</p>";
+    }
+    html += "<p class=\"hint muted pay-modal-email\">" + (data.wait_hint_html || "") + "</p>";
+    html += "</div>";
+    html += '<div class="pay-modal-pay">';
+    html += '<div class="qr-wrap"><img src="' + escapeHtml(data.qr_url) + '" alt="VietQR" width="220" height="220" loading="lazy"></div>';
+    html += '<dl class="bank-dl">';
     if (bank.bank) {
-      html +=
-        "<dt>" +
-        escapeHtml(data.labels.bank) +
-        "</dt><dd>" +
-        escapeHtml(bank.bank) +
-        "</dd>";
+      html += "<dt>" + escapeHtml(data.labels.bank) + "</dt><dd>" + escapeHtml(bank.bank) + "</dd>";
     }
     if (bank.account) {
       html +=
         "<dt>" +
         escapeHtml(data.labels.account) +
-        '</dt><dd><code>' +
+        '</dt><dd><code class="copyable">' +
         escapeHtml(bank.account) +
         "</code></dd>";
     }
@@ -125,115 +168,116 @@
     html +=
       "<dt>" +
       escapeHtml(data.labels.memo) +
-      '</dt><dd><code>' +
+      '</dt><dd><code class="copyable">' +
       escapeHtml(data.memo) +
-      "</code></dd></dl></div>";
-    html +=
-      '<p class="hint buy-email-hint">' + (data.wait_hint_html || "") + "</p>";
-    vnMount.innerHTML = html;
+      "</code></dd>";
+    html += "</dl></div></div>";
+    payModalBody.innerHTML = html;
+    if (payModalTitle) {
+      payModalTitle.textContent = root.dataset.msgModalTitleVn || "VietQR payment";
+    }
+    openModal();
   }
 
-  function loadVietQR(email) {
-    if (!vnMount || root.dataset.vietqrAvailable !== "1") return;
-    vnMount.innerHTML =
+  function openVnModal(email) {
+    const years = getYears();
+    if (!payModalBody) return;
+    payModalBody.innerHTML =
       '<p class="hint muted">' + escapeHtml(root.dataset.msgQrLoading || "…") + "</p>";
-    fetch("/buy/api/vietqr?email=" + encodeURIComponent(email))
+    openModal();
+    fetch(
+      "/buy/api/vietqr?email=" +
+        encodeURIComponent(email) +
+        "&years=" +
+        encodeURIComponent(String(years))
+    )
       .then((r) => r.json())
       .then((data) => {
-        if (data.ok) renderVietQR(data);
-        else
-          vnMount.innerHTML =
-            '<p class="hint flash-err">' +
-            escapeHtml(root.dataset.msgQrFail || "Error") +
-            "</p>";
+        if (data.ok) renderVnModal(data);
+        else {
+          payModalBody.innerHTML =
+            '<p class="hint flash-err">' + escapeHtml(root.dataset.msgQrFail || "Error") + "</p>";
+        }
       })
       .catch(() => {
-        vnMount.innerHTML =
-          '<p class="hint flash-err">' +
-          escapeHtml(root.dataset.msgNetFail || "Error") +
-          "</p>";
+        payModalBody.innerHTML =
+          '<p class="hint flash-err">' + escapeHtml(root.dataset.msgNetFail || "Error") + "</p>";
       });
   }
 
-  function loadStep2Payment() {
-    const email = (emailInput && emailInput.value.trim()) || "";
-    if (!validEmail(email)) return;
-    if (currentMode === "vn") loadVietQR(email);
-    else if (vnMount) vnMount.innerHTML = "";
-  }
-
-  function goToStep2() {
-    const email = (emailInput && emailInput.value.trim()) || "";
-    if (!validEmail(email)) {
-      if (emailHint) {
-        emailHint.classList.remove("is-hidden");
-        emailHint.textContent = root.dataset.msgEnterEmail || emailHint.textContent;
-      }
-      emailInput && emailInput.focus();
-      return false;
-    }
-    if (emailHint) emailHint.classList.add("is-hidden");
-    if (confirmedEmail) confirmedEmail.textContent = email;
-    const hidden = document.getElementById("email-hidden-card");
-    if (hidden) hidden.value = email;
-    showStep(2);
-    loadStep2Payment();
-    return true;
-  }
-
-  function goToStep1() {
-    showStep(1);
-    if (emailHint) emailHint.classList.remove("is-hidden");
-    emailInput && emailInput.focus();
-  }
-
-  function startIntlPaddleCheckout() {
-    const email = (emailInput && emailInput.value.trim()) || "";
-    if (!validEmail(email)) {
-      if (emailHint) {
-        emailHint.classList.remove("is-hidden");
-        emailHint.textContent = root.dataset.msgEnterEmail || emailHint.textContent;
-      }
-      emailInput && emailInput.focus();
+  function openIntlPaddle(email) {
+    if (!paddleAvailable || !window.BodyExporterPaddle) {
+      window.location.href =
+        "/buy/paddle?email=" + encodeURIComponent(email) + "&years=" + getYears();
       return;
     }
-    window.location.href = "/buy/paddle?email=" + encodeURIComponent(email);
+    const cfgEl = document.getElementById("paddle-config");
+    if (!cfgEl) {
+      window.location.href =
+        "/buy/paddle?email=" + encodeURIComponent(email) + "&years=" + getYears();
+      return;
+    }
+    let cfg = {};
+    try {
+      cfg = JSON.parse(cfgEl.textContent || "{}");
+    } catch (e) {
+      return;
+    }
+    if (btnContinue) {
+      btnContinue.disabled = true;
+      btnContinue.textContent = root.dataset.msgPaddleLoading || "Loading…";
+    }
+    window.BodyExporterPaddle.setConfig(cfg);
+    window.BodyExporterPaddle.startFromApi("/buy/api/paddle-checkout", {
+      email: email,
+      years: getYears(),
+    })
+      .catch(function () {
+        alert(root.dataset.msgPaddleFail || "Could not open checkout");
+      })
+      .finally(function () {
+        if (btnContinue) {
+          btnContinue.disabled = false;
+          btnContinue.textContent = root.dataset.msgBtnPay || "Pay";
+        }
+      });
   }
 
   function onContinue() {
-    if (isIntlPaddle()) {
-      startIntlPaddleCheckout();
+    const email = (emailInput && emailInput.value.trim()) || "";
+    if (!validEmail(email)) {
+      if (emailHint) {
+        emailHint.classList.remove("is-hidden");
+        emailHint.textContent = root.dataset.msgEnterEmail || emailHint.textContent;
+      }
+      emailInput && emailInput.focus();
       return;
     }
-    goToStep2();
+    if (emailHint) emailHint.classList.add("is-hidden");
+
+    if (currentMode === "intl" && paddleAvailable) {
+      openIntlPaddle(email);
+      return;
+    }
+    if (currentMode === "vn" && root.dataset.vietqrAvailable === "1") {
+      openVnModal(email);
+      return;
+    }
+    const cardForm = document.getElementById("buy-form-card");
+    if (cardForm) cardForm.submit();
   }
 
   if (btnContinue) btnContinue.addEventListener("click", onContinue);
-  if (btnEditEmail) btnEditEmail.addEventListener("click", goToStep1);
 
   if (emailInput) {
     emailInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && checkoutStep === 1) {
+      if (e.key === "Enter") {
         e.preventDefault();
         onContinue();
       }
     });
   }
 
-  const cardForm = document.getElementById("buy-form-card");
-  if (cardForm && emailInput) {
-    cardForm.addEventListener("submit", () => {
-      const hidden = document.getElementById("email-hidden-card");
-      if (hidden) hidden.value = emailInput.value;
-    });
-  }
-
   syncPricingMode(currentMode);
-  syncStepsNav();
-
-  if (emailInput && validEmail(emailInput.value) && !isIntlPaddle()) {
-    goToStep2();
-  } else {
-    showStep(1);
-  }
+  syncPricingTotals();
 })();

@@ -16,12 +16,14 @@ def build_transfer_memo(email: str) -> str:
     return f"BE {trimmed}"
 
 
-def build_qr_image_url(base_url: str, email: str) -> str:
+def build_qr_image_url(base_url: str, email: str, amount_vnd: int | None = None) -> str:
     if not base_url or not base_url.strip():
         return ""
     parsed = urlparse(base_url.strip())
     query = dict(parse_qsl(parsed.query, keep_blank_values=True))
     query["des"] = build_transfer_memo(email)
+    if amount_vnd is not None and amount_vnd > 0:
+        query["amount"] = str(int(amount_vnd))
     new_query = urlencode(query, quote_via=quote)
     return urlunparse(parsed._replace(query=new_query))
 

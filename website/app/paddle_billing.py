@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 import os
 
 from app import config
+from app.database import get_content
 from app.license_service import find_license_by_paddle_tx, issue_license_record
 
 log = logging.getLogger("uvicorn.error")
@@ -178,10 +179,19 @@ def paddle_customer_id_for_email(email: str) -> str | None:
     return _get_or_create_paddle_customer(api_key, email)
 
 
+def _clamp_license_years(years: int | str | None) -> int:
+    try:
+        y = int(years) if years is not None else 1
+    except (TypeError, ValueError):
+        y = 1
+    return max(1, min(y, config.MAX_LICENSE_YEARS))
+
+
 def create_paddle_checkout_transaction(
     email: str,
     *,
     currency_code: str | None = None,
+    years: int | str | None = 1,
 ) -> dict[str, str | None]:
     """Create Paddle transaction server-side."""
     api_key = (config.PADDLE_API_KEY or "").strip()
@@ -204,11 +214,12 @@ def create_paddle_checkout_transaction(
             "error_code": None,
         }
     customer_id = _get_or_create_paddle_customer(api_key, email)
+    qty = _clamp_license_years(years)
     site = config.SITE_URL.rstrip("/")
     paddle_page = f"{site}/buy/paddle"
     body: dict[str, Any] = {
-        "items": [{"price_id": price_id, "quantity": 1}],
-        "custom_data": {"buyer_email": email},
+        "items": [{"price_id": price_id, "quantity": qty}],
+        "custom_data": {"buyer_email": email, "license_years": str(qty)},
         "collection_mode": "automatic",
         "checkout": {"url": paddle_page},
     }
@@ -242,7 +253,7 @@ def create_paddle_checkout_transaction(
         checkout_url = (checkout.get("url") or "").strip() or None
         if txn_id:
             # Internal page uses ?txn= (not ?_ptxn) so we control Checkout.open with customer info.
-            checkout_url = f"{paddle_page}?txn={txn_id}"
+            checkout_url = f"{paddle_page}?txn={txn_id}&years={qty}"
             if email:
                 checkout_url += f"&email={quote(email)}"
         if txn_id:
@@ -344,6 +355,24 @@ def _extract_email(data: dict[str, Any]) -> str:
     return ""
 
 
+def _license_years_from_transaction(data: dict[str, Any]) -> int:
+    custom = data.get("custom_data") or data.get("customData") or {}
+    if isinstance(custom, dict):
+        raw = (custom.get("license_years") or custom.get("years") or "").strip()
+        if raw.isdigit():
+            return _clamp_license_years(int(raw))
+    qty = 0
+    for item in data.get("items") or []:
+        if isinstance(item, dict):
+            try:
+                qty = max(qty, int(item.get("quantity") or 0))
+            except (TypeError, ValueError):
+                pass
+    if qty > 0:
+        return _clamp_license_years(qty)
+    return 1
+
+
 def _transaction_paid_ok(data: dict[str, Any], event_type: str) -> bool:
     status = (data.get("status") or "").strip().lower()
     if event_type == "transaction.completed":
@@ -377,12 +406,17 @@ def handle_paddle_webhook(db: Session, payload: dict[str, Any]) -> dict[str, str
         log.warning("Paddle %s: no buyer email in custom_data", txn_id)
         return {"status": "ignored", "reason": "no_email"}
 
+    years = _license_years_from_transaction(data)
+    content = get_content(db)
+    term_days = max(1, int(content.license_term_days or config.SEPAY_LICENSE_DAYS)) * years
+
     try:
         issue_license_record(
             db,
             buyer_email=email,
+            days=term_days,
             paddle_transaction_id=txn_id,
-            notes="Paddle checkout",
+            notes=f"Paddle checkout ({years}y)",
             order_id_suffix=f"paddle-{txn_id}",
         )
         log.info("Paddle %s: license issued for %s", txn_id, email)

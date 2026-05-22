@@ -277,6 +277,110 @@ body {
 .paddle-checkout-frame.is-hidden { display: none; }
 .paddle-vn-cta { margin: 0 0 1.25rem; text-align: center; }
 .paddle-vn-cta .btn-lg { width: 100%; max-width: 360px; }
+.paddle-checkout-minimal { max-width: 480px; margin: 2rem auto; text-align: center; }
+.checkout-years-field { margin: 1.25rem 0; }
+.checkout-years-field label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+.years-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg-elevated, rgba(255, 255, 255, 0.04));
+}
+.years-btn {
+  width: 2.75rem;
+  height: 2.75rem;
+  border: none;
+  background: transparent;
+  color: var(--accent, #2dd4bf);
+  font-size: 1.25rem;
+  cursor: pointer;
+  line-height: 1;
+}
+.years-btn:hover { background: rgba(45, 212, 191, 0.12); }
+.years-input {
+  width: 3.5rem;
+  text-align: center;
+  border: none;
+  border-left: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  border-right: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  background: transparent;
+  color: var(--text, #e8edf4);
+  font: inherit;
+  font-size: 1.1rem;
+  font-weight: 600;
+  -moz-appearance: textfield;
+}
+.years-input::-webkit-outer-spin-button,
+.years-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+body.pay-modal-open { overflow: hidden; }
+.pay-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.pay-modal.is-hidden { display: none; }
+.pay-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+}
+.pay-modal-panel {
+  position: relative;
+  width: 100%;
+  max-width: 920px;
+  max-height: 92vh;
+  overflow: auto;
+  background: var(--card, #1a2332);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  border-radius: 14px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+}
+.pay-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+}
+.pay-modal-header h2 { margin: 0; font-size: 1.1rem; }
+.pay-modal-close {
+  border: none;
+  background: transparent;
+  color: var(--muted, #9ca3af);
+  font-size: 1.75rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0.25rem;
+}
+.pay-modal-close:hover { color: var(--text, #e8edf4); }
+.pay-modal-body { padding: 1.25rem; }
+.pay-modal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+@media (max-width: 720px) {
+  .pay-modal-grid { grid-template-columns: 1fr; }
+}
+.pay-modal-summary h3 { margin: 0 0 0.75rem; font-size: 1rem; }
+.pay-modal-years { margin: 0.5rem 0; font-size: 0.95rem; }
+.pay-modal-total { margin: 0.75rem 0; font-size: 1.05rem; }
+.pay-modal-pay .qr-wrap { text-align: center; margin-bottom: 1rem; }
+.pay-modal-pay .qr-wrap img { border-radius: 8px; background: #fff; }
+.pay-modal-pay .bank-dl { margin: 0; }
 .checkout-step-panel.is-hidden { display: none; }
 .checkout-email-field { margin-bottom: 0.35rem; }
 .checkout-email-field label {

@@ -115,16 +115,29 @@ def extract_email_from_transfer_text(*parts: str | None) -> str | None:
     return None
 
 
-def _allowed_amounts_vnd(content) -> list[int]:
-    amounts: set[int] = set()
+def _unit_price_vnd(content) -> int:
     base = (content.sepay_qr_base_url or "").strip() or config.SEPAY_QR_BASE_URL
     info = parse_qr_base(base)
     n = info.get("amount_vnd")
     if isinstance(n, int) and n > 0:
-        amounts.add(n)
-    price = int(content.license_price_vnd or config.LICENSE_PRICE_VND or 0)
-    if price > 0:
-        amounts.add(price)
+        return n
+    return int(content.license_price_vnd or config.LICENSE_PRICE_VND or 0)
+
+
+def _years_from_transfer_amount(content, amount_vnd: float) -> int:
+    unit = _unit_price_vnd(content)
+    if unit <= 0:
+        return 1
+    years = int(round(float(amount_vnd) / unit))
+    return max(1, min(years, config.MAX_LICENSE_YEARS))
+
+
+def _allowed_amounts_vnd(content) -> list[int]:
+    amounts: set[int] = set()
+    unit = _unit_price_vnd(content)
+    if unit > 0:
+        for y in range(1, config.MAX_LICENSE_YEARS + 1):
+            amounts.add(unit * y)
     legacy = (config.SEPAY_LEGACY_AMOUNTS_VND or "").strip()
     if legacy:
         for part in legacy.split(","):
@@ -223,7 +236,9 @@ async def sepay_webhook(request: Request):
             log.info("SePay tx %s ignored: no email in memo", tx_int)
             return Response(json.dumps({"success": True}), media_type="application/json")
 
-        days = max(1, int(content.license_term_days or config.SEPAY_LICENSE_DAYS))
+        years = _years_from_transfer_amount(content, amount)
+        per_year = max(1, int(content.license_term_days or config.SEPAY_LICENSE_DAYS))
+        days = per_year * years
         try:
             issue_license_record(
                 db,
@@ -231,7 +246,7 @@ async def sepay_webhook(request: Request):
                 plan="personal",
                 days=days,
                 sepay_transaction_id=tx_int,
-                notes="SePay bank transfer",
+                notes=f"SePay bank transfer ({years}y)",
                 send_email=True,
                 order_id_suffix=f"sepay-{tx_int}",
             )

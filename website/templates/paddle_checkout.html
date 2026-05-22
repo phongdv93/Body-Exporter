@@ -1,59 +1,21 @@
 {% extends "base.html" %}
 {% block title %}{{ t('buy.paddle_page_title') }}{% endblock %}
 {% block head_extra %}
-<link rel="preconnect" href="https://cdn.paddle.com" crossorigin>
-<link rel="preconnect" href="https://checkout-service.paddle.com" crossorigin>
 <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
 {% endblock %}
 {% block content %}
-<section class="page-head">
-  <h1>{{ t('buy.paddle_page_title') }}</h1>
-  <p class="lead muted">{{ t('buy.paddle_page_lead') }}</p>
-  {% if email %}
-  <p class="hint">{{ t('buy.step2_email_sent') }} <strong>{{ email }}</strong></p>
-  {% endif %}
-</section>
-
-<section class="card paddle-checkout-card" id="paddle-root"
-  data-msg-opening="{{ t('buy.paddle_opening') | e }}"
-  data-msg-overlay="{{ t('buy.paddle_overlay_hint') | e }}"
-  data-msg-js-missing="{{ t('buy.paddle_js_missing') | e }}"
-  data-msg-timeout="{{ t('buy.paddle_timeout') | e }}"
-  data-msg-invalid-token="{{ t('buy.paddle_invalid_token_hint') | e }}">
+<section class="card paddle-checkout-card paddle-checkout-minimal">
   {% if paddle_error %}
   <p class="hint flash-err">{{ paddle_error | safe }}</p>
   <p><a class="btn btn-secondary" href="/buy">{{ t('buy.paddle_back') }}</a></p>
   {% elif txn_id %}
-  <p class="hint muted paddle-domain-hint">{{ t('buy.paddle_domain_hint') | safe }}</p>
-  <p class="hint muted paddle-token-hint">{{ t('buy.paddle_invalid_token_hint') | safe }}</p>
-  {% if email %}
-  <p class="paddle-vn-cta">
-    <a class="btn btn-primary btn-lg" href="/buy?pay=vn&amp;email={{ email | urlencode }}">{{ t('buy.paddle_use_vn') }}</a>
-  </p>
-  {% endif %}
-  <div id="paddle-brave-hint" class="paddle-brave-hint is-hidden">{{ t('buy.paddle_brave') | safe }}</div>
-  <p id="paddle-error-detail" class="hint flash-err paddle-error-detail is-hidden" role="alert"></p>
-  <p id="paddle-status" class="hint muted" data-opening="{{ t('buy.paddle_opening') }}">{{ t('buy.paddle_opening') }}</p>
-  <div id="paddle-checkout-frame" class="paddle-checkout-frame"></div>
-  <p id="paddle-network-help" class="hint flash-err paddle-fallback-box is-hidden">{{ t('buy.paddle_network') | safe }}</p>
-  <div id="paddle-fallback-actions" class="paddle-fallback-actions is-hidden">
-    <button type="button" class="btn btn-primary" id="paddle-btn-open-overlay">{{ t('buy.paddle_open_window') }}</button>
-    <button type="button" class="btn btn-secondary" id="paddle-btn-retry">{{ t('buy.paddle_retry') }}</button>
-    {% if pg_fallback_available and email %}
-    <form method="post" action="/buy/paddle/sepay-fallback" class="paddle-sepay-fallback-form">
-      <input type="hidden" name="email" value="{{ email }}">
-      <button type="submit" class="btn btn-primary">{{ t('buy.paddle_sepay_fallback') }}</button>
-    </form>
-    {% endif %}
-    <p class="fine-print muted">{{ t('buy.paddle_support', txn=txn_id, email=support_email) | safe }}</p>
-    <p class="paddle-vn-cta">
-      <a class="btn btn-primary btn-lg" href="/buy?pay=vn&amp;email={{ email | urlencode }}">{{ t('buy.paddle_use_vn') }}</a>
-    </p>
-  </div>
+  <p class="hint muted" id="paddle-status">{{ t('buy.paddle_opening') }}</p>
   <p class="fine-print"><a href="/buy">{{ t('buy.paddle_back') }}</a></p>
+  <p id="paddle-error-detail" class="hint flash-err is-hidden" role="alert"></p>
   <script type="application/json" id="paddle-config">{{ paddle_checkout_json | safe }}</script>
   <script type="application/json" id="paddle-txn">"{{ txn_id }}"</script>
-  <script src="/static/js/paddle-checkout.js?v=5" defer></script>
+  <script src="/static/js/paddle-bridge.js"></script>
+  <script src="/static/js/paddle-checkout.js?v=6"></script>
   {% else %}
   <p class="muted">{{ t('buy.enter_email_hint') }}</p>
   <p><a class="btn btn-primary" href="/buy">{{ t('buy.paddle_back') }}</a></p>

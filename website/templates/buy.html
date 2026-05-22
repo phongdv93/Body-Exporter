@@ -17,6 +17,10 @@
   }
 }
 </script>
+{% if paddle_available %}
+<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+<script type="application/json" id="paddle-config">{{ paddle_checkout_json | safe }}</script>
+{% endif %}
 {% endblock %}
 {% block content %}
 <section class="page-head">
@@ -32,17 +36,15 @@
 
   <div class="pricing-price-row price-vn{% if pay_mode != 'vn' %} is-hidden{% endif %}">
     <span class="pricing-label">{{ t('buy.pricing_amount_label') }}</span>
-    <p class="pricing-amount"><strong>{{ '{:,}'.format(amount_vnd).replace(',', '.') }} VND</strong></p>
-    {% if price_usd %}
-    <p class="pricing-sub muted">{{ t('buy.pricing_vn_sub', usd=price_usd) }}</p>
-    {% endif %}
+    <p class="pricing-amount" id="pricing-amount-vn"><strong>{{ '{:,}'.format(amount_vnd).replace(',', '.') }} VND</strong></p>
+    <p class="pricing-sub muted" id="pricing-sub-vn">{% if price_usd %}{{ t('buy.pricing_vn_sub', usd=price_usd) }}{% endif %}</p>
   </div>
 
   <div class="pricing-price-row price-intl{% if pay_mode != 'intl' %} is-hidden{% endif %}">
     <span class="pricing-label">{{ t('buy.pricing_amount_label') }}</span>
     {% if price_usd %}
-    <p class="pricing-amount"><strong>${{ price_usd }} USD</strong></p>
-    <p class="pricing-sub muted">{{ t('buy.pricing_intl_sub', vnd=('{:,}'.format(amount_vnd).replace(',', '.'))) }}</p>
+    <p class="pricing-amount" id="pricing-amount-usd"><strong>${{ price_usd }} USD</strong></p>
+    <p class="pricing-sub muted" id="pricing-sub-intl">{{ t('buy.pricing_intl_sub', vnd=('{:,}'.format(amount_vnd).replace(',', '.'))) }}</p>
     {% else %}
     <p class="pricing-amount muted">{{ t('buy.pricing_intl_pending') }}</p>
     {% endif %}
@@ -64,24 +66,21 @@
          data-vietqr-available="{{ '1' if vietqr_available else '0' }}"
          data-paddle-available="{{ '1' if paddle_available else '0' }}"
          data-pg-available="{{ '1' if pg_available else '0' }}"
-         data-amount-vnd="{{ amount_vnd }}"
-         data-amount-fmt="{{ '{:,}'.format(amount_vnd).replace(',', '.') }}"
+         data-unit-price-vnd="{{ unit_price_vnd }}"
          data-price-usd="{{ price_usd or '' }}"
+         data-usd-rate="{{ usd_vnd_rate }}"
+         data-max-years="{{ max_license_years }}"
+         data-term-days="{{ license_term_days }}"
          data-msg-qr-loading="{{ t('buy.qr_loading') | e }}"
          data-msg-qr-fail="{{ t('buy.qr_fail') | e }}"
          data-msg-net-fail="{{ t('buy.net_fail') | e }}"
          data-msg-paddle-loading="{{ t('buy.paddle_loading') | e }}"
          data-msg-paddle-fail="{{ t('buy.paddle_fail', email=support_email) | e }}"
-         data-msg-paddle-default-link="{{ t('buy.paddle_default_link') | e }}"
-         data-msg-paddle-network="{{ t('buy.paddle_network') | e }}"
-         data-msg-enter-email="{{ t('buy.enter_email_hint') | e }}">
+         data-msg-enter-email="{{ t('buy.enter_email_hint') | e }}"
+         data-msg-modal-title-vn="{{ t('buy.vn_modal_title') | e }}"
+         data-msg-per-year="{{ t('buy.per_year') | e }}"
+         data-msg-btn-pay="{{ t('buy.btn_pay') | e }}">
   <h2 class="buy-step-heading">{{ t('buy.checkout_title') }}</h2>
-
-  <nav class="checkout-steps" aria-label="{{ t('buy.checkout_title') }}">
-    <span class="checkout-step is-active" id="checkout-step-indicator-1">{{ t('buy.step_label_email') }}</span>
-    <span class="checkout-step-sep" aria-hidden="true">→</span>
-    <span class="checkout-step" id="checkout-step-indicator-2">{{ t('buy.step_label_pay') }}</span>
-  </nav>
 
   <div id="checkout-step-1" class="checkout-step-panel">
     <div class="checkout-email-field">
@@ -90,6 +89,17 @@
              placeholder="you@company.com" value="{{ email }}" autocomplete="email">
     </div>
     <p id="email-hint" class="hint checkout-email-hint">{{ t('buy.enter_email_hint') }}</p>
+
+    <div class="checkout-years-field">
+      <label for="license-years">{{ t('buy.years_label') }}</label>
+      <div class="years-stepper">
+        <button type="button" class="years-btn" id="years-minus" aria-label="-">−</button>
+        <input type="number" id="license-years" name="years" class="years-input" value="1"
+               min="1" max="{{ max_license_years }}" step="1" inputmode="numeric">
+        <button type="button" class="years-btn" id="years-plus" aria-label="+">+</button>
+      </div>
+      <p class="hint muted" id="years-hint">{{ t('buy.years_hint', max=max_license_years) }}</p>
+    </div>
 
     {% if vietqr_available and (paddle_available or pg_available) %}
     <div class="pay-mode-switch" role="tablist" aria-label="{{ t('buy.pay_mode_label') }}">
@@ -102,33 +112,7 @@
     </div>
     {% endif %}
 
-    <button type="button" class="btn btn-primary btn-lg" id="btn-checkout-continue">{{ t('buy.btn_continue') }}</button>
-  </div>
-
-  <div id="checkout-step-2" class="checkout-step-panel is-hidden">
-    <p class="checkout-confirmed-line">
-      <span class="muted">{{ t('buy.step2_email_sent') }}</span>
-      <strong id="confirmed-email"></strong>
-      <button type="button" class="text-btn" id="btn-edit-email">{{ t('buy.btn_edit_email') }}</button>
-    </p>
-
-    <div id="pay-panel-vn" class="checkout-pay-pane{% if pay_mode != 'vn' %} is-hidden{% endif %}">
-      <p class="checkout-step2-lead">{{ t('buy.step2_vn_lead', amount=('{:,}'.format(amount_vnd).replace(',', '.'))) }}</p>
-      <div id="vn-qr-mount" class="vn-qr-mount"></div>
-    </div>
-
-    <div id="pay-panel-intl" class="checkout-pay-pane{% if pay_mode != 'intl' %} is-hidden{% endif %}">
-      {% if paddle_available %}
-      <p class="hint muted">{{ t('buy.paddle_hint') }}</p>
-      {% elif pg_available %}
-      <form method="post" action="/buy" class="buy-form" id="buy-form-card">
-        <input type="hidden" name="email" id="email-hidden-card" value="{{ email }}">
-        <button type="submit" name="pay_method" value="card" class="btn btn-primary btn-lg">{{ t('buy.btn_card') }}</button>
-      </form>
-      {% else %}
-      <p class="muted">{{ t('buy.intl_unavailable', email=support_email) | safe }}</p>
-      {% endif %}
-    </div>
+    <button type="button" class="btn btn-primary btn-lg" id="btn-checkout-continue">{{ t('buy.btn_pay') }}</button>
   </div>
 
   {% if not vietqr_available and not paddle_available and not pg_available %}
@@ -136,11 +120,25 @@
   {% endif %}
 </section>
 
+<div id="pay-modal" class="pay-modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="pay-modal-title">
+  <div class="pay-modal-backdrop" id="pay-modal-backdrop"></div>
+  <div class="pay-modal-panel">
+    <header class="pay-modal-header">
+      <h2 id="pay-modal-title">{{ t('buy.vn_modal_title') }}</h2>
+      <button type="button" class="pay-modal-close" id="pay-modal-close" aria-label="Close">×</button>
+    </header>
+    <div class="pay-modal-body" id="pay-modal-body"></div>
+  </div>
+</div>
+
 {% if buy_footer %}
 <section class="card card-dim prose-footer">
   {{ buy_footer | safe }}
 </section>
 {% endif %}
 <p class="muted fine-print buy-page-legal">{{ t('buy.pricing_legal') | safe }}</p>
-<script src="/static/js/buy-pay.js" defer></script>
+{% if paddle_available %}
+<script src="/static/js/paddle-bridge.js"></script>
+{% endif %}
+<script src="/static/js/buy-pay.js?v=2" defer></script>
 {% endblock %}

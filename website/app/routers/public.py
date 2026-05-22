@@ -301,12 +301,15 @@ def buy_paddle_page(
         return RedirectResponse(f"/buy/paddle?{qs}", status_code=303)
     paddle_error = translate(lang, f"buy.{token_issue}") if token_issue else None
     customer_id = paddle_customer_id_for_email(email) if email and "@" in email else None
+    years_q = _clamp_years(request.query_params.get("years") or 1)
     if not token_issue and not ptxn and email and "@" in email:
-        result = create_paddle_checkout_transaction(email, currency_code="USD")
+        result = create_paddle_checkout_transaction(email, currency_code="USD", years=years_q)
         ptxn = (result.get("transaction_id") or "").strip()
         customer_id = (result.get("customer_id") or "").strip() or None
         if ptxn:
-            url = result.get("checkout_url") or f"/buy/paddle?txn={quote(ptxn)}&email={quote(email)}"
+            url = result.get("checkout_url") or (
+                f"/buy/paddle?txn={quote(ptxn)}&email={quote(email)}&years={years_q}"
+            )
             return RedirectResponse(url, status_code=303)
         err = result.get("error_code") or result.get("error") or "paddle_create_failed"
         paddle_error = translate(lang, "buy.paddle_create_fail", error=err)
@@ -345,7 +348,23 @@ def buy_paddle_sepay_fallback(
     return _redirect_pg_checkout(request, email, db)
 
 
-def _vietqr_payload(content, email: str) -> dict | None:
+def _unit_price_vnd(content) -> int:
+    base = (content.sepay_qr_base_url or config.SEPAY_QR_BASE_URL or "").strip()
+    bank = parse_qr_base(base) if base else {}
+    if bank.get("amount_vnd"):
+        return int(bank["amount_vnd"])
+    return int(content.license_price_vnd or config.LICENSE_PRICE_VND)
+
+
+def _clamp_years(years: int | str | None) -> int:
+    try:
+        y = int(years) if years is not None else 1
+    except (TypeError, ValueError):
+        y = 1
+    return max(1, min(y, config.MAX_LICENSE_YEARS))
+
+
+def _vietqr_payload(content, email: str, years: int = 1) -> dict | None:
     email = (email or "").strip()
     if not email or "@" not in email:
         return None
@@ -353,22 +372,29 @@ def _vietqr_payload(content, email: str) -> dict | None:
     if not base:
         return None
     bank = parse_qr_base(base)
-    amount = content.license_price_vnd or config.LICENSE_PRICE_VND
-    if bank.get("amount_vnd"):
-        amount = bank["amount_vnd"]
+    y = _clamp_years(years)
+    unit = _unit_price_vnd(content)
+    amount = unit * y
     return {
-        "qr_url": build_qr_image_url(base, email),
+        "qr_url": build_qr_image_url(base, email, amount_vnd=amount),
         "memo": build_transfer_memo(email),
         "bank": bank,
         "amount_vnd": amount,
         "amount_fmt": "{:,}".format(amount).replace(",", "."),
+        "years": y,
+        "unit_price_vnd": unit,
     }
 
 
 @router.get("/buy/api/vietqr")
-def buy_vietqr_api(request: Request, email: str = "", db: Session = Depends(get_db)):
+def buy_vietqr_api(
+    request: Request,
+    email: str = "",
+    years: int = 1,
+    db: Session = Depends(get_db),
+):
     content = get_content(db)
-    payload = _vietqr_payload(content, email)
+    payload = _vietqr_payload(content, email, years=_clamp_years(years))
     if not payload:
         return JSONResponse({"ok": False, "error": "invalid"}, status_code=400)
     lang = resolve_lang(request)
@@ -381,11 +407,19 @@ def buy_vietqr_api(request: Request, email: str = "", db: Session = Depends(get_
             ),
             "labels": {
                 "title": translate(lang, "buy.transfer_title", amount=payload["amount_fmt"]),
+                "product": translate(lang, "buy.pricing_product"),
+                "years": translate(lang, "buy.years_label"),
                 "bank": translate(lang, "buy.bank"),
                 "account": translate(lang, "buy.account"),
                 "amount": translate(lang, "buy.amount"),
                 "memo": translate(lang, "buy.memo"),
             },
+            "summary_html": translate(
+                lang,
+                "buy.vn_modal_summary",
+                years=payload["years"],
+                amount=payload["amount_fmt"],
+            ),
         }
     )
 
@@ -401,7 +435,8 @@ async def buy_paddle_checkout_api(request: Request, db: Session = Depends(get_db
         return JSONResponse({"ok": False, "error": "invalid_email"}, status_code=400)
     if not paddle_configured():
         return JSONResponse({"ok": False, "error": "not_configured"}, status_code=503)
-    result = create_paddle_checkout_transaction(email)
+    years = _clamp_years(body.get("years") or body.get("quantity") or 1)
+    result = create_paddle_checkout_transaction(email, years=years)
     txn_id = result.get("transaction_id")
     if txn_id:
         return JSONResponse(
@@ -480,9 +515,7 @@ def _buy_response(request: Request, db: Session, email: str = "", pay_query: str
     content = get_content(db)
     base = content.sepay_qr_base_url or config.SEPAY_QR_BASE_URL
     bank = parse_qr_base(base)
-    amount = content.license_price_vnd or config.LICENSE_PRICE_VND
-    if bank.get("amount_vnd"):
-        amount = bank["amount_vnd"]
+    amount = _unit_price_vnd(content)
     qr_url = build_qr_image_url(base, email) if email else ""
     memo = build_transfer_memo(email) if email else ""
     term_days = max(1, int(content.license_term_days or config.SEPAY_LICENSE_DAYS))
@@ -517,6 +550,9 @@ def _buy_response(request: Request, db: Session, email: str = "", pay_query: str
             paddle_available=paddle_ok,
             paddle_checkout_json=json.dumps(paddle_checkout_settings()) if paddle_ok else "",
             pg_available=pg_ok and not paddle_ok,
+            max_license_years=config.MAX_LICENSE_YEARS,
+            unit_price_vnd=amount,
+            usd_vnd_rate=config.USD_VND_RATE,
         ),
     )
     cookie_val = pay_mode_cookie_value(pay_query) or pay_mode_cookie_value(pay_mode)
