@@ -31,15 +31,8 @@
     if (frame) frame.classList.add("is-hidden");
   }
 
-  function showBraveHint() {
+  function showBrowserHint() {
     if (braveHint) braveHint.classList.remove("is-hidden");
-  }
-
-  function detectBrave() {
-    if (navigator.brave && typeof navigator.brave.isBrave === "function") {
-      return navigator.brave.isBrave();
-    }
-    return Promise.resolve(false);
   }
 
   function initPaddle() {
@@ -70,7 +63,7 @@
           if (ev.name === "checkout.error") {
             console.error("Paddle checkout.error", ev);
             showFallback();
-            showBraveHint();
+            showBrowserHint();
           }
           if (ev.name === "checkout.completed") {
             window.location.href = successUrl;
@@ -85,12 +78,9 @@
     }
   }
 
-  detectBrave().then(function (isBrave) {
-    if (isBrave) showBraveHint();
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", initPaddle);
-    } else {
-      initPaddle();
-    }
-  });
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initPaddle);
+  } else {
+    initPaddle();
+  }
 })();

@@ -157,9 +157,9 @@ MESSAGES = {
     "buy.paddle_retry": "Retry Paddle",
     "buy.paddle_sepay_fallback": "Pay by card via SePay (VND)",
     "buy.paddle_brave": (
-        "<strong>Brave browser:</strong> click the <strong>🦁 Shields icon → Shields down</strong> "
-        "for <code>bodyexporter.com</code>, disable VPN extensions (e.g. VeePN), then <strong>refresh</strong>. "
-        "Brave often blocks <code>checkout-service.paddle.com</code>."
+        "<strong>Microsoft Edge:</strong> click the <strong>🔒</strong> icon left of the address bar → "
+        "<strong>Tracking prevention</strong> → set <strong>Off</strong> for this site (or add an exception). "
+        "Disable VPN / ad-block extensions (🧩 puzzle icon), then <strong>refresh</strong>."
     ),
     "buy.paddle_vn_fallback": "Or pay with VietQR (VND) on the buy page",
     "buy.paddle_support": (

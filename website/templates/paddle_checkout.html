@@ -19,7 +19,7 @@
   <p class="hint flash-err">{{ t('buy.paddle_create_fail', error=paddle_error) }}</p>
   <p><a class="btn btn-secondary" href="/buy">{{ t('buy.paddle_back') }}</a></p>
   {% elif txn_id %}
-  <div id="paddle-brave-hint" class="paddle-brave-hint is-hidden">{{ t('buy.paddle_brave') | safe }}</div>
+  <div id="paddle-brave-hint" class="paddle-brave-hint">{{ t('buy.paddle_brave') | safe }}</div>
   <p id="paddle-status" class="hint muted" data-opening="{{ t('buy.paddle_opening') }}">{{ t('buy.paddle_opening') }}</p>
   <div id="paddle-checkout-frame" class="paddle-checkout-frame"></div>
   <p id="paddle-network-help" class="hint flash-err paddle-fallback-box is-hidden">{{ t('buy.paddle_network') | safe }}</p>
