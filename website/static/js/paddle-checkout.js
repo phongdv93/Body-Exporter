@@ -62,21 +62,8 @@
           }
         },
       });
-      if (statusEl) statusEl.textContent = statusEl.dataset.opening || statusEl.textContent;
-      /* ?_ptxn= in URL — Paddle opens overlay automatically after Initialize */
-      window.setTimeout(function () {
-        if (helpEl && !helpEl.classList.contains("is-hidden")) return;
-        if (fallbackEl && !fallbackEl.classList.contains("is-hidden")) return;
-        try {
-          Paddle.Checkout.open({
-            transactionId: txnId,
-            settings: { successUrl: successUrl },
-          });
-        } catch (err) {
-          console.error(err);
-          showFallback();
-        }
-      }, 400);
+      if (statusEl) statusEl.classList.add("is-hidden");
+      /* URL có ?_ptxn= — Paddle tự mở checkout sau Initialize (không gọi Checkout.open thêm) */
     } catch (err) {
       console.error(err);
       showFallback();
