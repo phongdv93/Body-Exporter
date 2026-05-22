@@ -70,6 +70,9 @@
           }
         },
       });
+      Paddle.Checkout.open({
+        transactionId: txnId,
+      });
       if (statusEl) statusEl.classList.add("is-hidden");
       /* ?_ptxn= on URL — Paddle opens inline checkout after Initialize */
     } catch (err) {
