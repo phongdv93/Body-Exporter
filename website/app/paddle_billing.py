@@ -31,6 +31,7 @@ _SIGNATURE_MAX_SKEW_SEC = 300
 def paddle_configured() -> bool:
     return bool(
         (config.PADDLE_CLIENT_TOKEN or "").strip()
+        and (config.PADDLE_API_KEY or "").strip()
         and (config.PADDLE_PRICE_ID or "").strip()
         and (config.PADDLE_WEBHOOK_SECRET or "").strip()
     )
@@ -163,12 +164,16 @@ def create_paddle_checkout_transaction(email: str) -> dict[str, str | None]:
         return {"transaction_id": None, "checkout_url": None, "error": str(ex)[:120], "error_code": None}
 
 
-def paddle_checkout_settings() -> dict[str, str]:
+def paddle_checkout_settings(*, display_mode: str = "overlay") -> dict[str, str]:
     env = (config.PADDLE_ENV or "sandbox").strip().lower()
+    mode = (display_mode or "overlay").strip().lower()
+    if mode not in ("overlay", "inline"):
+        mode = "overlay"
     return {
         "client_token": (config.PADDLE_CLIENT_TOKEN or "").strip(),
         "price_id": (config.PADDLE_PRICE_ID or "").strip(),
         "environment": "sandbox" if env == "sandbox" else "production",
+        "display_mode": mode,
         "success_url": f"{config.SITE_URL.rstrip('/')}/buy/success",
         "buy_page_url": f"{config.SITE_URL.rstrip('/')}/buy",
         "paddle_page_url": f"{config.SITE_URL.rstrip('/')}/buy/paddle",
