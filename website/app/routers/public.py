@@ -23,6 +23,7 @@ from app.paddle_billing import (
     create_paddle_checkout_transaction,
     paddle_checkout_settings,
     paddle_configured,
+    paddle_customer_id_for_email,
 )
 from app.i18n import (
     LANG_COOKIE,
@@ -267,10 +268,10 @@ def download_go(request: Request, db: Session = Depends(get_db)):
 
 @router.get("/buy")
 def buy_get(request: Request, email: str = "", pay: str = "", db: Session = Depends(get_db)):
-    ptxn = (request.query_params.get("_ptxn") or "").strip()
+    ptxn = (request.query_params.get("_ptxn") or request.query_params.get("txn") or "").strip()
     if ptxn:
         em = (email or request.query_params.get("email") or "").strip()
-        qs = f"_ptxn={quote(ptxn)}"
+        qs = f"txn={quote(ptxn)}"
         if em:
             qs += f"&email={quote(em)}"
         return RedirectResponse(f"/buy/paddle?{qs}", status_code=303)
@@ -281,21 +282,29 @@ def buy_get(request: Request, email: str = "", pay: str = "", db: Session = Depe
 def buy_paddle_page(
     request: Request,
     email: str = "",
+    txn: str = "",
     _ptxn: str = "",
     db: Session = Depends(get_db),
 ):
-    """Dedicated Paddle checkout page (inline). Avoids /buy JS conflicts."""
+    """Dedicated Paddle checkout page (overlay). Avoids /buy JS conflicts."""
     if not paddle_configured():
         return RedirectResponse("/buy", status_code=303)
     email = email.strip()
-    ptxn = (_ptxn or "").strip()
+    ptxn = (txn or _ptxn or "").strip()
+    if (_ptxn or "").strip() and not (txn or "").strip():
+        qs = f"txn={quote(_ptxn.strip())}"
+        if email:
+            qs += f"&email={quote(email)}"
+        return RedirectResponse(f"/buy/paddle?{qs}", status_code=303)
     paddle_error = None
+    customer_id = paddle_customer_id_for_email(email) if email and "@" in email else None
     if not ptxn and email and "@" in email:
-        result = create_paddle_checkout_transaction(email)
+        result = create_paddle_checkout_transaction(email, currency_code="USD")
         ptxn = (result.get("transaction_id") or "").strip()
+        customer_id = (result.get("customer_id") or "").strip() or None
         if ptxn:
-            qs = f"_ptxn={quote(ptxn)}&email={quote(email)}"
-            return RedirectResponse(f"/buy/paddle?{qs}", status_code=303)
+            url = result.get("checkout_url") or f"/buy/paddle?txn={quote(ptxn)}&email={quote(email)}"
+            return RedirectResponse(url, status_code=303)
         paddle_error = result.get("error_code") or result.get("error") or "paddle_create_failed"
     content = get_content(db)
     pg_ok = pg_checkout_available_for_content(content)
@@ -310,7 +319,9 @@ def buy_paddle_page(
             txn_id=ptxn,
             paddle_error=paddle_error,
             pg_fallback_available=pg_ok,
-            paddle_checkout_json=json.dumps(paddle_checkout_settings()),
+            paddle_checkout_json=json.dumps(
+                paddle_checkout_settings(customer_id=customer_id, customer_email=email)
+            ),
         ),
     )
 

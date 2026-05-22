@@ -5,6 +5,7 @@
   const frame = document.getElementById("paddle-checkout-frame");
   const statusEl = document.getElementById("paddle-status");
   const helpEl = document.getElementById("paddle-network-help");
+  const detailEl = document.getElementById("paddle-error-detail");
   const fallbackEl = document.getElementById("paddle-fallback-actions");
   const braveHint = document.getElementById("paddle-brave-hint");
   const btnRetry = document.getElementById("paddle-btn-retry");
@@ -20,11 +21,14 @@
     console.error(e);
     return;
   }
-  if (!cfg.client_token || !txnId) return;
 
   const params = new URLSearchParams(window.location.search);
-  const email = (params.get("email") || "").trim();
-  const hasPtxnInUrl = Boolean((params.get("_ptxn") || "").trim());
+  const email = (params.get("email") || cfg.customer_email || "").trim();
+  if (!txnId) {
+    txnId = (params.get("txn") || params.get("_ptxn") || "").trim();
+  }
+  if (!cfg.client_token || !txnId) return;
+
   const displayMode =
     params.get("display") === "inline" || cfg.display_mode === "inline"
       ? "inline"
@@ -41,11 +45,36 @@
     return fallback;
   }
 
-  function showFallback() {
+  function formatPaddleError(ev) {
+    if (!ev || !ev.data) return "";
+    const d = ev.data;
+    if (typeof d === "string") return d;
+    if (d.detail) return String(d.detail);
+    if (d.message) return String(d.message);
+    if (d.error && d.error.detail) return String(d.error.detail);
+    if (Array.isArray(d.errors) && d.errors.length) {
+      const first = d.errors[0];
+      return (first && (first.details || first.detail || first.code)) || "";
+    }
+    try {
+      return JSON.stringify(d).slice(0, 240);
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function showErrorDetail(text) {
+    if (!detailEl || !text) return;
+    detailEl.textContent = text;
+    detailEl.classList.remove("is-hidden");
+  }
+
+  function showFallback(errText) {
     if (helpEl) helpEl.classList.remove("is-hidden");
     if (fallbackEl) fallbackEl.classList.remove("is-hidden");
     if (statusEl) statusEl.classList.add("is-hidden");
     if (frame) frame.classList.add("is-hidden");
+    if (errText) showErrorDetail(errText);
     clearTimeout(failTimer);
   }
 
@@ -59,6 +88,7 @@
     if (statusEl) statusEl.classList.add("is-hidden");
     if (braveHint) braveHint.classList.add("is-hidden");
     if (helpEl) helpEl.classList.add("is-hidden");
+    if (detailEl) detailEl.classList.add("is-hidden");
     if (fallbackEl) fallbackEl.classList.add("is-hidden");
   }
 
@@ -89,7 +119,7 @@
       if (cfg.environment === "sandbox" && Paddle.Environment && Paddle.Environment.set) {
         Paddle.Environment.set("sandbox");
       }
-      Paddle.Initialize({
+      const initCfg = {
         token: cfg.client_token,
         checkout: { settings: buildSettings() },
         eventCallback: function (ev) {
@@ -99,31 +129,51 @@
           }
           if (ev.name === "checkout.error") {
             console.error("Paddle checkout.error", ev);
-            showFallback();
+            const detail = formatPaddleError(ev);
+            showFallback(detail);
             showBrowserHint();
+          }
+          if (ev.name === "checkout.warning") {
+            console.warn("Paddle checkout.warning", ev);
           }
           if (ev.name === "checkout.completed") {
             window.location.href = successUrl;
           }
         },
-      });
+      };
+      if (cfg.customer_id) {
+        initCfg.pwCustomer = { id: cfg.customer_id };
+      }
+      Paddle.Initialize(initCfg);
       paddleInitialized = true;
       return true;
     } catch (err) {
       console.error(err);
-      showFallback();
+      showFallback(String(err));
       return false;
     }
   }
 
-  /** Paddle auto-opens when ?_ptxn= is in the URL — do not call Checkout.open twice. */
+  function checkoutCustomer() {
+    if (cfg.customer_id) {
+      return { id: cfg.customer_id };
+    }
+    if (email) {
+      return { email: email };
+    }
+    return undefined;
+  }
+
   function openCheckoutManual() {
     if (!initPaddleOnce()) return;
+    const payload = { transactionId: txnId };
+    const customer = checkoutCustomer();
+    if (customer) payload.customer = customer;
     try {
-      Paddle.Checkout.open({ transactionId: txnId });
+      Paddle.Checkout.open(payload);
     } catch (err) {
       console.error(err);
-      showFallback();
+      showFallback(String(err));
       showBrowserHint();
     }
   }
@@ -132,13 +182,13 @@
     clearTimeout(failTimer);
     failTimer = setTimeout(function () {
       if (!checkoutLoaded) {
-        showFallback();
+        showFallback(msg("msgTimeout", ""));
         showBrowserHint();
       }
-    }, 12000);
+    }, 15000);
   }
 
-  function startCheckout(forceOpen) {
+  function startCheckout() {
     if (!initPaddleOnce()) return;
 
     if (displayMode === "overlay" && statusEl) {
@@ -150,38 +200,32 @@
       if (frame) frame.classList.add("is-hidden");
     }
 
-    if (forceOpen || !hasPtxnInUrl) {
-      openCheckoutManual();
-    }
-
+    openCheckoutManual();
     scheduleFailTimer();
   }
 
   if (btnRetry) {
     btnRetry.addEventListener("click", function () {
       checkoutLoaded = false;
+      if (detailEl) detailEl.classList.add("is-hidden");
       if (helpEl) helpEl.classList.add("is-hidden");
       if (fallbackEl) fallbackEl.classList.add("is-hidden");
       if (statusEl) {
         statusEl.classList.remove("is-hidden");
         statusEl.textContent = msg("msgOpening", "Opening Paddle checkout…");
       }
-      startCheckout(true);
+      startCheckout();
     });
   }
 
   if (btnOpenOverlay) {
     btnOpenOverlay.addEventListener("click", function () {
       checkoutLoaded = false;
+      if (detailEl) detailEl.classList.add("is-hidden");
       if (helpEl) helpEl.classList.add("is-hidden");
       if (fallbackEl) fallbackEl.classList.add("is-hidden");
       openCheckoutManual();
-      failTimer = setTimeout(function () {
-        if (!checkoutLoaded) {
-          showFallback();
-          showBrowserHint();
-        }
-      }, 12000);
+      scheduleFailTimer();
     });
   }
 

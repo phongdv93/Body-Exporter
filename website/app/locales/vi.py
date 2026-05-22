@@ -135,6 +135,12 @@ MESSAGES = {
     "buy.paddle_overlay_hint": "Cửa sổ thanh toán Paddle sẽ bật lên. Nếu không thấy, cho phép pop-up hoặc bấm «Mở cửa sổ thanh toán» bên dưới.",
     "buy.paddle_open_window": "Mở cửa sổ thanh toán Paddle",
     "buy.paddle_js_missing": "Không tải được Paddle.js (cdn.paddle.com). Tắt VPN/AdBlock rồi F5.",
+    "buy.paddle_timeout": "Cổng thanh toán không phản hồi. Thử «Mở cửa sổ thanh toán» hoặc VietQR.",
+    "buy.paddle_domain_hint": (
+        "Paddle live: domain <code>bodyexporter.com</code> phải được Paddle <strong>duyệt</strong> "
+        "(Checkout → Checkout settings → Default payment link = <code>https://bodyexporter.com/buy/paddle</code>). "
+        "Chưa duyệt → lỗi «Something went wrong»."
+    ),
     "buy.btn_edit_email": "Sửa email",
     "buy.step2_email_sent": "License gửi tới",
     "buy.step2_vn_lead": "Quét QR hoặc chuyển khoản đúng số tiền và nội dung CK bên dưới.",

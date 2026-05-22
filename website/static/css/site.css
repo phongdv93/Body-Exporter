@@ -253,6 +253,9 @@ body {
   min-height: 680px;
 }
 .paddle-fallback-box { margin: 1rem 0; padding: 0.75rem; border-radius: 8px; }
+.paddle-error-detail { margin: 0.75rem 0; font-size: 13px; word-break: break-word; }
+.paddle-error-detail.is-hidden { display: none; }
+.paddle-domain-hint { font-size: 13px; margin-bottom: 1rem; }
 .paddle-fallback-actions {
   display: flex;
   flex-wrap: wrap;

@@ -8,6 +8,7 @@ import json
 import logging
 import time
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 from sqlalchemy.orm import Session
@@ -98,6 +99,47 @@ def paddle_admin_status() -> dict[str, Any]:
     }
 
 
+def _paddle_headers(api_key: str) -> dict[str, str]:
+    return {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+
+def _get_or_create_paddle_customer(api_key: str, email: str) -> str | None:
+    """Return Paddle customer id (ctm_…) for checkout."""
+    email = (email or "").strip()
+    if not email or "@" not in email:
+        return None
+    base = _paddle_api_base()
+    headers = _paddle_headers(api_key)
+    try:
+        r = httpx.get(
+            f"{base}/customers",
+            params={"email": email, "per_page": 1},
+            headers=headers,
+            timeout=15.0,
+        )
+        if r.is_success:
+            for row in (r.json().get("data") or []):
+                if isinstance(row, dict):
+                    cid = (row.get("id") or "").strip()
+                    if cid:
+                        return cid
+        r = httpx.post(
+            f"{base}/customers",
+            headers=headers,
+            json={"email": email},
+            timeout=15.0,
+        )
+        if r.is_success:
+            return ((r.json().get("data") or {}).get("id") or "").strip() or None
+        log.warning("Paddle create customer %s: %s", r.status_code, r.text[:300])
+    except Exception as ex:
+        log.debug("Paddle customer lookup failed: %s", ex)
+    return None
+
+
 def _paddle_error_code(response: httpx.Response) -> str:
     try:
         payload = response.json()
@@ -112,32 +154,58 @@ def _paddle_error_code(response: httpx.Response) -> str:
     return ""
 
 
-def create_paddle_checkout_transaction(email: str) -> dict[str, str | None]:
+def paddle_customer_id_for_email(email: str) -> str | None:
+    api_key = (config.PADDLE_API_KEY or "").strip()
+    if not api_key:
+        return None
+    return _get_or_create_paddle_customer(api_key, email)
+
+
+def create_paddle_checkout_transaction(
+    email: str,
+    *,
+    currency_code: str | None = None,
+) -> dict[str, str | None]:
     """Create Paddle transaction server-side."""
     api_key = (config.PADDLE_API_KEY or "").strip()
     price_id = (config.PADDLE_PRICE_ID or "").strip()
     if not api_key or not price_id:
-        return {"transaction_id": None, "checkout_url": None, "error": "paddle_api_not_configured", "error_code": None}
+        return {
+            "transaction_id": None,
+            "checkout_url": None,
+            "customer_id": None,
+            "error": "paddle_api_not_configured",
+            "error_code": None,
+        }
     email = (email or "").strip()
     if not email or "@" not in email:
-        return {"transaction_id": None, "checkout_url": None, "error": "invalid_email", "error_code": None}
+        return {
+            "transaction_id": None,
+            "checkout_url": None,
+            "customer_id": None,
+            "error": "invalid_email",
+            "error_code": None,
+        }
+    customer_id = _get_or_create_paddle_customer(api_key, email)
     site = config.SITE_URL.rstrip("/")
     paddle_page = f"{site}/buy/paddle"
-    body = {
+    body: dict[str, Any] = {
         "items": [{"price_id": price_id, "quantity": 1}],
-        "customer": {"email": email},
         "custom_data": {"buyer_email": email},
         "collection_mode": "automatic",
-        # Dedicated page with inline Paddle checkout only (not /buy/success).
         "checkout": {"url": paddle_page},
     }
+    if customer_id:
+        body["customer_id"] = customer_id
+    else:
+        body["customer"] = {"email": email}
+    cc = (currency_code or "").strip().upper()
+    if cc in ("USD", "VND", "EUR", "GBP"):
+        body["currency_code"] = cc
     try:
         r = httpx.post(
             f"{_paddle_api_base()}/transactions",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
+            headers=_paddle_headers(api_key),
             json=body,
             timeout=20.0,
         )
@@ -147,6 +215,7 @@ def create_paddle_checkout_transaction(email: str) -> dict[str, str | None]:
             return {
                 "transaction_id": None,
                 "checkout_url": None,
+                "customer_id": customer_id,
                 "error": code or f"paddle_api_{r.status_code}",
                 "error_code": code or None,
             }
@@ -154,17 +223,43 @@ def create_paddle_checkout_transaction(email: str) -> dict[str, str | None]:
         txn_id = (data.get("id") or "").strip() or None
         checkout = data.get("checkout") or {}
         checkout_url = (checkout.get("url") or "").strip() or None
-        if txn_id and not checkout_url:
-            checkout_url = f"{paddle_page}?_ptxn={txn_id}"
         if txn_id:
-            return {"transaction_id": txn_id, "checkout_url": checkout_url, "error": None, "error_code": None}
-        return {"transaction_id": None, "checkout_url": checkout_url, "error": "no_transaction_id", "error_code": None}
+            # Internal page uses ?txn= (not ?_ptxn) so we control Checkout.open with customer info.
+            checkout_url = f"{paddle_page}?txn={txn_id}"
+            if email:
+                checkout_url += f"&email={quote(email)}"
+        if txn_id:
+            return {
+                "transaction_id": txn_id,
+                "checkout_url": checkout_url,
+                "customer_id": customer_id or (data.get("customer_id") or "").strip() or None,
+                "error": None,
+                "error_code": None,
+            }
+        return {
+            "transaction_id": None,
+            "checkout_url": checkout_url,
+            "customer_id": customer_id,
+            "error": "no_transaction_id",
+            "error_code": None,
+        }
     except Exception as ex:
         log.exception("Paddle create transaction failed")
-        return {"transaction_id": None, "checkout_url": None, "error": str(ex)[:120], "error_code": None}
+        return {
+            "transaction_id": None,
+            "checkout_url": None,
+            "customer_id": customer_id,
+            "error": str(ex)[:120],
+            "error_code": None,
+        }
 
 
-def paddle_checkout_settings(*, display_mode: str = "overlay") -> dict[str, str]:
+def paddle_checkout_settings(
+    *,
+    display_mode: str = "overlay",
+    customer_id: str | None = None,
+    customer_email: str | None = None,
+) -> dict[str, str]:
     env = (config.PADDLE_ENV or "sandbox").strip().lower()
     mode = (display_mode or "overlay").strip().lower()
     if mode not in ("overlay", "inline"):
@@ -174,6 +269,8 @@ def paddle_checkout_settings(*, display_mode: str = "overlay") -> dict[str, str]
         "price_id": (config.PADDLE_PRICE_ID or "").strip(),
         "environment": "sandbox" if env == "sandbox" else "production",
         "display_mode": mode,
+        "customer_id": (customer_id or "").strip(),
+        "customer_email": (customer_email or "").strip(),
         "success_url": f"{config.SITE_URL.rstrip('/')}/buy/success",
         "buy_page_url": f"{config.SITE_URL.rstrip('/')}/buy",
         "paddle_page_url": f"{config.SITE_URL.rstrip('/')}/buy/paddle",

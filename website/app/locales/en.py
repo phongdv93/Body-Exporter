@@ -139,6 +139,12 @@ MESSAGES = {
     "buy.paddle_overlay_hint": "A secure Paddle payment window should open. Allow pop-ups, or click «Open payment window» below.",
     "buy.paddle_open_window": "Open Paddle payment window",
     "buy.paddle_js_missing": "Paddle.js did not load (cdn.paddle.com). Disable VPN/ad-block and refresh.",
+    "buy.paddle_timeout": "Checkout did not respond. Try «Open payment window» or VietQR.",
+    "buy.paddle_domain_hint": (
+        "Paddle live: <code>bodyexporter.com</code> must be <strong>approved</strong> by Paddle "
+        "(Checkout → Checkout settings → Default payment link = <code>https://bodyexporter.com/buy/paddle</code>). "
+        "If not approved you get «Something went wrong»."
+    ),
     "buy.btn_edit_email": "Edit email",
     "buy.step2_email_sent": "License will be sent to",
     "buy.step2_vn_lead": "Scan the QR or transfer the exact amount and memo below.",
