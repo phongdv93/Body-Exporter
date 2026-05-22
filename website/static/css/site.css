@@ -241,6 +241,45 @@ body {
     text-align: right;
   }
 }
+.pay-mode-switch {
+  display: inline-flex;
+  gap: 0.35rem;
+  margin: 1rem 0 1.25rem;
+  padding: 0.25rem;
+  background: var(--bg-elevated, rgba(255, 255, 255, 0.06));
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+.pay-mode-btn {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.pay-mode-btn.active {
+  background: var(--accent, #2dd4bf);
+  color: #0b1218;
+}
+.pay-mode-btn:hover:not(.active) {
+  color: var(--text, #e8edf4);
+}
+.pay-panel.is-hidden {
+  display: none;
+}
+.payment-panel-inline {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+.payment-panel-inline h3 {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+}
 .buy-form label { display: block; font-weight: 600; margin-bottom: 0.35rem; font-size: 0.9rem; }
 .buy-form input[type="email"] {
   width: 100%;

@@ -18,6 +18,10 @@
   }
 }
 </script>
+{% if paddle_available %}
+<script src="https://cdn.paddle.com/paddle/v2/paddle.js" defer></script>
+{% endif %}
+<script src="/static/js/buy-pay.js" defer></script>
 {% endblock %}
 {% block content %}
 <section class="page-head">
@@ -53,47 +57,86 @@
   </p>
 </section>
 
-<section class="card buy-form-card">
+<section class="card buy-form-card buy-checkout"
+         data-pay-mode="{{ pay_mode }}"
+         data-geo-default="{{ geo_default_pay_mode }}"
+         data-cookie-name="be_pay_mode">
   <h2 class="buy-step-heading">{{ t('buy.checkout_title') }}</h2>
-  <form method="post" action="/buy" class="buy-form">
-    <label for="email">{{ t('buy.email_label') }}</label>
-    <input type="email" id="email" name="email" required placeholder="you@company.com"
-           value="{{ email }}" autocomplete="email">
+
+  <label for="email">{{ t('buy.email_label') }}</label>
+  <input type="email" id="email" name="email" required placeholder="you@company.com"
+         value="{{ email }}" autocomplete="email">
+
+  {% if vietqr_available and (paddle_available or pg_available) %}
+  <div class="pay-mode-switch" role="tablist" aria-label="{{ t('buy.pay_mode_label') }}">
+    <button type="button" class="pay-mode-btn{% if pay_mode == 'vn' %} active{% endif %}" data-pay-mode="vn" role="tab" aria-selected="{{ 'true' if pay_mode == 'vn' else 'false' }}">
+      {{ t('buy.mode_vn') }}
+    </button>
+    <button type="button" class="pay-mode-btn{% if pay_mode == 'intl' %} active{% endif %}" data-pay-mode="intl" role="tab" aria-selected="{{ 'true' if pay_mode == 'intl' else 'false' }}">
+      {{ t('buy.mode_intl') }}
+    </button>
+  </div>
+  {% endif %}
+
+  <div id="pay-panel-vn" class="pay-panel{% if pay_mode != 'vn' %} is-hidden{% endif %}" role="tabpanel">
+    {% if vietqr_available %}
     {% if buy_form_note %}
     <p class="hint">{{ buy_form_note | safe }}</p>
     {% else %}
     <p class="hint">{{ t('buy.email_hint', email=email or 'email@example.com') | safe }}</p>
     {% endif %}
-    <div class="pay-methods">
-      <button type="submit" name="pay_method" value="qr" class="btn btn-primary">{{ t('buy.btn_qr') }}</button>
-      {% if pg_available %}
-      <button type="submit" name="pay_method" value="card" class="btn btn-ghost">{{ t('buy.btn_card') }}</button>
+    <form method="post" action="/buy" class="buy-form" id="buy-form-qr">
+      <input type="hidden" name="email" id="email-hidden-qr" value="{{ email }}">
+      <div class="pay-methods">
+        <button type="submit" name="pay_method" value="qr" class="btn btn-primary">{{ t('buy.btn_qr') }}</button>
+      </div>
+    </form>
+    {% if email and qr_url %}
+    <div class="payment-panel-inline">
+      <h3>{{ t('buy.transfer_title', amount=('{:,}'.format(amount_vnd).replace(',', '.'))) }}</h3>
+      <div class="pay-grid">
+        <div class="qr-wrap">
+          <img src="{{ qr_url }}" alt="VietQR chuyển khoản" width="240" height="240" loading="lazy">
+        </div>
+        <dl class="bank-dl">
+          {% if bank.bank %}<dt>{{ t('buy.bank') }}</dt><dd>{{ bank.bank }}</dd>{% endif %}
+          {% if bank.account %}<dt>{{ t('buy.account') }}</dt><dd><code>{{ bank.account }}</code></dd>{% endif %}
+          <dt>{{ t('buy.amount') }}</dt><dd><strong>{{ '{:,}'.format(amount_vnd).replace(',', '.') }} VND</strong></dd>
+          <dt>{{ t('buy.memo') }}</dt><dd><code>{{ memo }}</code></dd>
+        </dl>
+      </div>
+      {% if buy_payment_note %}
+      <p class="hint buy-email-hint">{{ buy_payment_note | safe }}</p>
+      {% else %}
+      <p class="hint buy-email-hint">{{ t('buy.wait_hint', email=email, memo=memo) | safe }}</p>
       {% endif %}
     </div>
-  </form>
-</section>
-
-{% if email and qr_url %}
-<section class="card payment-panel">
-  <h2>{{ t('buy.transfer_title', amount=('{:,}'.format(amount_vnd).replace(',', '.'))) }}</h2>
-  <div class="pay-grid">
-    <div class="qr-wrap">
-      <img src="{{ qr_url }}" alt="VietQR chuyển khoản" width="240" height="240" loading="lazy">
-    </div>
-    <dl class="bank-dl">
-      {% if bank.bank %}<dt>{{ t('buy.bank') }}</dt><dd>{{ bank.bank }}</dd>{% endif %}
-      {% if bank.account %}<dt>{{ t('buy.account') }}</dt><dd><code>{{ bank.account }}</code></dd>{% endif %}
-      <dt>{{ t('buy.amount') }}</dt><dd><strong>{{ '{:,}'.format(amount_vnd).replace(',', '.') }} VND</strong></dd>
-      <dt>{{ t('buy.memo') }}</dt><dd><code>{{ memo }}</code></dd>
-    </dl>
+    {% endif %}
+    {% else %}
+    <p class="muted">{{ t('buy.vietqr_unavailable', email=support_email) | safe }}</p>
+    {% endif %}
   </div>
-  {% if buy_payment_note %}
-  <p class="hint buy-email-hint">{{ buy_payment_note | safe }}</p>
-  {% else %}
-  <p class="hint buy-email-hint">{{ t('buy.wait_hint', email=email, memo=memo) | safe }}</p>
+
+  <div id="pay-panel-intl" class="pay-panel{% if pay_mode != 'intl' %} is-hidden{% endif %}" role="tabpanel">
+    <p class="hint">{{ t('buy.intl_hint', usd=price_usd or '—') | safe }}</p>
+    {% if paddle_available %}
+    <p class="hint">{{ t('buy.paddle_hint') }}</p>
+    <button type="button" class="btn btn-primary" id="btn-paddle-checkout">{{ t('buy.btn_paddle') }}</button>
+    <script type="application/json" id="paddle-config">{{ paddle_checkout_json | safe }}</script>
+    {% elif pg_available %}
+    <form method="post" action="/buy" class="buy-form" id="buy-form-card">
+      <input type="hidden" name="email" id="email-hidden-card" value="{{ email }}">
+      <button type="submit" name="pay_method" value="card" class="btn btn-primary">{{ t('buy.btn_card') }}</button>
+    </form>
+    {% else %}
+    <p class="muted">{{ t('buy.intl_unavailable', email=support_email) | safe }}</p>
+    {% endif %}
+  </div>
+
+  {% if not vietqr_available and not paddle_available and not pg_available %}
+  <p class="muted">{{ t('buy.checkout_unavailable', email=support_email) | safe }}</p>
   {% endif %}
 </section>
-{% endif %}
 
 {% if buy_footer %}
 <section class="card card-dim prose-footer">

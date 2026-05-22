@@ -11,7 +11,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from app import config
 from app.database import init_db
 from app.error_pages import http_exception_handler, server_error_handler
-from app.routers import admin_routes, client_api, licenses_admin, public, sepay_webhook
+from app.routers import admin_routes, client_api, licenses_admin, paddle_webhook, public, sepay_webhook
 from app.sitemap import build_sitemap_xml
 
 _log = logging.getLogger("uvicorn.error")
@@ -54,6 +54,7 @@ app.mount("/static", StaticFiles(directory=static_dir), name="static")
 app.include_router(public.router)
 app.include_router(client_api.router)
 app.include_router(sepay_webhook.router)
+app.include_router(paddle_webhook.router)
 app.include_router(admin_routes.router)
 app.include_router(licenses_admin.router)
 

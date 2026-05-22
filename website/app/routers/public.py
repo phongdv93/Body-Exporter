@@ -10,7 +10,15 @@ from app import config
 from app.auth import get_db
 from app.database import get_content
 from app.download_tracking import record_plugin_download
+from app.geo_pay import (
+    PAY_MODE_COOKIE,
+    PAY_MODE_MAX_AGE,
+    geo_default_pay_mode,
+    pay_mode_cookie_value,
+    resolve_pay_mode,
+)
 from app.legal_pages import legal_html, legal_page_title
+from app.paddle_billing import paddle_checkout_settings, paddle_configured
 from app.i18n import (
     LANG_COOKIE,
     LANG_COOKIE_MAX_AGE,
@@ -253,8 +261,8 @@ def download_go(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/buy")
-def buy_get(request: Request, email: str = "", db: Session = Depends(get_db)):
-    return _render_buy(request, db, email=email.strip())
+def buy_get(request: Request, email: str = "", pay: str = "", db: Session = Depends(get_db)):
+    return _buy_response(request, db, email=email.strip(), pay_query=pay)
 
 
 @router.post("/buy")
@@ -265,9 +273,9 @@ def buy_post(
     db: Session = Depends(get_db),
 ):
     email = email.strip()
-    if pay_method == "card" and pg_checkout_available_for_content(get_content(db)):
+    if pay_method == "card" and pg_checkout_available_for_content(get_content(db)) and not paddle_configured():
         return _redirect_pg_checkout(request, email, db)
-    return _render_buy(request, db, email=email)
+    return _buy_response(request, db, email=email)
 
 
 def _redirect_pg_checkout(request: Request, email: str, db: Session):
@@ -307,7 +315,7 @@ def _redirect_pg_checkout(request: Request, email: str, db: Session):
     return HTMLResponse(page)
 
 
-def _render_buy(request: Request, db: Session, email: str = ""):
+def _buy_response(request: Request, db: Session, email: str = "", pay_query: str = ""):
     content = get_content(db)
     base = content.sepay_qr_base_url or config.SEPAY_QR_BASE_URL
     bank = parse_qr_base(base)
@@ -318,7 +326,17 @@ def _render_buy(request: Request, db: Session, email: str = ""):
     memo = build_transfer_memo(email) if email else ""
     term_days = max(1, int(content.license_term_days or config.SEPAY_LICENSE_DAYS))
     price_usd = config.license_price_usd_display(amount)
-    return html_response(
+    geo_default = geo_default_pay_mode(request)
+    vietqr_ok = bool((base or "").strip())
+    paddle_ok = paddle_configured()
+    pg_ok = pg_checkout_available_for_content(content)
+    pay_mode = resolve_pay_mode(request, query_override=pay_query)
+    if pay_mode == "intl" and not paddle_ok and not pg_ok:
+        pay_mode = "vn"
+    if pay_mode == "vn" and not vietqr_ok and (paddle_ok or pg_ok):
+        pay_mode = "intl"
+
+    resp = html_response(
         templates,
         "buy.html",
         _ctx(
@@ -332,9 +350,25 @@ def _render_buy(request: Request, db: Session, email: str = ""):
             amount_vnd=amount,
             license_term_days=term_days,
             price_usd=price_usd,
-            pg_available=pg_checkout_available_for_content(content),
+            pay_mode=pay_mode,
+            geo_default_pay_mode=geo_default,
+            vietqr_available=vietqr_ok,
+            paddle_available=paddle_ok,
+            paddle_checkout_json=json.dumps(paddle_checkout_settings()) if paddle_ok else "",
+            pg_available=pg_ok and not paddle_ok,
         ),
     )
+    cookie_val = pay_mode_cookie_value(pay_query) or pay_mode_cookie_value(pay_mode)
+    if cookie_val:
+        resp.set_cookie(
+            PAY_MODE_COOKIE,
+            cookie_val,
+            max_age=PAY_MODE_MAX_AGE,
+            httponly=False,
+            samesite="lax",
+            secure=config.SITE_URL.startswith("https://"),
+        )
+    return resp
 
 
 def _legal_response(request: Request, db: Session, page: str):

@@ -145,6 +145,22 @@ def ensure_be_client_machines_table() -> None:
         log.exception("ensure_be_client_machines_table failed")
 
 
+def ensure_be_licenses_columns() -> None:
+    try:
+        insp = inspect(engine)
+        if "be_licenses" not in insp.get_table_names():
+            return
+        have = _table_columns(insp, "be_licenses")
+        if "paddle_transaction_id" in have:
+            return
+        stmt = "ALTER TABLE be_licenses ADD COLUMN paddle_transaction_id VARCHAR(80)"
+        log.info("DB migrate: %s", stmt)
+        with engine.begin() as conn:
+            conn.execute(text(stmt))
+    except Exception:
+        log.exception("ensure_be_licenses_columns failed")
+
+
 def ensure_be_licenses_table() -> None:
     """Recreate be_licenses if it exists with wrong schema (shared DB / bad rename)."""
     try:
@@ -255,6 +271,7 @@ def init_db() -> None:
     rename_legacy_tables()
     Base.metadata.create_all(bind=engine)
     ensure_be_licenses_table()
+    ensure_be_licenses_columns()
     ensure_be_client_machines_table()
     ensure_be_download_events_table()
     ensure_schema()

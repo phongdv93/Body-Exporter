@@ -70,7 +70,8 @@ class License(Base):
     purchased_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     machine_fingerprint: Mapped[str | None] = mapped_column(String(256), nullable=True)
-    sepay_transaction_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True, unique=True)
+    sepay_transaction_id: Mapped[int | None] = mapped_column(BigInteger, unique=True, nullable=True)
+    paddle_transaction_id: Mapped[str | None] = mapped_column(String(80), unique=True, nullable=True)
     revoked: Mapped[bool] = mapped_column(Boolean, default=False)
     notes: Mapped[str] = mapped_column(Text, default="")
 

@@ -25,6 +25,7 @@ def issue_license_record(
     plan: str = "personal",
     days: int | None = None,
     sepay_transaction_id: int | None = None,
+    paddle_transaction_id: str | None = None,
     notes: str = "",
     send_email: bool = True,
     order_id_suffix: str = "",
@@ -48,6 +49,7 @@ def issue_license_record(
         expires_at=expires_at,
         machine_fingerprint=None,
         sepay_transaction_id=sepay_transaction_id,
+        paddle_transaction_id=(paddle_transaction_id or "").strip() or None,
         revoked=False,
         notes=(notes or "").strip(),
     )
@@ -77,3 +79,10 @@ def issue_license_record(
 
 def find_license_by_sepay_tx(db: Session, tx_id: int) -> License | None:
     return db.scalar(select(License).where(License.sepay_transaction_id == tx_id))
+
+
+def find_license_by_paddle_tx(db: Session, txn_id: str) -> License | None:
+    tid = (txn_id or "").strip()
+    if not tid:
+        return None
+    return db.scalar(select(License).where(License.paddle_transaction_id == tid))

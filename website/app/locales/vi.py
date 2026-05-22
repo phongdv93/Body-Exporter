@@ -126,6 +126,15 @@ MESSAGES = {
         '<a href="/privacy">Quyền riêng tư</a>, <a href="/refund">Hoàn tiền</a>.'
     ),
     "buy.checkout_title": "Thanh toán",
+    "buy.pay_mode_label": "Phương thức thanh toán",
+    "buy.mode_vn": "VietQR · chuyển khoản",
+    "buy.mode_intl": "Quốc tế · thẻ",
+    "buy.intl_hint": "Thanh toán bằng thẻ / PayPal (khoảng <strong>${usd} USD</strong>). License gửi email sau khi thanh toán thành công.",
+    "buy.paddle_hint": "Cổng Paddle — hỗ trợ thẻ quốc tế.",
+    "buy.btn_paddle": "Thanh toán quốc tế (Paddle)",
+    "buy.intl_unavailable": "Thanh toán quốc tế tạm chưa bật. Liên hệ <a href=\"mailto:{email}\">{email}</a>.",
+    "buy.vietqr_unavailable": "Chuyển khoản VN tạm chưa cấu hình. Liên hệ <a href=\"mailto:{email}\">{email}</a>.",
+    "buy.checkout_unavailable": "Chưa cấu hình thanh toán. Email <a href=\"mailto:{email}\">{email}</a>.",
     "buy.intro_default": (
         "Nhập email để nhận license tự động sau khi thanh toán. "
         "Chọn chuyển khoản QR hoặc thẻ bên dưới."

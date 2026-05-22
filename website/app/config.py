@@ -113,3 +113,10 @@ TELEMETRY_INACTIVE_DAYS = max(TELEMETRY_ACTIVE_DAYS + 1, int(os.getenv("TELEMETR
 DOWNLOAD_CONSENT_COOKIE = "be_dl_consent"
 DOWNLOAD_CONSENT_VALUE = "v1"
 DOWNLOAD_CONSENT_MAX_AGE = 60 * 60 * 24 * 730  # ~2 years
+
+# Paddle Billing (international checkout on /buy)
+PADDLE_CLIENT_TOKEN = os.getenv("PADDLE_CLIENT_TOKEN", "").strip()
+PADDLE_API_KEY = os.getenv("PADDLE_API_KEY", "").strip()
+PADDLE_WEBHOOK_SECRET = os.getenv("PADDLE_WEBHOOK_SECRET", "").strip()
+PADDLE_PRICE_ID = os.getenv("PADDLE_PRICE_ID", "").strip()
+PADDLE_ENV = os.getenv("PADDLE_ENV", "sandbox").strip().lower()

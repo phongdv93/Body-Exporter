@@ -130,6 +130,15 @@ MESSAGES = {
         '<a href="/privacy">Privacy</a>, and <a href="/refund">Refund</a> policies.'
     ),
     "buy.checkout_title": "Checkout",
+    "buy.pay_mode_label": "Payment method",
+    "buy.mode_vn": "VietQR · bank transfer",
+    "buy.mode_intl": "International · card",
+    "buy.intl_hint": "Pay by card / PayPal (about <strong>${usd} USD</strong>). Your license is emailed after successful payment.",
+    "buy.paddle_hint": "Secure checkout via Paddle.",
+    "buy.btn_paddle": "Pay internationally (Paddle)",
+    "buy.intl_unavailable": "International checkout is not enabled yet. Contact <a href=\"mailto:{email}\">{email}</a>.",
+    "buy.vietqr_unavailable": "Vietnamese bank transfer is not configured. Contact <a href=\"mailto:{email}\">{email}</a>.",
+    "buy.checkout_unavailable": "Checkout is not configured. Email <a href=\"mailto:{email}\">{email}</a>.",
     "buy.intro_default": (
         "Enter your email to receive a license automatically after payment. "
         "Choose bank transfer (QR) or card below."

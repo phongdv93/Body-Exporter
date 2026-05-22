@@ -75,6 +75,14 @@ Trên form verify website, dùng:
 | Refund policy | `https://bodyexporter.com/refund` |
 
 Link ba trang policy cũng có ở **footer** mọi trang công khai. Tùy chọn: `LICENSE_PRICE_USD` / `USD_VND_RATE` trong `.env` để hiện giá USD tham khảo trên `/buy`.
+
+### Thanh toán theo quốc gia (`/buy`)
+
+- IP **Việt Nam** (header `CF-IPCountry` hoặc GeoIP): mặc định **VietQR**; công tắc chuyển sang **Quốc tế (Paddle)**.
+- IP **khác**: mặc định **Paddle**; công tắc sang VietQR nếu cần.
+- Cookie `be_pay_mode` = `vn` | `intl` (hoặc `?pay=vn` / `?pay=intl`).
+
+**Paddle (Render env):** `PADDLE_CLIENT_TOKEN`, `PADDLE_PRICE_ID`, `PADDLE_WEBHOOK_SECRET`, `PADDLE_ENV=sandbox|production`. Webhook: `https://bodyexporter.com/webhook/paddle` → cấp license + email (giống SePay CK).
 - Optional **`SEO_OG_IMAGE`** in `.env` = full URL of a 1200×630 image for social share.
 
 **Production bắt buộc:** biến `SITE_URL=https://bodyexporter.com` (không dấu `/` cuối). Nếu sai, sitemap sẽ ghi URL `127.0.0.1` → Google không index.
