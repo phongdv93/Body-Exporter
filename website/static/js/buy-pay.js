@@ -275,6 +275,13 @@
           if (ev && ev.name === "checkout.error") {
             console.error("Paddle checkout.error", ev);
             setContinueLoading(false);
+            const detail = (ev.data && ev.data.detail) || "";
+            if (
+              lastPaddleCheckoutUrl &&
+              /network error/i.test(String(detail))
+            ) {
+              window.location.assign(lastPaddleCheckoutUrl);
+            }
           }
           if (ev && (ev.name === "checkout.closed" || ev.name === "checkout.completed")) {
             setContinueLoading(false);
@@ -312,48 +319,98 @@
     return paddleInitPromise;
   }
 
-  if (paddleAvailable && paddleCfg.client_token) {
-    ensurePaddleReady().catch(() => {});
+  function openCheckoutFromUrlParam() {
+    const params = new URLSearchParams(window.location.search);
+    const txn = params.get("_ptxn");
+    if (!txn || !paddleAvailable) return;
+    const email = (params.get("email") || (emailInput && emailInput.value) || "").trim();
+    if (emailInput && email && !emailInput.value) emailInput.value = email;
+    setContinueLoading(true);
+    ensurePaddleReady()
+      .then(() => openPaddleOverlay(txn, email))
+      .catch((err) => console.error(err))
+      .finally(() => setTimeout(() => setContinueLoading(false), 600));
   }
 
-  function openPaddleCheckout(email) {
+  if (paddleAvailable && paddleCfg.client_token) {
+    ensurePaddleReady()
+      .then(() => openCheckoutFromUrlParam())
+      .catch(() => {});
+  }
+
+  let lastPaddleCheckoutUrl = "";
+
+  function redirectToPaddleCheckout(url) {
+    if (!url) return false;
+    lastPaddleCheckoutUrl = url;
+    window.location.assign(url);
+    return true;
+  }
+
+  function buildBuyPtxnUrl(txnId) {
+    const base = paddleCfg.buy_page_url || window.location.pathname || "/buy";
+    const u = new URL(base, window.location.origin);
+    u.searchParams.set("_ptxn", txnId);
+    if (emailInput && emailInput.value.trim()) {
+      u.searchParams.set("email", emailInput.value.trim());
+    }
+    return u.toString();
+  }
+
+  function openPaddleOverlay(txnId, email) {
+    const opts = { transactionId: txnId };
+    if (email) {
+      opts.settings = {
+        successUrl: paddleCfg.success_url + "?email=" + encodeURIComponent(email),
+      };
+    }
+    Paddle.Checkout.open(opts);
+  }
+
+  function fetchPaddleCheckout(email) {
     return fetch("/buy/api/paddle-checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: email }),
-    })
-      .then((r) => r.json().then((data) => ({ data: data })))
-      .then(({ data }) => {
-        if (data.error_code === "transaction_default_checkout_url_not_set") {
-          alert(paddleDefaultLinkMessage());
-          return;
-        }
-        if (data.ok && data.transaction_id) {
-          Paddle.Checkout.open({ transactionId: data.transaction_id });
-          return;
-        }
-        if (data.checkout_url) {
-          window.location.href = data.checkout_url;
-          return;
-        }
-        if (data.use_client_price !== false && paddleCfg.price_id) {
-          Paddle.Checkout.open({
-            items: [{ priceId: paddleCfg.price_id, quantity: 1 }],
-            customer: { email: email },
-            customData: { buyer_email: email },
-            settings: {
-              successUrl:
-                paddleCfg.success_url + "?email=" + encodeURIComponent(email),
-            },
-          });
-          return;
-        }
-        alert(
-          (data.error && String(data.error)) ||
-            root.dataset.msgPaddleFail ||
-            "Checkout unavailable"
-        );
-      });
+    }).then((r) => r.json().then((data) => ({ ok: r.ok, data: data })));
+  }
+
+  function handlePaddleCheckoutResponse(data, email) {
+    if (data.error_code === "transaction_default_checkout_url_not_set") {
+      alert(paddleDefaultLinkMessage());
+      return Promise.resolve();
+    }
+    if (data.checkout_url && redirectToPaddleCheckout(data.checkout_url)) {
+      return Promise.resolve();
+    }
+    if (data.ok && data.transaction_id) {
+      if (redirectToPaddleCheckout(buildBuyPtxnUrl(data.transaction_id))) {
+        return Promise.resolve();
+      }
+    }
+    return ensurePaddleReady().then(() => {
+      if (data.ok && data.transaction_id) {
+        openPaddleOverlay(data.transaction_id, email);
+        return;
+      }
+      if (data.use_client_price !== false && paddleCfg.price_id) {
+        Paddle.Checkout.open({
+          items: [{ priceId: paddleCfg.price_id, quantity: 1 }],
+          customer: { email: email },
+          customData: { buyer_email: email },
+          settings: {
+            successUrl:
+              paddleCfg.success_url + "?email=" + encodeURIComponent(email),
+          },
+        });
+        return;
+      }
+      alert(
+        (data.error && String(data.error)) ||
+          root.dataset.msgPaddleFail ||
+          "Checkout unavailable"
+      );
+    });
   }
 
   function startIntlPaddleCheckout() {
@@ -368,8 +425,8 @@
     }
     if (emailHint) emailHint.classList.add("is-hidden");
     setContinueLoading(true);
-    ensurePaddleReady()
-      .then(() => openPaddleCheckout(email))
+    fetchPaddleCheckout(email)
+      .then(({ data }) => handlePaddleCheckoutResponse(data, email))
       .catch((err) => {
         console.error(err);
         const code = err && err.message;

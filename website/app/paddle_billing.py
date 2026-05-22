@@ -105,12 +105,14 @@ def create_paddle_checkout_transaction(email: str) -> dict[str, str | None]:
     email = (email or "").strip()
     if not email or "@" not in email:
         return {"transaction_id": None, "checkout_url": None, "error": "invalid_email", "error_code": None}
-    success_url = f"{config.SITE_URL.rstrip('/')}/buy/success?email={email}"
+    site = config.SITE_URL.rstrip("/")
+    buy_page = f"{site}/buy"
     body = {
         "items": [{"price_id": price_id, "quantity": 1}],
         "customer": {"email": email},
         "custom_data": {"buyer_email": email},
-        "checkout": {"url": success_url},
+        # Must be a page that loads Paddle.js (not /buy/success).
+        "checkout": {"url": buy_page},
     }
     try:
         r = httpx.post(
@@ -135,6 +137,8 @@ def create_paddle_checkout_transaction(email: str) -> dict[str, str | None]:
         txn_id = (data.get("id") or "").strip() or None
         checkout = data.get("checkout") or {}
         checkout_url = (checkout.get("url") or "").strip() or None
+        if txn_id and not checkout_url:
+            checkout_url = f"{buy_page}?_ptxn={txn_id}"
         if txn_id:
             return {"transaction_id": txn_id, "checkout_url": checkout_url, "error": None, "error_code": None}
         return {"transaction_id": None, "checkout_url": checkout_url, "error": "no_transaction_id", "error_code": None}
@@ -149,7 +153,8 @@ def paddle_checkout_settings() -> dict[str, str]:
         "client_token": (config.PADDLE_CLIENT_TOKEN or "").strip(),
         "price_id": (config.PADDLE_PRICE_ID or "").strip(),
         "environment": "sandbox" if env == "sandbox" else "production",
-        "success_url": f"{config.SITE_URL}/buy/success",
+        "success_url": f"{config.SITE_URL.rstrip('/')}/buy/success",
+        "buy_page_url": f"{config.SITE_URL.rstrip('/')}/buy",
         "support_email": config.SUPPORT_EMAIL,
     }
 
