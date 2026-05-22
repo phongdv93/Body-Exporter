@@ -1,5 +1,24 @@
 {% extends "base.html" %}
 {% block title %}{{ page_title }}{% endblock %}
+{% block head_extra %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": "Body Exporter — SolidWorks license",
+  "description": "Annual license for Body Exporter SolidWorks add-in",
+  "brand": { "@type": "Brand", "name": "Body Exporter" },
+  "offers": {
+    "@type": "Offer",
+    "url": "{{ canonical_url | default(site_url ~ '/buy') }}",
+    "priceCurrency": "VND",
+    "price": "{{ amount_vnd }}",
+    "availability": "https://schema.org/InStock",
+    "priceValidUntil": "2030-12-31"
+  }
+}
+</script>
+{% endblock %}
 {% block content %}
 <section class="page-head">
   <h1>{{ buy_title or t('buy.title') }}</h1>
@@ -8,7 +27,34 @@
   {% endif %}
 </section>
 
+<section class="card buy-pricing-card" id="pricing">
+  <h2 class="buy-pricing-heading">{{ t('buy.pricing_title') }}</h2>
+  <div class="pricing-hero">
+    <p class="pricing-product-name">{{ t('buy.pricing_product') }}</p>
+    <p class="pricing-price-vnd">
+      <span class="pricing-label">{{ t('buy.pricing_amount_label') }}</span>
+      <strong>{{ '{:,}'.format(amount_vnd).replace(',', '.') }} VND</strong>
+    </p>
+    {% if price_usd %}
+    <p class="pricing-price-usd muted">
+      {{ t('buy.pricing_usd_note', usd=price_usd) }}
+    </p>
+    {% endif %}
+    <p class="pricing-term muted">{{ t('buy.pricing_term', days=license_term_days) }}</p>
+  </div>
+  <ul class="pricing-features feature-list">
+    <li>{{ t('buy.pricing_f1') }}</li>
+    <li>{{ t('buy.pricing_f2') }}</li>
+    <li>{{ t('buy.pricing_f3') }}</li>
+    <li>{{ t('buy.pricing_f4') }}</li>
+  </ul>
+  <p class="muted fine-print pricing-legal">
+    {{ t('buy.pricing_legal') | safe }}
+  </p>
+</section>
+
 <section class="card buy-form-card">
+  <h2 class="buy-step-heading">{{ t('buy.checkout_title') }}</h2>
   <form method="post" action="/buy" class="buy-form">
     <label for="email">{{ t('buy.email_label') }}</label>
     <input type="email" id="email" name="email" required placeholder="you@company.com"

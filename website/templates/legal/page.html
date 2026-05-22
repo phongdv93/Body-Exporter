@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}{{ legal_title }}{% endblock %}
+{% block content %}
+<section class="page-head">
+  <h1>{{ legal_title }}</h1>
+</section>
+<section class="card prose legal-prose">
+  {{ legal_html | safe }}
+</section>
+{% endblock %}

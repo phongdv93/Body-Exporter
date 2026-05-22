@@ -184,6 +184,43 @@ body {
 .prose strong { color: var(--text); }
 .warn { color: var(--warn); }
 
+.buy-pricing-card { margin-bottom: 1.25rem; }
+.buy-pricing-heading,
+.buy-step-heading {
+  margin: 0 0 1rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+.pricing-hero { margin-bottom: 1rem; }
+.pricing-product-name {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+}
+.pricing-price-vnd {
+  margin: 0 0 0.35rem;
+  font-size: 1.5rem;
+}
+.pricing-price-vnd strong { color: var(--accent, #2dd4bf); }
+.pricing-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--muted, #9ca3af);
+  margin-bottom: 0.15rem;
+}
+.pricing-features { margin: 0.75rem 0 0; }
+.pricing-legal { margin: 1rem 0 0; font-size: 0.85rem; }
+.pricing-legal a { color: var(--accent, #2dd4bf); }
+.legal-prose h2 { font-size: 1rem; margin: 1.25rem 0 0.5rem; }
+.legal-prose h2:first-child { margin-top: 0; }
+.legal-prose ul { padding-left: 1.25rem; }
+.footer-legal {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+}
+.footer-legal a { color: var(--muted, #9ca3af); }
+.footer-legal a:hover { color: var(--accent, #2dd4bf); }
 .buy-form label { display: block; font-weight: 600; margin-bottom: 0.35rem; font-size: 0.9rem; }
 .buy-form input[type="email"] {
   width: 100%;

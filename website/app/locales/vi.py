@@ -7,6 +7,12 @@ MESSAGES = {
     "lang.vi": "Tiếng Việt",
     "lang.en": "English",
     "footer.rights": "Bản quyền",
+    "footer.terms": "Điều khoản dịch vụ",
+    "footer.privacy": "Chính sách quyền riêng tư",
+    "footer.refund": "Chính sách hoàn tiền",
+    "meta.terms": "Điều khoản dịch vụ Body Exporter — license add-in SolidWorks.",
+    "meta.privacy": "Chính sách quyền riêng tư Body Exporter — website, plugin và thanh toán.",
+    "meta.refund": "Chính sách hoàn tiền license Body Exporter — phần mềm số.",
     "home.eyebrow": "Add-in SolidWorks",
     "home.hero_title_default": "SolidWorks Body Exporter",
     "home.hero_subtitle_default": (
@@ -106,6 +112,20 @@ MESSAGES = {
     ),
     "meta.buy_success": "Cảm ơn bạn đã mua Body Exporter. License sẽ được gửi qua email.",
     "buy.title": "Mua license",
+    "buy.pricing_title": "Bảng giá",
+    "buy.pricing_product": "Body Exporter — License cá nhân (1 máy)",
+    "buy.pricing_amount_label": "Giá",
+    "buy.pricing_usd_note": "Thanh toán quốc tế (thẻ): khoảng <strong>${usd} USD</strong> — tỷ giá tham khảo.",
+    "buy.pricing_term": "Thời hạn license: <strong>{days} ngày</strong> kể từ khi kích hoạt.",
+    "buy.pricing_f1": "Xuất body/part SolidWorks → Excel & template",
+    "buy.pricing_f2": "Gửi license key tự động qua email sau thanh toán",
+    "buy.pricing_f3": "Dùng thử 14 ngày khi cài plugin (lần đầu cần internet)",
+    "buy.pricing_f4": "Hỗ trợ qua email sau khi mua",
+    "buy.pricing_legal": (
+        'Xem <a href="/terms-and-conditions">Điều khoản</a>, '
+        '<a href="/privacy">Quyền riêng tư</a>, <a href="/refund">Hoàn tiền</a>.'
+    ),
+    "buy.checkout_title": "Thanh toán",
     "buy.intro_default": (
         "Nhập email để nhận license tự động sau khi thanh toán. "
         "Chọn chuyển khoản QR hoặc thẻ bên dưới."

@@ -61,7 +61,20 @@ Then log in at `/admin` with `ADMIN_USERNAME` / `ADMIN_PASSWORD` from `.env`.
 - Every public page: `<title>`, `description`, `keywords`, `canonical`, Open Graph, Twitter card, JSON-LD (`WebSite` + `SoftwareApplication`).
 - Defaults: `SEO_DESCRIPTION` + `SEO_KEYWORDS` in `.env` (optional). Short intro on homepage still feeds meta description.
 - **`/robots.txt`** — allows `/`, blocks `/admin`, `/api/`, webhooks; points to sitemap.
-- **`/sitemap.xml`** — 3 trang index: `/`, `/download`, `/buy` (có `lastmod`, `priority`). Không gồm `/buy/success`.
+- **`/sitemap.xml`** — `/`, `/download`, `/buy`, `/terms-and-conditions`, `/privacy`, `/refund`. Không gồm `/buy/success`.
+
+### Paddle (thanh toán quốc tế)
+
+Trên form verify website, dùng:
+
+| Paddle field | URL |
+|--------------|-----|
+| Pricing page | `https://bodyexporter.com/buy` (giá hiển thị **trước** khi nhập email) |
+| Terms of service | `https://bodyexporter.com/terms-and-conditions` |
+| Privacy policy | `https://bodyexporter.com/privacy` |
+| Refund policy | `https://bodyexporter.com/refund` |
+
+Link ba trang policy cũng có ở **footer** mọi trang công khai. Tùy chọn: `LICENSE_PRICE_USD` / `USD_VND_RATE` trong `.env` để hiện giá USD tham khảo trên `/buy`.
 - Optional **`SEO_OG_IMAGE`** in `.env` = full URL of a 1200×630 image for social share.
 
 **Production bắt buộc:** biến `SITE_URL=https://bodyexporter.com` (không dấu `/` cuối). Nếu sai, sitemap sẽ ghi URL `127.0.0.1` → Google không index.

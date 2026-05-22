@@ -112,6 +112,8 @@ def page_meta_from_cms(lang: str, content: SiteContent, page: str) -> tuple[str,
         desc = _strip_html(cms_html(content, "buy_success_html", lang)) or cms_text(content, "hero_subtitle", lang)
     elif page == "download":
         desc = _strip_html(cms_text(content, "download_intro", lang)) or cms_text(content, "hero_subtitle", lang)
+    elif page in ("terms", "privacy", "refund"):
+        desc = translate(lang, f"meta.{page}")
     else:
         desc = cms_text(content, "hero_subtitle", lang)
 

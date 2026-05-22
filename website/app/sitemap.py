@@ -16,6 +16,9 @@ PUBLIC_SITEMAP_ENTRIES: tuple[SitemapEntry, ...] = (
     SitemapEntry("/", changefreq="weekly", priority="1.0"),
     SitemapEntry("/download", changefreq="weekly", priority="0.9"),
     SitemapEntry("/buy", changefreq="monthly", priority="0.8"),
+    SitemapEntry("/terms-and-conditions", changefreq="yearly", priority="0.4"),
+    SitemapEntry("/privacy", changefreq="yearly", priority="0.4"),
+    SitemapEntry("/refund", changefreq="yearly", priority="0.4"),
 )
 
 

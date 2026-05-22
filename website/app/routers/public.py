@@ -10,6 +10,7 @@ from app import config
 from app.auth import get_db
 from app.database import get_content
 from app.download_tracking import record_plugin_download
+from app.legal_pages import legal_html, legal_page_title
 from app.i18n import (
     LANG_COOKIE,
     LANG_COOKIE_MAX_AGE,
@@ -315,6 +316,8 @@ def _render_buy(request: Request, db: Session, email: str = ""):
         amount = bank["amount_vnd"]
     qr_url = build_qr_image_url(base, email) if email else ""
     memo = build_transfer_memo(email) if email else ""
+    term_days = max(1, int(content.license_term_days or config.SEPAY_LICENSE_DAYS))
+    price_usd = config.license_price_usd_display(amount)
     return html_response(
         templates,
         "buy.html",
@@ -327,9 +330,46 @@ def _render_buy(request: Request, db: Session, email: str = ""):
             memo=memo,
             bank=bank,
             amount_vnd=amount,
+            license_term_days=term_days,
+            price_usd=price_usd,
             pg_available=pg_checkout_available_for_content(content),
         ),
     )
+
+
+def _legal_response(request: Request, db: Session, page: str):
+    lang = resolve_lang(request)
+    title = legal_page_title(lang, page)
+    body = legal_html(lang, page)
+    meta_desc = translate(lang, f"meta.{page}")
+    return html_response(
+        templates,
+        "legal/page.html",
+        _ctx(
+            request,
+            db,
+            seo_page=page,
+            page_title=title,
+            meta_description=meta_desc[:320],
+            legal_title=title,
+            legal_html=body,
+        ),
+    )
+
+
+@router.get("/terms-and-conditions")
+def terms_and_conditions(request: Request, db: Session = Depends(get_db)):
+    return _legal_response(request, db, "terms")
+
+
+@router.get("/privacy")
+def privacy_policy(request: Request, db: Session = Depends(get_db)):
+    return _legal_response(request, db, "privacy")
+
+
+@router.get("/refund")
+def refund_policy(request: Request, db: Session = Depends(get_db)):
+    return _legal_response(request, db, "refund")
 
 
 @router.get("/buy/success")

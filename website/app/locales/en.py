@@ -7,6 +7,12 @@ MESSAGES = {
     "lang.vi": "Tiếng Việt",
     "lang.en": "English",
     "footer.rights": "All rights reserved",
+    "footer.terms": "Terms of Service",
+    "footer.privacy": "Privacy Policy",
+    "footer.refund": "Refund Policy",
+    "meta.terms": "Body Exporter Terms of Service — SolidWorks add-in license.",
+    "meta.privacy": "Body Exporter Privacy Policy — website, plugin, and payments.",
+    "meta.refund": "Body Exporter Refund Policy — digital software license.",
     "home.eyebrow": "SolidWorks add-in",
     "home.hero_title_default": "SolidWorks Body Exporter",
     "home.hero_subtitle_default": (
@@ -110,6 +116,20 @@ MESSAGES = {
     ),
     "meta.buy_success": "Thank you for purchasing Body Exporter. Your license will be emailed shortly.",
     "buy.title": "Buy license",
+    "buy.pricing_title": "Pricing",
+    "buy.pricing_product": "Body Exporter — Personal license (one machine)",
+    "buy.pricing_amount_label": "Price",
+    "buy.pricing_usd_note": "International card checkout: approx. <strong>${usd} USD</strong> (reference rate).",
+    "buy.pricing_term": "License term: <strong>{days} days</strong> from activation.",
+    "buy.pricing_f1": "Export SolidWorks bodies/parts to Excel & templates",
+    "buy.pricing_f2": "License key emailed automatically after payment",
+    "buy.pricing_f3": "14-day trial on first install (internet required once)",
+    "buy.pricing_f4": "Email support after purchase",
+    "buy.pricing_legal": (
+        'See our <a href="/terms-and-conditions">Terms</a>, '
+        '<a href="/privacy">Privacy</a>, and <a href="/refund">Refund</a> policies.'
+    ),
+    "buy.checkout_title": "Checkout",
     "buy.intro_default": (
         "Enter your email to receive a license automatically after payment. "
         "Choose bank transfer (QR) or card below."
