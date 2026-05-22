@@ -145,11 +145,12 @@ MESSAGES = {
         "→ đặt https://bodyexporter.com/buy/paddle (không phải /webhook/paddle)."
     ),
     "buy.paddle_network": (
-        "<strong>Cổng Paddle không tải được.</strong> Trình duyệt hoặc mạng đang chặn "
-        "<code>checkout-service.paddle.com</code> (adblock, Brave Shields, DNS công ty…). "
-        "Thử: tắt chặn quảng cáo → Chrome ẩn danh → hoặc mạng 4G. "
-        "Default payment link trên Paddle = <code>https://bodyexporter.com/buy/paddle</code>."
+        "<strong>Cổng Paddle không tải được</strong> (<code>checkout-service.paddle.com</code>). "
+        "Nếu điện thoại 4G vẫn lỗi thì thường do mạng VN/ISP hoặc tài khoản Paddle — không phải lỗi website. "
+        "Khách Việt Nam: dùng <strong>VietQR</strong> bên dưới. "
+        "Default payment link Paddle = <code>https://bodyexporter.com/buy/paddle</code>."
     ),
+    "buy.paddle_use_vn": "Thanh toán VietQR (khuyến nghị tại VN)",
     "buy.paddle_retry": "Thử lại Paddle",
     "buy.paddle_sepay_fallback": "Thanh toán thẻ qua SePay (VND)",
     "buy.paddle_brave": (

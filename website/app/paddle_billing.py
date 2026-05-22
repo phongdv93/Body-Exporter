@@ -73,6 +73,12 @@ def paddle_admin_status() -> dict[str, Any]:
         except Exception as ex:
             log.debug("Paddle price check failed: %s", ex)
             price_ok = False
+    checkout_svc_ok = None
+    try:
+        r = httpx.get("https://checkout-service.paddle.com/", timeout=8.0, follow_redirects=True)
+        checkout_svc_ok = r.status_code < 500
+    except Exception:
+        checkout_svc_ok = False
     return {
         "configured": ready,
         "environment": env,
@@ -87,6 +93,7 @@ def paddle_admin_status() -> dict[str, Any]:
         "env_invalid": env_invalid,
         "token_env_mismatch": token_env_mismatch,
         "paddle_checkout_page": f"{config.SITE_URL.rstrip('/')}/buy/paddle",
+        "checkout_service_reachable": checkout_svc_ok,
     }
 
 

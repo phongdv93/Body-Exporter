@@ -149,11 +149,12 @@ MESSAGES = {
         "set https://bodyexporter.com/buy/paddle (not /webhook/paddle)."
     ),
     "buy.paddle_network": (
-        "<strong>Paddle checkout could not load.</strong> Your browser or network is blocking "
-        "<code>checkout-service.paddle.com</code> (ad blocker, Brave Shields, corporate DNS). "
-        "Try: disable blockers → incognito Chrome → mobile data. "
-        "Paddle default payment link must be <code>https://bodyexporter.com/buy/paddle</code>."
+        "<strong>Paddle checkout could not load</strong> (<code>checkout-service.paddle.com</code>). "
+        "If mobile 4G still fails, it is often ISP/network or your Paddle account — not the website. "
+        "Customers in Vietnam: use <strong>VietQR</strong> below. "
+        "Paddle default payment link: <code>https://bodyexporter.com/buy/paddle</code>."
     ),
+    "buy.paddle_use_vn": "Pay with VietQR (recommended in Vietnam)",
     "buy.paddle_retry": "Retry Paddle",
     "buy.paddle_sepay_fallback": "Pay by card via SePay (VND)",
     "buy.paddle_brave": (

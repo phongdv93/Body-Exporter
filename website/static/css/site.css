@@ -272,6 +272,8 @@ body {
 }
 .paddle-brave-hint.is-hidden { display: none; }
 .paddle-checkout-frame.is-hidden { display: none; }
+.paddle-vn-cta { margin: 0 0 1.25rem; text-align: center; }
+.paddle-vn-cta .btn-lg { width: 100%; max-width: 360px; }
 .checkout-step-panel.is-hidden { display: none; }
 .checkout-email-field { margin-bottom: 0.35rem; }
 .checkout-email-field label {
