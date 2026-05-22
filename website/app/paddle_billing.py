@@ -82,19 +82,35 @@ def paddle_admin_status() -> dict[str, Any]:
     }
 
 
-def create_paddle_checkout_transaction(email: str) -> tuple[str | None, str | None]:
-    """Create Paddle transaction server-side; returns (transaction_id, error)."""
+def _paddle_error_code(response: httpx.Response) -> str:
+    try:
+        payload = response.json()
+    except Exception:
+        return ""
+    err = payload.get("error")
+    if isinstance(err, dict):
+        return (err.get("code") or "").strip()
+    for item in payload.get("errors") or []:
+        if isinstance(item, dict) and item.get("code"):
+            return str(item["code"]).strip()
+    return ""
+
+
+def create_paddle_checkout_transaction(email: str) -> dict[str, str | None]:
+    """Create Paddle transaction server-side."""
     api_key = (config.PADDLE_API_KEY or "").strip()
     price_id = (config.PADDLE_PRICE_ID or "").strip()
     if not api_key or not price_id:
-        return None, "paddle_api_not_configured"
+        return {"transaction_id": None, "checkout_url": None, "error": "paddle_api_not_configured", "error_code": None}
     email = (email or "").strip()
     if not email or "@" not in email:
-        return None, "invalid_email"
+        return {"transaction_id": None, "checkout_url": None, "error": "invalid_email", "error_code": None}
+    success_url = f"{config.SITE_URL.rstrip('/')}/buy/success?email={email}"
     body = {
         "items": [{"price_id": price_id, "quantity": 1}],
         "customer": {"email": email},
         "custom_data": {"buyer_email": email},
+        "checkout": {"url": success_url},
     }
     try:
         r = httpx.post(
@@ -107,17 +123,24 @@ def create_paddle_checkout_transaction(email: str) -> tuple[str | None, str | No
             timeout=20.0,
         )
         if not r.is_success:
-            detail = r.text[:500]
-            log.warning("Paddle create transaction %s: %s", r.status_code, detail)
-            return None, f"paddle_api_{r.status_code}"
+            code = _paddle_error_code(r)
+            log.warning("Paddle create transaction %s code=%s: %s", r.status_code, code, r.text[:500])
+            return {
+                "transaction_id": None,
+                "checkout_url": None,
+                "error": code or f"paddle_api_{r.status_code}",
+                "error_code": code or None,
+            }
         data = r.json().get("data") or {}
-        txn_id = (data.get("id") or "").strip()
+        txn_id = (data.get("id") or "").strip() or None
+        checkout = data.get("checkout") or {}
+        checkout_url = (checkout.get("url") or "").strip() or None
         if txn_id:
-            return txn_id, None
-        return None, "no_transaction_id"
+            return {"transaction_id": txn_id, "checkout_url": checkout_url, "error": None, "error_code": None}
+        return {"transaction_id": None, "checkout_url": checkout_url, "error": "no_transaction_id", "error_code": None}
     except Exception as ex:
         log.exception("Paddle create transaction failed")
-        return None, str(ex)[:120]
+        return {"transaction_id": None, "checkout_url": None, "error": str(ex)[:120], "error_code": None}
 
 
 def paddle_checkout_settings() -> dict[str, str]:

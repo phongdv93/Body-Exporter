@@ -325,10 +325,29 @@ async def buy_paddle_checkout_api(request: Request, db: Session = Depends(get_db
         return JSONResponse({"ok": False, "error": "invalid_email"}, status_code=400)
     if not paddle_configured():
         return JSONResponse({"ok": False, "error": "not_configured"}, status_code=503)
-    txn_id, err = create_paddle_checkout_transaction(email)
+    result = create_paddle_checkout_transaction(email)
+    txn_id = result.get("transaction_id")
     if txn_id:
-        return JSONResponse({"ok": True, "transaction_id": txn_id})
-    return JSONResponse({"ok": False, "error": err or "unknown", "use_client_price": True})
+        return JSONResponse(
+            {
+                "ok": True,
+                "transaction_id": txn_id,
+                "checkout_url": result.get("checkout_url"),
+            }
+        )
+    err = result.get("error") or "unknown"
+    err_code = result.get("error_code")
+    status = 503 if err == "paddle_api_not_configured" else 400
+    return JSONResponse(
+        {
+            "ok": False,
+            "error": err,
+            "error_code": err_code,
+            "checkout_url": result.get("checkout_url"),
+            "use_client_price": err_code != "transaction_default_checkout_url_not_set",
+        },
+        status_code=status,
+    )
 
 
 @router.post("/buy")

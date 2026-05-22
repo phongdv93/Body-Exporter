@@ -4,7 +4,13 @@
 
   const emailInput = document.getElementById("email");
   const emailHint = document.getElementById("email-hint");
-  const activeBox = document.getElementById("pay-active-box");
+  const step1 = document.getElementById("checkout-step-1");
+  const step2 = document.getElementById("checkout-step-2");
+  const stepInd1 = document.getElementById("checkout-step-indicator-1");
+  const stepInd2 = document.getElementById("checkout-step-indicator-2");
+  const btnContinue = document.getElementById("btn-checkout-continue");
+  const btnEditEmail = document.getElementById("btn-edit-email");
+  const confirmedEmail = document.getElementById("confirmed-email");
   const pricingCard = document.getElementById("pricing");
   const vnMount = document.getElementById("vn-qr-mount");
   const panels = {
@@ -14,7 +20,7 @@
   const modeButtons = root.querySelectorAll(".pay-mode-btn");
   const cookieName = root.dataset.cookieName || "be_pay_mode";
   let currentMode = root.dataset.payMode || "vn";
-  let qrTimer = null;
+  let checkoutStep = 1;
 
   function validEmail(v) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((v || "").trim());
@@ -50,7 +56,7 @@
     if (panels.intl) panels.intl.classList.toggle("is-hidden", mode !== "intl");
     syncPricingMode(mode);
     setCookie(mode);
-    refreshPaymentPanel();
+    if (checkoutStep === 2) loadStep2Payment();
   }
 
   modeButtons.forEach((btn) => {
@@ -65,11 +71,19 @@
       .replace(/"/g, "&quot;");
   }
 
-  function renderVietQR(data, email) {
+  function showStep(n) {
+    checkoutStep = n;
+    if (step1) step1.classList.toggle("is-hidden", n !== 1);
+    if (step2) step2.classList.toggle("is-hidden", n !== 2);
+    if (stepInd1) stepInd1.classList.toggle("is-active", n === 1);
+    if (stepInd2) stepInd2.classList.toggle("is-active", n === 2);
+    if (stepInd1) stepInd1.classList.toggle("is-done", n === 2);
+  }
+
+  function renderVietQR(data) {
     if (!vnMount) return;
     const bank = data.bank || {};
-    let html = '<h3 class="pay-panel-title">' + escapeHtml(data.labels.title) + "</h3>";
-    html += '<div class="pay-grid"><div class="qr-wrap">';
+    let html = '<div class="pay-grid"><div class="qr-wrap">';
     html +=
       '<img src="' +
       escapeHtml(data.qr_url) +
@@ -103,9 +117,7 @@
       escapeHtml(data.memo) +
       "</code></dd></dl></div>";
     html +=
-      '<p class="hint buy-email-hint">' +
-      (data.wait_hint_html || "") +
-      "</p>";
+      '<p class="hint buy-email-hint">' + (data.wait_hint_html || "") + "</p>";
     vnMount.innerHTML = html;
   }
 
@@ -116,7 +128,7 @@
     fetch("/buy/api/vietqr?email=" + encodeURIComponent(email))
       .then((r) => r.json())
       .then((data) => {
-        if (data.ok) renderVietQR(data, email);
+        if (data.ok) renderVietQR(data);
         else
           vnMount.innerHTML =
             '<p class="hint flash-err">' +
@@ -131,28 +143,47 @@
       });
   }
 
-  function refreshPaymentPanel() {
+  function loadStep2Payment() {
+    const email = (emailInput && emailInput.value.trim()) || "";
+    if (!validEmail(email)) return;
+    if (currentMode === "vn") loadVietQR(email);
+    else if (vnMount) vnMount.innerHTML = "";
+  }
+
+  function goToStep2() {
     const email = (emailInput && emailInput.value.trim()) || "";
     if (!validEmail(email)) {
-      if (activeBox) activeBox.classList.add("is-hidden");
-      if (emailHint) emailHint.classList.remove("is-hidden");
+      if (emailHint) {
+        emailHint.classList.remove("is-hidden");
+        emailHint.textContent = root.dataset.msgEnterEmail || emailHint.textContent;
+      }
+      emailInput && emailInput.focus();
       return;
     }
-    if (activeBox) activeBox.classList.remove("is-hidden");
     if (emailHint) emailHint.classList.add("is-hidden");
-    if (currentMode === "vn") loadVietQR(email);
+    if (confirmedEmail) confirmedEmail.textContent = email;
+    const hidden = document.getElementById("email-hidden-card");
+    if (hidden) hidden.value = email;
+    showStep(2);
+    loadStep2Payment();
   }
 
-  function onEmailInput() {
-    clearTimeout(qrTimer);
-    qrTimer = setTimeout(refreshPaymentPanel, 350);
-    const hidden = document.getElementById("email-hidden-card");
-    if (hidden) hidden.value = emailInput.value;
+  function goToStep1() {
+    showStep(1);
+    if (emailHint) emailHint.classList.remove("is-hidden");
+    emailInput && emailInput.focus();
   }
+
+  if (btnContinue) btnContinue.addEventListener("click", goToStep2);
+  if (btnEditEmail) btnEditEmail.addEventListener("click", goToStep1);
 
   if (emailInput) {
-    emailInput.addEventListener("input", onEmailInput);
-    emailInput.addEventListener("blur", refreshPaymentPanel);
+    emailInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && checkoutStep === 1) {
+        e.preventDefault();
+        goToStep2();
+      }
+    });
   }
 
   const cardForm = document.getElementById("buy-form-card");
@@ -161,6 +192,13 @@
       const hidden = document.getElementById("email-hidden-card");
       if (hidden) hidden.value = emailInput.value;
     });
+  }
+
+  function paddleDefaultLinkMessage() {
+    return (
+      root.dataset.msgPaddleDefaultLink ||
+      "Set Default payment link in Paddle Dashboard (Checkout settings)."
+    );
   }
 
   /* Paddle */
@@ -190,6 +228,11 @@
         Paddle.Initialize({
           token: cfg.client_token,
           checkout: { settings: { displayMode: "overlay" } },
+          eventCallback: function (ev) {
+            if (ev && ev.name === "checkout.error") {
+              console.error("Paddle checkout.error", ev);
+            }
+          },
         });
         paddleReady = true;
         paddleBtn.disabled = false;
@@ -204,41 +247,68 @@
     whenPaddleReady(() => initPaddleOnce(), 50);
 
     function openPaddleCheckout(email) {
-      const successUrl = cfg.success_url + "?email=" + encodeURIComponent(email);
-      const openOpts = (extra) => {
-        Paddle.Checkout.open(
-          Object.assign(
-            {
-              customer: { email: email },
-              customData: { buyer_email: email },
-              settings: { successUrl: successUrl },
-            },
-            extra
-          )
-        );
-      };
       fetch("/buy/api/paddle-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email }),
       })
-        .then((r) => r.json())
-        .then((data) => {
-          if (data.ok && data.transaction_id) {
-            openOpts({ transactionId: data.transaction_id });
-          } else {
-            openOpts({ items: [{ priceId: cfg.price_id, quantity: 1 }] });
+        .then((r) => r.json().then((data) => ({ status: r.status, data: data })))
+        .then(({ status, data }) => {
+          if (data.error_code === "transaction_default_checkout_url_not_set") {
+            alert(paddleDefaultLinkMessage());
+            return;
           }
+          if (data.ok && data.transaction_id) {
+            Paddle.Checkout.open({ transactionId: data.transaction_id });
+            return;
+          }
+          if (data.checkout_url) {
+            window.location.href = data.checkout_url;
+            return;
+          }
+          if (data.use_client_price !== false && cfg.price_id) {
+            Paddle.Checkout.open({
+              items: [{ priceId: cfg.price_id, quantity: 1 }],
+              customer: { email: email },
+              customData: { buyer_email: email },
+              settings: {
+                successUrl: cfg.success_url + "?email=" + encodeURIComponent(email),
+              },
+            });
+            return;
+          }
+          alert(
+            (data.error && String(data.error)) ||
+              root.dataset.msgPaddleFail ||
+              "Checkout unavailable"
+          );
         })
-        .catch(() => {
-          openOpts({ items: [{ priceId: cfg.price_id, quantity: 1 }] });
+        .catch((err) => {
+          console.error(err);
+          if (cfg.price_id) {
+            try {
+              Paddle.Checkout.open({
+                items: [{ priceId: cfg.price_id, quantity: 1 }],
+                customer: { email: email },
+                customData: { buyer_email: email },
+              });
+            } catch (e2) {
+              alert(root.dataset.msgPaddleFail || "Checkout error");
+            }
+          } else {
+            alert(root.dataset.msgPaddleFail || "Checkout error");
+          }
         });
     }
 
     paddleBtn.addEventListener("click", () => {
+      if (checkoutStep !== 2) {
+        goToStep2();
+        return;
+      }
       const email = (emailInput && emailInput.value.trim()) || "";
       if (!validEmail(email)) {
-        emailInput && emailInput.focus();
+        goToStep1();
         return;
       }
       if (!paddleReady && !initPaddleOnce()) {
@@ -249,14 +319,15 @@
         openPaddleCheckout(email);
       } catch (err) {
         console.error(err);
-        alert(
-          root.dataset.msgPaddleFail ||
-            "Checkout error. " + (cfg.support_email || "hotro@bodyexporter.com")
-        );
+        alert(root.dataset.msgPaddleFail || "Checkout error");
       }
     });
   }
 
   syncPricingMode(currentMode);
-  if (emailInput && validEmail(emailInput.value)) refreshPaymentPanel();
+  if (emailInput && validEmail(emailInput.value)) {
+    goToStep2();
+  } else {
+    showStep(1);
+  }
 })();

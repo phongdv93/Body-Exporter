@@ -223,6 +223,81 @@ body {
   font-size: 1.5rem;
 }
 .pricing-price-vnd strong { color: var(--accent, #2dd4bf); }
+.checkout-steps {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 1.25rem;
+  font-size: 0.88rem;
+}
+.checkout-step {
+  color: var(--muted, #9ca3af);
+  font-weight: 600;
+}
+.checkout-step.is-active { color: var(--accent, #2dd4bf); }
+.checkout-step.is-done { color: var(--text, #e8edf4); }
+.checkout-step-sep { color: var(--muted, #6b7280); }
+.checkout-step-panel.is-hidden { display: none; }
+.checkout-email-field { margin-bottom: 0.35rem; }
+.checkout-email-field label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.45rem;
+  font-size: 0.9rem;
+}
+.buy-checkout-email {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  background: var(--bg-elevated, rgba(255, 255, 255, 0.04));
+  color: var(--text, #e8edf4);
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1.4;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.buy-checkout-email::placeholder { color: var(--muted, #6b7280); }
+.buy-checkout-email:hover {
+  border-color: rgba(45, 212, 191, 0.35);
+}
+.buy-checkout-email:focus {
+  outline: none;
+  border-color: var(--accent, #2dd4bf);
+  box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.2);
+}
+.checkout-email-hint { margin: 0.35rem 0 1rem; }
+.checkout-email-hint.is-hidden { display: none; }
+#btn-checkout-continue { margin-top: 0.25rem; }
+.checkout-confirmed-line {
+  margin: 0 0 1rem;
+  font-size: 0.92rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.5rem;
+}
+.checkout-confirmed-line strong { color: var(--text); }
+.text-btn {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.88rem;
+  color: var(--accent, #2dd4bf);
+  cursor: pointer;
+  text-decoration: underline;
+}
+.checkout-step2-lead {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+  color: var(--muted, #9ca3af);
+}
+.checkout-pay-pane.is-hidden { display: none; }
+.vn-qr-mount { margin: 0; padding: 0; border: none; }
 .pay-active-box {
   margin-top: 1rem;
   padding-top: 1rem;
@@ -291,14 +366,15 @@ body {
   display: none;
 }
 .payment-panel-inline {
-  margin-top: 1.25rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--border);
+  margin: 0;
+  padding: 0;
+  border: none;
 }
 .payment-panel-inline h3 {
   margin: 0 0 1rem;
   font-size: 1rem;
 }
+.vn-qr-mount .pay-grid { margin-top: 0; }
 .buy-form label { display: block; font-weight: 600; margin-bottom: 0.35rem; font-size: 0.9rem; }
 .buy-form input[type="email"] {
   width: 100%;

@@ -132,6 +132,17 @@ MESSAGES = {
         '<a href="/privacy">Privacy</a>, and <a href="/refund">Refund</a> policies.'
     ),
     "buy.checkout_title": "Checkout",
+    "buy.step_label_email": "1. Email",
+    "buy.step_label_pay": "2. Pay",
+    "buy.btn_continue": "Continue",
+    "buy.btn_edit_email": "Edit email",
+    "buy.step2_email_sent": "License will be sent to",
+    "buy.step2_vn_lead": "Scan the QR or transfer the exact amount and memo below.",
+    "buy.step2_intl_lead": "Step 2: pay <strong>${usd} USD</strong> by card / PayPal.",
+    "buy.paddle_default_link": (
+        "Paddle default payment link is not set. In Paddle → Checkout → Checkout settings, "
+        "set your homepage (e.g. https://bodyexporter.com) and try again."
+    ),
     "buy.pay_mode_label": "Payment method",
     "buy.mode_vn": "VietQR · bank transfer",
     "buy.mode_intl": "International · card",

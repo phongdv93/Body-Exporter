@@ -128,6 +128,17 @@ MESSAGES = {
         '<a href="/privacy">Quyền riêng tư</a>, <a href="/refund">Hoàn tiền</a>.'
     ),
     "buy.checkout_title": "Thanh toán",
+    "buy.step_label_email": "1. Email",
+    "buy.step_label_pay": "2. Thanh toán",
+    "buy.btn_continue": "Tiếp tục",
+    "buy.btn_edit_email": "Sửa email",
+    "buy.step2_email_sent": "License gửi tới",
+    "buy.step2_vn_lead": "Quét QR hoặc chuyển khoản đúng số tiền và nội dung CK bên dưới.",
+    "buy.step2_intl_lead": "Bước 2: thanh toán <strong>${usd} USD</strong> bằng thẻ / PayPal.",
+    "buy.paddle_default_link": (
+        "Paddle chưa có Default payment link. Vào Paddle → Checkout → Checkout settings "
+        "→ đặt link trang chủ (vd. https://bodyexporter.com) rồi thử lại."
+    ),
     "buy.pay_mode_label": "Phương thức thanh toán",
     "buy.mode_vn": "VietQR · chuyển khoản",
     "buy.mode_intl": "Quốc tế · thẻ",
