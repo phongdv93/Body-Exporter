@@ -149,11 +149,16 @@ MESSAGES = {
         "set https://bodyexporter.com/buy/paddle (not /webhook/paddle)."
     ),
     "buy.paddle_network": (
-        "<strong>Paddle checkout could not load.</strong> Your browser blocked "
-        "<code>checkout-service.paddle.com</code> (ad blocker, Brave, DNS). "
-        "Disable blockers, try incognito Chrome or mobile data. "
-        "In Paddle set <strong>Default payment link</strong> to "
-        "<code>https://bodyexporter.com/buy/paddle</code>."
+        "<strong>Paddle checkout could not load.</strong> Your browser or network is blocking "
+        "<code>checkout-service.paddle.com</code> (ad blocker, Brave Shields, corporate DNS). "
+        "Try: disable blockers → incognito Chrome → mobile data. "
+        "Paddle default payment link must be <code>https://bodyexporter.com/buy/paddle</code>."
+    ),
+    "buy.paddle_retry": "Retry Paddle",
+    "buy.paddle_sepay_fallback": "Pay by card via SePay (VND)",
+    "buy.paddle_support": (
+        "Still stuck? Email <a href=\"mailto:{email}?subject=Paddle%20{txn}\">{email}</a> "
+        "with transaction <code>{txn}</code> or use VietQR on the <a href=\"/buy\">buy page</a>."
     ),
     "buy.pay_mode_label": "Payment method",
     "buy.mode_vn": "VietQR · bank transfer",

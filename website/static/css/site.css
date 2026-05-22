@@ -252,6 +252,16 @@ body {
   width: 100% !important;
   min-height: 680px;
 }
+.paddle-fallback-box { margin: 1rem 0; padding: 0.75rem; border-radius: 8px; }
+.paddle-fallback-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin: 1rem 0;
+}
+.paddle-fallback-actions.is-hidden { display: none; }
+.paddle-sepay-fallback-form { margin: 0; }
 .checkout-step-panel.is-hidden { display: none; }
 .checkout-email-field { margin-bottom: 0.35rem; }
 .checkout-email-field label {

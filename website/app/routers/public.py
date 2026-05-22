@@ -297,6 +297,8 @@ def buy_paddle_page(
             qs = f"_ptxn={quote(ptxn)}&email={quote(email)}"
             return RedirectResponse(f"/buy/paddle?{qs}", status_code=303)
         paddle_error = result.get("error_code") or result.get("error") or "paddle_create_failed"
+    content = get_content(db)
+    pg_ok = pg_checkout_available_for_content(content)
     return html_response(
         templates,
         "paddle_checkout.html",
@@ -307,9 +309,25 @@ def buy_paddle_page(
             email=email,
             txn_id=ptxn,
             paddle_error=paddle_error,
+            pg_fallback_available=pg_ok,
             paddle_checkout_json=json.dumps(paddle_checkout_settings()),
         ),
     )
+
+
+@router.post("/buy/paddle/sepay-fallback")
+def buy_paddle_sepay_fallback(
+    request: Request,
+    email: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    """Card checkout via SePay PG when Paddle.js cannot reach checkout-service."""
+    email = email.strip()
+    if not email or "@" not in email:
+        return RedirectResponse("/buy", status_code=303)
+    if not pg_checkout_available_for_content(get_content(db)):
+        return RedirectResponse(f"/buy/paddle?email={quote(email)}", status_code=303)
+    return _redirect_pg_checkout(request, email, db)
 
 
 def _vietqr_payload(content, email: str) -> dict | None:

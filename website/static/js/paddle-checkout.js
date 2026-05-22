@@ -1,10 +1,10 @@
 (function () {
   const cfgEl = document.getElementById("paddle-config");
   const txnEl = document.getElementById("paddle-txn");
-  const frame = document.getElementById("paddle-checkout-frame");
   const statusEl = document.getElementById("paddle-status");
   const helpEl = document.getElementById("paddle-network-help");
-  if (!cfgEl || !txnEl || !frame) return;
+  const fallbackEl = document.getElementById("paddle-fallback-actions");
+  if (!cfgEl || !txnEl) return;
 
   let cfg = {};
   let txnId = "";
@@ -22,15 +22,16 @@
   const successUrl =
     cfg.success_url + (email ? "?email=" + encodeURIComponent(email) : "");
 
-  function showHelp() {
+  function showFallback() {
     if (helpEl) helpEl.classList.remove("is-hidden");
-    if (statusEl) statusEl.textContent = "";
+    if (fallbackEl) fallbackEl.classList.remove("is-hidden");
+    if (statusEl) statusEl.classList.add("is-hidden");
   }
 
   function initPaddle() {
     if (typeof Paddle === "undefined") {
       if (statusEl) statusEl.textContent = "Paddle.js not loaded";
-      showHelp();
+      showFallback();
       return;
     }
     try {
@@ -41,11 +42,7 @@
         token: cfg.client_token,
         checkout: {
           settings: {
-            displayMode: "inline",
-            frameTarget: "paddle-checkout-frame",
-            frameInitialHeight: "680",
-            frameStyle:
-              "width: 100%; min-width: 312px; min-height: 680px; background: transparent; border: none;",
+            displayMode: "overlay",
             theme: "dark",
             locale: document.documentElement.lang === "vi" ? "vi" : "en",
             successUrl: successUrl,
@@ -55,18 +52,34 @@
           if (!ev) return;
           if (ev.name === "checkout.error") {
             console.error("Paddle checkout.error", ev);
-            showHelp();
+            showFallback();
           }
           if (ev.name === "checkout.completed") {
             window.location.href = successUrl;
           }
+          if (ev.name === "checkout.closed") {
+            showFallback();
+          }
         },
       });
-      if (statusEl) statusEl.classList.add("is-hidden");
-      /* URL must keep ?_ptxn= — Paddle opens inline checkout automatically */
+      if (statusEl) statusEl.textContent = statusEl.dataset.opening || statusEl.textContent;
+      /* ?_ptxn= in URL — Paddle opens overlay automatically after Initialize */
+      window.setTimeout(function () {
+        if (helpEl && !helpEl.classList.contains("is-hidden")) return;
+        if (fallbackEl && !fallbackEl.classList.contains("is-hidden")) return;
+        try {
+          Paddle.Checkout.open({
+            transactionId: txnId,
+            settings: { successUrl: successUrl },
+          });
+        } catch (err) {
+          console.error(err);
+          showFallback();
+        }
+      }, 400);
     } catch (err) {
       console.error(err);
-      showHelp();
+      showFallback();
     }
   }
 
