@@ -243,6 +243,15 @@ body {
 }
 .checkout-paddle-hint.is-hidden { display: none; }
 .checkout-paddle-hint { margin: 0.5rem 0 0; }
+.paddle-checkout-card { max-width: 720px; margin: 0 auto 2rem; }
+.paddle-checkout-frame {
+  min-height: 680px;
+  width: 100%;
+}
+.paddle-checkout-frame iframe {
+  width: 100% !important;
+  min-height: 680px;
+}
 .checkout-step-panel.is-hidden { display: none; }
 .checkout-email-field { margin-bottom: 0.35rem; }
 .checkout-email-field label {

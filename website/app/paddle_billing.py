@@ -51,6 +51,12 @@ def paddle_admin_status() -> dict[str, Any]:
     api_key = bool((config.PADDLE_API_KEY or "").strip())
     env = config.PADDLE_ENV
     env_invalid = (os.getenv("PADDLE_ENV") or "").strip().lower() not in ("", "sandbox", "production")
+    token_env_mismatch = False
+    if token:
+        if token.startswith("live_") and env != "production":
+            token_env_mismatch = True
+        elif token.startswith("test_") and env != "sandbox":
+            token_env_mismatch = True
     ready = paddle_configured()
     price_ok = None
     if ready and api_key and price_id:
@@ -79,6 +85,8 @@ def paddle_admin_status() -> dict[str, Any]:
         "has_api_key": api_key,
         "webhook_url": f"{config.SITE_URL.rstrip('/')}/webhook/paddle",
         "env_invalid": env_invalid,
+        "token_env_mismatch": token_env_mismatch,
+        "paddle_checkout_page": f"{config.SITE_URL.rstrip('/')}/buy/paddle",
     }
 
 
@@ -106,13 +114,14 @@ def create_paddle_checkout_transaction(email: str) -> dict[str, str | None]:
     if not email or "@" not in email:
         return {"transaction_id": None, "checkout_url": None, "error": "invalid_email", "error_code": None}
     site = config.SITE_URL.rstrip("/")
-    buy_page = f"{site}/buy"
+    paddle_page = f"{site}/buy/paddle"
     body = {
         "items": [{"price_id": price_id, "quantity": 1}],
         "customer": {"email": email},
         "custom_data": {"buyer_email": email},
-        # Must be a page that loads Paddle.js (not /buy/success).
-        "checkout": {"url": buy_page},
+        "collection_mode": "automatic",
+        # Dedicated page with inline Paddle checkout only (not /buy/success).
+        "checkout": {"url": paddle_page},
     }
     try:
         r = httpx.post(
@@ -138,7 +147,7 @@ def create_paddle_checkout_transaction(email: str) -> dict[str, str | None]:
         checkout = data.get("checkout") or {}
         checkout_url = (checkout.get("url") or "").strip() or None
         if txn_id and not checkout_url:
-            checkout_url = f"{buy_page}?_ptxn={txn_id}"
+            checkout_url = f"{paddle_page}?_ptxn={txn_id}"
         if txn_id:
             return {"transaction_id": txn_id, "checkout_url": checkout_url, "error": None, "error_code": None}
         return {"transaction_id": None, "checkout_url": checkout_url, "error": "no_transaction_id", "error_code": None}
@@ -155,6 +164,7 @@ def paddle_checkout_settings() -> dict[str, str]:
         "environment": "sandbox" if env == "sandbox" else "production",
         "success_url": f"{config.SITE_URL.rstrip('/')}/buy/success",
         "buy_page_url": f"{config.SITE_URL.rstrip('/')}/buy",
+        "paddle_page_url": f"{config.SITE_URL.rstrip('/')}/buy/paddle",
         "support_email": config.SUPPORT_EMAIL,
     }
 

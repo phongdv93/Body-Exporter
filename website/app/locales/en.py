@@ -140,14 +140,20 @@ MESSAGES = {
     "buy.step2_email_sent": "License will be sent to",
     "buy.step2_vn_lead": "Scan the QR or transfer the exact amount and memo below.",
     "buy.step2_intl_lead": "Step 2: pay <strong>${usd} USD</strong> by card / PayPal.",
+    "buy.paddle_page_title": "International payment",
+    "buy.paddle_page_lead": "Secure checkout via Paddle (card / PayPal).",
+    "buy.paddle_back": "← Back to buy page",
+    "buy.paddle_create_fail": "Could not start Paddle checkout ({error}). Check server env.",
     "buy.paddle_default_link": (
         "Paddle default payment link is not set. In Paddle → Checkout → Checkout settings, "
-        "set https://bodyexporter.com/buy (not /webhook/paddle)."
+        "set https://bodyexporter.com/buy/paddle (not /webhook/paddle)."
     ),
     "buy.paddle_network": (
-        "Your browser cannot reach checkout-service.paddle.com. "
-        "Disable ad blockers, try incognito Chrome or another network. "
-        "In Paddle: default payment link = https://bodyexporter.com/buy and bodyexporter.com is approved under Website approval."
+        "<strong>Paddle checkout could not load.</strong> Your browser blocked "
+        "<code>checkout-service.paddle.com</code> (ad blocker, Brave, DNS). "
+        "Disable blockers, try incognito Chrome or mobile data. "
+        "In Paddle set <strong>Default payment link</strong> to "
+        "<code>https://bodyexporter.com/buy/paddle</code>."
     ),
     "buy.pay_mode_label": "Payment method",
     "buy.mode_vn": "VietQR · bank transfer",

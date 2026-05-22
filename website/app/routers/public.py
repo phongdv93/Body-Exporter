@@ -1,5 +1,6 @@
 import json
 import re
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -266,7 +267,49 @@ def download_go(request: Request, db: Session = Depends(get_db)):
 
 @router.get("/buy")
 def buy_get(request: Request, email: str = "", pay: str = "", db: Session = Depends(get_db)):
+    ptxn = (request.query_params.get("_ptxn") or "").strip()
+    if ptxn:
+        em = (email or request.query_params.get("email") or "").strip()
+        qs = f"_ptxn={quote(ptxn)}"
+        if em:
+            qs += f"&email={quote(em)}"
+        return RedirectResponse(f"/buy/paddle?{qs}", status_code=303)
     return _buy_response(request, db, email=email.strip(), pay_query=pay)
+
+
+@router.get("/buy/paddle")
+def buy_paddle_page(
+    request: Request,
+    email: str = "",
+    _ptxn: str = "",
+    db: Session = Depends(get_db),
+):
+    """Dedicated Paddle checkout page (inline). Avoids /buy JS conflicts."""
+    if not paddle_configured():
+        return RedirectResponse("/buy", status_code=303)
+    email = email.strip()
+    ptxn = (_ptxn or "").strip()
+    paddle_error = None
+    if not ptxn and email and "@" in email:
+        result = create_paddle_checkout_transaction(email)
+        ptxn = (result.get("transaction_id") or "").strip()
+        if ptxn:
+            qs = f"_ptxn={quote(ptxn)}&email={quote(email)}"
+            return RedirectResponse(f"/buy/paddle?{qs}", status_code=303)
+        paddle_error = result.get("error_code") or result.get("error") or "paddle_create_failed"
+    return html_response(
+        templates,
+        "paddle_checkout.html",
+        _ctx(
+            request,
+            db,
+            seo_page="buy",
+            email=email,
+            txn_id=ptxn,
+            paddle_error=paddle_error,
+            paddle_checkout_json=json.dumps(paddle_checkout_settings()),
+        ),
+    )
 
 
 def _vietqr_payload(content, email: str) -> dict | None:

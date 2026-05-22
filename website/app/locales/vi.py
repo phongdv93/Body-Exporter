@@ -136,14 +136,18 @@ MESSAGES = {
     "buy.step2_email_sent": "License gửi tới",
     "buy.step2_vn_lead": "Quét QR hoặc chuyển khoản đúng số tiền và nội dung CK bên dưới.",
     "buy.step2_intl_lead": "Bước 2: thanh toán <strong>${usd} USD</strong> bằng thẻ / PayPal.",
+    "buy.paddle_page_title": "Thanh toán quốc tế",
+    "buy.paddle_page_lead": "Thanh toán an toàn qua Paddle (thẻ / PayPal).",
+    "buy.paddle_back": "← Quay lại trang mua",
+    "buy.paddle_create_fail": "Không tạo được phiên thanh toán Paddle ({error}). Kiểm tra env trên server.",
     "buy.paddle_default_link": (
         "Paddle chưa có Default payment link. Vào Paddle → Checkout → Checkout settings "
-        "→ đặt https://bodyexporter.com/buy (không phải /webhook/paddle)."
+        "→ đặt https://bodyexporter.com/buy/paddle (không phải /webhook/paddle)."
     ),
     "buy.paddle_network": (
-        "Trình duyệt không kết nối được checkout-service.paddle.com. "
-        "Tắt adblock (uBlock, Brave…), thử Chrome ẩn danh hoặc mạng khác. "
-        "Trên Paddle: Default payment link = https://bodyexporter.com/buy và domain bodyexporter.com đã duyệt (Website approval)."
+        "<strong>Không tải được cổng Paddle.</strong> Trình duyệt chặn <code>checkout-service.paddle.com</code> "
+        "(adblock, Brave, DNS…). Tắt chặn quảng cáo, thử Chrome ẩn danh hoặc mạng 4G. "
+        "Trên Paddle: <strong>Default payment link</strong> = <code>https://bodyexporter.com/buy/paddle</code>."
     ),
     "buy.pay_mode_label": "Phương thức thanh toán",
     "buy.mode_vn": "VietQR · chuyển khoản",

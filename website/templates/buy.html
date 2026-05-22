@@ -103,10 +103,6 @@
     {% endif %}
 
     <button type="button" class="btn btn-primary btn-lg" id="btn-checkout-continue">{{ t('buy.btn_continue') }}</button>
-    {% if paddle_available %}
-    <p id="paddle-opening-hint" class="hint checkout-paddle-hint is-hidden">{{ t('buy.paddle_opening') }}</p>
-    <script type="application/json" id="paddle-config">{{ paddle_checkout_json | safe }}</script>
-    {% endif %}
   </div>
 
   <div id="checkout-step-2" class="checkout-step-panel is-hidden">
@@ -146,8 +142,5 @@
 </section>
 {% endif %}
 <p class="muted fine-print buy-page-legal">{{ t('buy.pricing_legal') | safe }}</p>
-{% if paddle_available %}
-<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
-{% endif %}
-<script src="/static/js/buy-pay.js"></script>
+<script src="/static/js/buy-pay.js" defer></script>
 {% endblock %}

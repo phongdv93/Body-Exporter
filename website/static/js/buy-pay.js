@@ -12,7 +12,6 @@
   const btnContinue = document.getElementById("btn-checkout-continue");
   const btnEditEmail = document.getElementById("btn-edit-email");
   const confirmedEmail = document.getElementById("confirmed-email");
-  const paddleOpeningHint = document.getElementById("paddle-opening-hint");
   const pricingCard = document.getElementById("pricing");
   const vnMount = document.getElementById("vn-qr-mount");
   const panels = {
@@ -185,217 +184,7 @@
   function goToStep1() {
     showStep(1);
     if (emailHint) emailHint.classList.remove("is-hidden");
-    if (paddleOpeningHint) paddleOpeningHint.classList.add("is-hidden");
     emailInput && emailInput.focus();
-  }
-
-  function setContinueLoading(on) {
-    if (!btnContinue) return;
-    btnContinue.disabled = on;
-    btnContinue.setAttribute("aria-busy", on ? "true" : "false");
-    if (paddleOpeningHint) paddleOpeningHint.classList.toggle("is-hidden", !on);
-  }
-
-  function paddleDefaultLinkMessage() {
-    return (
-      root.dataset.msgPaddleDefaultLink ||
-      "Set Default payment link in Paddle Dashboard (Checkout settings)."
-    );
-  }
-
-  /* Paddle — open overlay on Continue (intl), no extra Pay button */
-  const cfgEl = document.getElementById("paddle-config");
-  let paddleCfg = {};
-  let paddleReady = false;
-
-  if (cfgEl) {
-    try {
-      paddleCfg = JSON.parse(cfgEl.textContent || "{}");
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  function waitForGlobalPaddle(maxMs) {
-    const limit = maxMs || 15000;
-    const start = Date.now();
-    return new Promise((resolve, reject) => {
-      (function tick() {
-        if (typeof Paddle !== "undefined") {
-          resolve();
-          return;
-        }
-        if (Date.now() - start >= limit) {
-          reject(new Error("paddle_script"));
-          return;
-        }
-        setTimeout(tick, 100);
-      })();
-    });
-  }
-
-  function loadPaddleScript() {
-    return new Promise((resolve, reject) => {
-      if (typeof Paddle !== "undefined") {
-        resolve();
-        return;
-      }
-      const src = "https://cdn.paddle.com/paddle/v2/paddle.js";
-      const existing = document.querySelector('script[src*="paddle.com/paddle"]');
-      if (existing) {
-        if (typeof Paddle !== "undefined") {
-          resolve();
-          return;
-        }
-        existing.addEventListener("load", () => waitForGlobalPaddle().then(resolve, reject));
-        existing.addEventListener("error", () => reject(new Error("paddle_script")));
-        waitForGlobalPaddle().then(resolve, reject);
-        return;
-      }
-      const s = document.createElement("script");
-      s.src = src;
-      s.async = false;
-      s.onload = () => waitForGlobalPaddle().then(resolve, reject);
-      s.onerror = () => reject(new Error("paddle_script"));
-      document.head.appendChild(s);
-    });
-  }
-
-  function initPaddleOnce() {
-    if (paddleReady) return true;
-    if (typeof Paddle === "undefined" || !paddleCfg.client_token) return false;
-    try {
-      if (paddleCfg.environment === "sandbox" && Paddle.Environment && Paddle.Environment.set) {
-        Paddle.Environment.set("sandbox");
-      }
-      Paddle.Initialize({
-        token: paddleCfg.client_token,
-        checkout: { settings: { displayMode: "overlay" } },
-        eventCallback: function (ev) {
-          if (ev && ev.name === "checkout.error") {
-            console.error("Paddle checkout.error", ev);
-            setContinueLoading(false);
-            const detail = String((ev.data && ev.data.detail) || "");
-            if (/failed to fetch|network error/i.test(detail)) {
-              alert(
-                root.dataset.msgPaddleNetwork ||
-                  "Trình duyệt chặn Paddle (checkout-service.paddle.com). " +
-                    "Tắt adblock, thử Chrome ẩn danh hoặc mạng khác. " +
-                    "Kiểm tra Paddle: Default payment link = https://bodyexporter.com/buy " +
-                    "và domain đã được duyệt (Website approval)."
-              );
-            }
-          }
-          if (ev && (ev.name === "checkout.closed" || ev.name === "checkout.completed")) {
-            setContinueLoading(false);
-          }
-        },
-      });
-      paddleReady = true;
-      return true;
-    } catch (err) {
-      console.error("Paddle.Initialize failed", err);
-      return false;
-    }
-  }
-
-  let paddleInitPromise = null;
-
-  function ensurePaddleReady() {
-    if (!paddleCfg.client_token) {
-      return Promise.reject(new Error("paddle_config"));
-    }
-    if (paddleReady) {
-      return Promise.resolve();
-    }
-    if (paddleInitPromise) return paddleInitPromise;
-    paddleInitPromise = loadPaddleScript()
-      .then(() => {
-        if (!initPaddleOnce()) {
-          throw new Error("paddle_init");
-        }
-      })
-      .catch((err) => {
-        paddleInitPromise = null;
-        throw err;
-      });
-    return paddleInitPromise;
-  }
-
-  function openCheckoutFromUrlParam() {
-    const params = new URLSearchParams(window.location.search);
-    const txn = params.get("_ptxn");
-    if (!txn || !paddleAvailable) return;
-    const email = (params.get("email") || (emailInput && emailInput.value) || "").trim();
-    if (emailInput && email && !emailInput.value) emailInput.value = email;
-    setContinueLoading(true);
-    /* Paddle.js tự mở checkout khi URL có ?_ptxn= — không gọi Checkout.open() thêm */
-    ensurePaddleReady()
-      .catch((err) => console.error(err))
-      .finally(() => setTimeout(() => setContinueLoading(false), 1200));
-  }
-
-  if (paddleAvailable && paddleCfg.client_token) {
-    ensurePaddleReady()
-      .then(() => openCheckoutFromUrlParam())
-      .catch(() => {});
-  }
-
-  let lastPaddleCheckoutUrl = "";
-
-  function redirectToPaddleCheckout(url) {
-    if (!url) return false;
-    lastPaddleCheckoutUrl = url;
-    window.location.assign(url);
-    return true;
-  }
-
-  function buildBuyPtxnUrl(txnId) {
-    const base = paddleCfg.buy_page_url || window.location.pathname || "/buy";
-    const u = new URL(base, window.location.origin);
-    u.searchParams.set("_ptxn", txnId);
-    if (emailInput && emailInput.value.trim()) {
-      u.searchParams.set("email", emailInput.value.trim());
-    }
-    return u.toString();
-  }
-
-  function openPaddleOverlay(txnId, email) {
-    const opts = { transactionId: txnId };
-    if (email) {
-      opts.settings = {
-        successUrl: paddleCfg.success_url + "?email=" + encodeURIComponent(email),
-      };
-    }
-    Paddle.Checkout.open(opts);
-  }
-
-  function fetchPaddleCheckout(email) {
-    return fetch("/buy/api/paddle-checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: email }),
-    }).then((r) => r.json().then((data) => ({ ok: r.ok, data: data })));
-  }
-
-  function handlePaddleCheckoutResponse(data, email) {
-    if (data.error_code === "transaction_default_checkout_url_not_set") {
-      alert(paddleDefaultLinkMessage());
-      return Promise.resolve();
-    }
-    if (data.checkout_url && redirectToPaddleCheckout(data.checkout_url)) {
-      return Promise.resolve();
-    }
-    if (data.ok && data.transaction_id) {
-      redirectToPaddleCheckout(buildBuyPtxnUrl(data.transaction_id));
-      return Promise.resolve();
-    }
-    alert(
-      (data.error && String(data.error)) ||
-        root.dataset.msgPaddleFail ||
-        "Checkout unavailable"
-    );
-    return Promise.resolve();
   }
 
   function startIntlPaddleCheckout() {
@@ -408,29 +197,7 @@
       emailInput && emailInput.focus();
       return;
     }
-    if (emailHint) emailHint.classList.add("is-hidden");
-    setContinueLoading(true);
-    fetchPaddleCheckout(email)
-      .then(({ data }) => handlePaddleCheckoutResponse(data, email))
-      .catch((err) => {
-        console.error(err);
-        const code = err && err.message;
-        if (code === "paddle_config") {
-          alert(root.dataset.msgPaddleFail || "Paddle not configured");
-        } else if (code === "paddle_script") {
-          alert(
-            "Không tải được Paddle.js. Tắt adblock hoặc thử trình duyệt khác."
-          );
-        } else if (code === "paddle_init") {
-          alert(root.dataset.msgPaddleFail || "Paddle init failed");
-        } else {
-          alert(root.dataset.msgPaddleLoading || "Loading…");
-        }
-      })
-      .finally(() => {
-        /* overlay open keeps loading off until checkout.closed via eventCallback */
-        setTimeout(() => setContinueLoading(false), 800);
-      });
+    window.location.href = "/buy/paddle?email=" + encodeURIComponent(email);
   }
 
   function onContinue() {
@@ -464,12 +231,8 @@
   syncPricingMode(currentMode);
   syncStepsNav();
 
-  if (emailInput && validEmail(emailInput.value)) {
-    if (isIntlPaddle()) {
-      showStep(1);
-    } else {
-      goToStep2();
-    }
+  if (emailInput && validEmail(emailInput.value) && !isIntlPaddle()) {
+    goToStep2();
   } else {
     showStep(1);
   }

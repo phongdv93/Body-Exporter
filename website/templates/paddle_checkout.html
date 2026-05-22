@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}{{ t('buy.paddle_page_title') }}{% endblock %}
+{% block head_extra %}
+<link rel="preconnect" href="https://cdn.paddle.com" crossorigin>
+<link rel="preconnect" href="https://checkout-service.paddle.com" crossorigin>
+<link rel="dns-prefetch" href="https://checkout-service.paddle.com">
+<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+{% endblock %}
+{% block content %}
+<section class="page-head">
+  <h1>{{ t('buy.paddle_page_title') }}</h1>
+  <p class="lead muted">{{ t('buy.paddle_page_lead') }}</p>
+  {% if email %}
+  <p class="hint">{{ t('buy.step2_email_sent') }} <strong>{{ email }}</strong></p>
+  {% endif %}
+</section>
+
+<section class="card paddle-checkout-card">
+  {% if paddle_error %}
+  <p class="hint flash-err">{{ t('buy.paddle_create_fail', error=paddle_error) }}</p>
+  <p><a class="btn btn-secondary" href="/buy">{{ t('buy.paddle_back') }}</a></p>
+  {% elif txn_id %}
+  <div id="paddle-checkout-frame" class="paddle-checkout-frame" aria-live="polite"></div>
+  <p id="paddle-status" class="hint muted">{{ t('buy.paddle_loading') }}</p>
+  <p id="paddle-network-help" class="hint flash-err is-hidden">{{ t('buy.paddle_network') | safe }}</p>
+  <p class="fine-print"><a href="/buy">{{ t('buy.paddle_back') }}</a></p>
+  <script type="application/json" id="paddle-config">{{ paddle_checkout_json | safe }}</script>
+  <script type="application/json" id="paddle-txn">"{{ txn_id }}"</script>
+  <script src="/static/js/paddle-checkout.js"></script>
+  {% else %}
+  <p class="muted">{{ t('buy.enter_email_hint') }}</p>
+  <p><a class="btn btn-primary" href="/buy">{{ t('buy.paddle_back') }}</a></p>
+  {% endif %}
+</section>
+{% endblock %}
