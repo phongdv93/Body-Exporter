@@ -156,9 +156,15 @@ MESSAGES = {
     ),
     "buy.paddle_retry": "Retry Paddle",
     "buy.paddle_sepay_fallback": "Pay by card via SePay (VND)",
+    "buy.paddle_brave": (
+        "<strong>Brave browser:</strong> click the <strong>🦁 Shields icon → Shields down</strong> "
+        "for <code>bodyexporter.com</code>, disable VPN extensions (e.g. VeePN), then <strong>refresh</strong>. "
+        "Brave often blocks <code>checkout-service.paddle.com</code>."
+    ),
+    "buy.paddle_vn_fallback": "Or pay with VietQR (VND) on the buy page",
     "buy.paddle_support": (
         "Still stuck? Email <a href=\"mailto:{email}?subject=Paddle%20{txn}\">{email}</a> "
-        "with transaction <code>{txn}</code> or use VietQR on the <a href=\"/buy\">buy page</a>."
+        "with <code>{txn}</code>."
     ),
     "buy.pay_mode_label": "Payment method",
     "buy.mode_vn": "VietQR · bank transfer",

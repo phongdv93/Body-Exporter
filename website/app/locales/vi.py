@@ -152,9 +152,15 @@ MESSAGES = {
     ),
     "buy.paddle_retry": "Thử lại Paddle",
     "buy.paddle_sepay_fallback": "Thanh toán thẻ qua SePay (VND)",
+    "buy.paddle_brave": (
+        "<strong>Trình duyệt Brave:</strong> bấm icon <strong>🦁 Shields → Tắt (Shields down)</strong> "
+        "cho <code>bodyexporter.com</code>, tắt extension VPN (VeePN…), rồi <strong>F5</strong>. "
+        "Brave thường chặn <code>checkout-service.paddle.com</code>."
+    ),
+    "buy.paddle_vn_fallback": "Hoặc thanh toán VietQR (VND) trên trang mua",
     "buy.paddle_support": (
         "Vẫn lỗi? Gửi email <a href=\"mailto:{email}?subject=Paddle%20{txn}\">{email}</a> "
-        "kèm mã giao dịch <code>{txn}</code> hoặc chọn VietQR tại <a href=\"/buy\">trang mua</a>."
+        "kèm mã <code>{txn}</code>."
     ),
     "buy.pay_mode_label": "Phương thức thanh toán",
     "buy.mode_vn": "VietQR · chuyển khoản",

@@ -262,6 +262,16 @@ body {
 }
 .paddle-fallback-actions.is-hidden { display: none; }
 .paddle-sepay-fallback-form { margin: 0; }
+.paddle-brave-hint {
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  background: rgba(244, 162, 97, 0.12);
+  border: 1px solid rgba(244, 162, 97, 0.45);
+  font-size: 0.92rem;
+}
+.paddle-brave-hint.is-hidden { display: none; }
+.paddle-checkout-frame.is-hidden { display: none; }
 .checkout-step-panel.is-hidden { display: none; }
 .checkout-email-field { margin-bottom: 0.35rem; }
 .checkout-email-field label {
