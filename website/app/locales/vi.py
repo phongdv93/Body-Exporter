@@ -154,9 +154,9 @@ MESSAGES = {
     "buy.paddle_retry": "Thử lại Paddle",
     "buy.paddle_sepay_fallback": "Thanh toán thẻ qua SePay (VND)",
     "buy.paddle_brave": (
-        "<strong>Microsoft Edge:</strong> bấm icon <strong>🔒</strong> bên trái thanh địa chỉ → "
-        "<strong>Tracking prevention</strong> → chọn <strong>Off</strong> cho trang này (hoặc Thêm ngoại lệ). "
-        "Tắt extension VPN / chặn quảng cáo (icon 🧩), rồi <strong>F5</strong>."
+        "<strong>VeePN / VPN có AdBlock:</strong> tắt <strong>AdBlock</strong> trong extension VeePN (công tắt màu xanh), "
+        "hoặc ngắt VPN hẳn khi test Paddle. AdBlock trong VPN hay chặn <code>checkout-service.paddle.com</code>. "
+        "Edge: icon 🔒 → Tracking prevention → <strong>Tắt</strong> cho trang này, rồi <strong>F5</strong>."
     ),
     "buy.paddle_vn_fallback": "Hoặc thanh toán VietQR (VND) trên trang mua",
     "buy.paddle_support": (

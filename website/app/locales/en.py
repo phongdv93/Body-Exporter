@@ -158,9 +158,9 @@ MESSAGES = {
     "buy.paddle_retry": "Retry Paddle",
     "buy.paddle_sepay_fallback": "Pay by card via SePay (VND)",
     "buy.paddle_brave": (
-        "<strong>Microsoft Edge:</strong> click the <strong>🔒</strong> icon left of the address bar → "
-        "<strong>Tracking prevention</strong> → set <strong>Off</strong> for this site (or add an exception). "
-        "Disable VPN / ad-block extensions (🧩 puzzle icon), then <strong>refresh</strong>."
+        "<strong>VeePN / VPN with AdBlock:</strong> turn <strong>AdBlock OFF</strong> inside the VeePN extension "
+        "(green toggle), or disconnect VPN while testing Paddle. VPN ad-blockers often block "
+        "<code>checkout-service.paddle.com</code>. Edge: 🔒 → Tracking prevention → <strong>Off</strong>, then refresh."
     ),
     "buy.paddle_vn_fallback": "Or pay with VietQR (VND) on the buy page",
     "buy.paddle_support": (
