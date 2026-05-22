@@ -131,6 +131,7 @@ MESSAGES = {
     "buy.step_label_email": "1. Email",
     "buy.step_label_pay": "2. Thanh toán",
     "buy.btn_continue": "Tiếp tục",
+    "buy.paddle_opening": "Đang mở cổng thanh toán Paddle…",
     "buy.btn_edit_email": "Sửa email",
     "buy.step2_email_sent": "License gửi tới",
     "buy.step2_vn_lead": "Quét QR hoặc chuyển khoản đúng số tiền và nội dung CK bên dưới.",

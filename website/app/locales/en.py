@@ -135,6 +135,7 @@ MESSAGES = {
     "buy.step_label_email": "1. Email",
     "buy.step_label_pay": "2. Pay",
     "buy.btn_continue": "Continue",
+    "buy.paddle_opening": "Opening Paddle checkout…",
     "buy.btn_edit_email": "Edit email",
     "buy.step2_email_sent": "License will be sent to",
     "buy.step2_vn_lead": "Scan the QR or transfer the exact amount and memo below.",

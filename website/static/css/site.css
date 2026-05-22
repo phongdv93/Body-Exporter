@@ -237,6 +237,12 @@ body {
 .checkout-step.is-active { color: var(--accent, #2dd4bf); }
 .checkout-step.is-done { color: var(--text, #e8edf4); }
 .checkout-step-sep { color: var(--muted, #6b7280); }
+.checkout-steps--intl-paddle .checkout-step-sep,
+.checkout-steps--intl-paddle #checkout-step-indicator-2 {
+  display: none;
+}
+.checkout-paddle-hint.is-hidden { display: none; }
+.checkout-paddle-hint { margin: 0.5rem 0 0; }
 .checkout-step-panel.is-hidden { display: none; }
 .checkout-email-field { margin-bottom: 0.35rem; }
 .checkout-email-field label {

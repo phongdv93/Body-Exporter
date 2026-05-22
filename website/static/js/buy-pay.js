@@ -8,9 +8,11 @@
   const step2 = document.getElementById("checkout-step-2");
   const stepInd1 = document.getElementById("checkout-step-indicator-1");
   const stepInd2 = document.getElementById("checkout-step-indicator-2");
+  const stepsNav = document.querySelector(".checkout-steps");
   const btnContinue = document.getElementById("btn-checkout-continue");
   const btnEditEmail = document.getElementById("btn-edit-email");
   const confirmedEmail = document.getElementById("confirmed-email");
+  const paddleOpeningHint = document.getElementById("paddle-opening-hint");
   const pricingCard = document.getElementById("pricing");
   const vnMount = document.getElementById("vn-qr-mount");
   const panels = {
@@ -19,11 +21,16 @@
   };
   const modeButtons = root.querySelectorAll(".pay-mode-btn");
   const cookieName = root.dataset.cookieName || "be_pay_mode";
+  const paddleAvailable = root.dataset.paddleAvailable === "1";
   let currentMode = root.dataset.payMode || "vn";
   let checkoutStep = 1;
 
   function validEmail(v) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((v || "").trim());
+  }
+
+  function isIntlPaddle() {
+    return currentMode === "intl" && paddleAvailable;
   }
 
   function setCookie(mode) {
@@ -44,6 +51,11 @@
     });
   }
 
+  function syncStepsNav() {
+    if (!stepsNav) return;
+    stepsNav.classList.toggle("checkout-steps--intl-paddle", isIntlPaddle());
+  }
+
   function setPayMode(mode) {
     currentMode = mode;
     root.dataset.payMode = mode;
@@ -55,8 +67,9 @@
     if (panels.vn) panels.vn.classList.toggle("is-hidden", mode !== "vn");
     if (panels.intl) panels.intl.classList.toggle("is-hidden", mode !== "intl");
     syncPricingMode(mode);
+    syncStepsNav();
     setCookie(mode);
-    if (checkoutStep === 2) loadStep2Payment();
+    if (checkoutStep === 2 && !isIntlPaddle()) loadStep2Payment();
   }
 
   modeButtons.forEach((btn) => {
@@ -158,7 +171,7 @@
         emailHint.textContent = root.dataset.msgEnterEmail || emailHint.textContent;
       }
       emailInput && emailInput.focus();
-      return;
+      return false;
     }
     if (emailHint) emailHint.classList.add("is-hidden");
     if (confirmedEmail) confirmedEmail.textContent = email;
@@ -166,22 +179,172 @@
     if (hidden) hidden.value = email;
     showStep(2);
     loadStep2Payment();
+    return true;
   }
 
   function goToStep1() {
     showStep(1);
     if (emailHint) emailHint.classList.remove("is-hidden");
+    if (paddleOpeningHint) paddleOpeningHint.classList.add("is-hidden");
     emailInput && emailInput.focus();
   }
 
-  if (btnContinue) btnContinue.addEventListener("click", goToStep2);
+  function setContinueLoading(on) {
+    if (!btnContinue) return;
+    btnContinue.disabled = on;
+    btnContinue.setAttribute("aria-busy", on ? "true" : "false");
+    if (paddleOpeningHint) paddleOpeningHint.classList.toggle("is-hidden", !on);
+  }
+
+  function paddleDefaultLinkMessage() {
+    return (
+      root.dataset.msgPaddleDefaultLink ||
+      "Set Default payment link in Paddle Dashboard (Checkout settings)."
+    );
+  }
+
+  /* Paddle — open overlay on Continue (intl), no extra Pay button */
+  const cfgEl = document.getElementById("paddle-config");
+  let paddleCfg = {};
+  let paddleReady = false;
+
+  if (cfgEl) {
+    try {
+      paddleCfg = JSON.parse(cfgEl.textContent || "{}");
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  function whenPaddleReady(cb, n) {
+    if (typeof Paddle !== "undefined") return cb();
+    if (n <= 0) return;
+    setTimeout(() => whenPaddleReady(cb, n - 1), 200);
+  }
+
+  function initPaddleOnce() {
+    if (paddleReady || typeof Paddle === "undefined" || !paddleCfg.client_token) return false;
+    try {
+      if (paddleCfg.environment === "sandbox" && Paddle.Environment && Paddle.Environment.set) {
+        Paddle.Environment.set("sandbox");
+      }
+      Paddle.Initialize({
+        token: paddleCfg.client_token,
+        checkout: { settings: { displayMode: "overlay" } },
+        eventCallback: function (ev) {
+          if (ev && ev.name === "checkout.error") {
+            console.error("Paddle checkout.error", ev);
+            setContinueLoading(false);
+          }
+          if (ev && (ev.name === "checkout.closed" || ev.name === "checkout.completed")) {
+            setContinueLoading(false);
+          }
+        },
+      });
+      paddleReady = true;
+      return true;
+    } catch (err) {
+      console.error(err);
+      return false;
+    }
+  }
+
+  if (paddleAvailable) {
+    whenPaddleReady(() => initPaddleOnce(), 50);
+  }
+
+  function ensurePaddleReady() {
+    return new Promise((resolve, reject) => {
+      whenPaddleReady(() => {
+        if (!initPaddleOnce()) {
+          reject(new Error("paddle_init"));
+          return;
+        }
+        resolve();
+      }, 50);
+    });
+  }
+
+  function openPaddleCheckout(email) {
+    return fetch("/buy/api/paddle-checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email }),
+    })
+      .then((r) => r.json().then((data) => ({ data: data })))
+      .then(({ data }) => {
+        if (data.error_code === "transaction_default_checkout_url_not_set") {
+          alert(paddleDefaultLinkMessage());
+          return;
+        }
+        if (data.ok && data.transaction_id) {
+          Paddle.Checkout.open({ transactionId: data.transaction_id });
+          return;
+        }
+        if (data.checkout_url) {
+          window.location.href = data.checkout_url;
+          return;
+        }
+        if (data.use_client_price !== false && paddleCfg.price_id) {
+          Paddle.Checkout.open({
+            items: [{ priceId: paddleCfg.price_id, quantity: 1 }],
+            customer: { email: email },
+            customData: { buyer_email: email },
+            settings: {
+              successUrl:
+                paddleCfg.success_url + "?email=" + encodeURIComponent(email),
+            },
+          });
+          return;
+        }
+        alert(
+          (data.error && String(data.error)) ||
+            root.dataset.msgPaddleFail ||
+            "Checkout unavailable"
+        );
+      });
+  }
+
+  function startIntlPaddleCheckout() {
+    const email = (emailInput && emailInput.value.trim()) || "";
+    if (!validEmail(email)) {
+      if (emailHint) {
+        emailHint.classList.remove("is-hidden");
+        emailHint.textContent = root.dataset.msgEnterEmail || emailHint.textContent;
+      }
+      emailInput && emailInput.focus();
+      return;
+    }
+    if (emailHint) emailHint.classList.add("is-hidden");
+    setContinueLoading(true);
+    ensurePaddleReady()
+      .then(() => openPaddleCheckout(email))
+      .catch((err) => {
+        console.error(err);
+        alert(root.dataset.msgPaddleLoading || "Loading…");
+      })
+      .finally(() => {
+        /* overlay open keeps loading off until checkout.closed via eventCallback */
+        setTimeout(() => setContinueLoading(false), 800);
+      });
+  }
+
+  function onContinue() {
+    if (isIntlPaddle()) {
+      startIntlPaddleCheckout();
+      return;
+    }
+    goToStep2();
+  }
+
+  if (btnContinue) btnContinue.addEventListener("click", onContinue);
   if (btnEditEmail) btnEditEmail.addEventListener("click", goToStep1);
 
   if (emailInput) {
     emailInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && checkoutStep === 1) {
         e.preventDefault();
-        goToStep2();
+        onContinue();
       }
     });
   }
@@ -194,139 +357,15 @@
     });
   }
 
-  function paddleDefaultLinkMessage() {
-    return (
-      root.dataset.msgPaddleDefaultLink ||
-      "Set Default payment link in Paddle Dashboard (Checkout settings)."
-    );
-  }
-
-  /* Paddle */
-  const paddleBtn = document.getElementById("btn-paddle-checkout");
-  const cfgEl = document.getElementById("paddle-config");
-  if (paddleBtn && cfgEl) {
-    let cfg = {};
-    try {
-      cfg = JSON.parse(cfgEl.textContent || "{}");
-    } catch (e) {
-      console.error(e);
-    }
-    let paddleReady = false;
-
-    function whenPaddleReady(cb, n) {
-      if (typeof Paddle !== "undefined") return cb();
-      if (n <= 0) return;
-      setTimeout(() => whenPaddleReady(cb, n - 1), 200);
-    }
-
-    function initPaddleOnce() {
-      if (paddleReady || typeof Paddle === "undefined" || !cfg.client_token) return false;
-      try {
-        if (cfg.environment === "sandbox" && Paddle.Environment && Paddle.Environment.set) {
-          Paddle.Environment.set("sandbox");
-        }
-        Paddle.Initialize({
-          token: cfg.client_token,
-          checkout: { settings: { displayMode: "overlay" } },
-          eventCallback: function (ev) {
-            if (ev && ev.name === "checkout.error") {
-              console.error("Paddle checkout.error", ev);
-            }
-          },
-        });
-        paddleReady = true;
-        paddleBtn.disabled = false;
-        return true;
-      } catch (err) {
-        console.error(err);
-        return false;
-      }
-    }
-
-    paddleBtn.disabled = true;
-    whenPaddleReady(() => initPaddleOnce(), 50);
-
-    function openPaddleCheckout(email) {
-      fetch("/buy/api/paddle-checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email }),
-      })
-        .then((r) => r.json().then((data) => ({ status: r.status, data: data })))
-        .then(({ status, data }) => {
-          if (data.error_code === "transaction_default_checkout_url_not_set") {
-            alert(paddleDefaultLinkMessage());
-            return;
-          }
-          if (data.ok && data.transaction_id) {
-            Paddle.Checkout.open({ transactionId: data.transaction_id });
-            return;
-          }
-          if (data.checkout_url) {
-            window.location.href = data.checkout_url;
-            return;
-          }
-          if (data.use_client_price !== false && cfg.price_id) {
-            Paddle.Checkout.open({
-              items: [{ priceId: cfg.price_id, quantity: 1 }],
-              customer: { email: email },
-              customData: { buyer_email: email },
-              settings: {
-                successUrl: cfg.success_url + "?email=" + encodeURIComponent(email),
-              },
-            });
-            return;
-          }
-          alert(
-            (data.error && String(data.error)) ||
-              root.dataset.msgPaddleFail ||
-              "Checkout unavailable"
-          );
-        })
-        .catch((err) => {
-          console.error(err);
-          if (cfg.price_id) {
-            try {
-              Paddle.Checkout.open({
-                items: [{ priceId: cfg.price_id, quantity: 1 }],
-                customer: { email: email },
-                customData: { buyer_email: email },
-              });
-            } catch (e2) {
-              alert(root.dataset.msgPaddleFail || "Checkout error");
-            }
-          } else {
-            alert(root.dataset.msgPaddleFail || "Checkout error");
-          }
-        });
-    }
-
-    paddleBtn.addEventListener("click", () => {
-      if (checkoutStep !== 2) {
-        goToStep2();
-        return;
-      }
-      const email = (emailInput && emailInput.value.trim()) || "";
-      if (!validEmail(email)) {
-        goToStep1();
-        return;
-      }
-      if (!paddleReady && !initPaddleOnce()) {
-        alert(root.dataset.msgPaddleLoading || "Loading…");
-        return;
-      }
-      try {
-        openPaddleCheckout(email);
-      } catch (err) {
-        console.error(err);
-        alert(root.dataset.msgPaddleFail || "Checkout error");
-      }
-    });
-  }
-
   syncPricingMode(currentMode);
+  syncStepsNav();
+
   if (emailInput && validEmail(emailInput.value)) {
-    goToStep2();
+    if (isIntlPaddle()) {
+      showStep(1);
+    } else {
+      goToStep2();
+    }
   } else {
     showStep(1);
   }

@@ -106,6 +106,10 @@
     {% endif %}
 
     <button type="button" class="btn btn-primary btn-lg" id="btn-checkout-continue">{{ t('buy.btn_continue') }}</button>
+    {% if paddle_available %}
+    <p id="paddle-opening-hint" class="hint checkout-paddle-hint is-hidden">{{ t('buy.paddle_opening') }}</p>
+    <script type="application/json" id="paddle-config">{{ paddle_checkout_json | safe }}</script>
+    {% endif %}
   </div>
 
   <div id="checkout-step-2" class="checkout-step-panel is-hidden">
@@ -121,11 +125,8 @@
     </div>
 
     <div id="pay-panel-intl" class="checkout-pay-pane{% if pay_mode != 'intl' %} is-hidden{% endif %}">
-      <p class="checkout-step2-lead">{{ t('buy.step2_intl_lead', usd=price_usd or '—') | safe }}</p>
       {% if paddle_available %}
-      <button type="button" class="btn btn-primary btn-lg" id="btn-paddle-checkout">{{ t('buy.btn_paddle', usd=price_usd or '—') }}</button>
-      <p class="hint fine-print">{{ t('buy.paddle_hint') }}</p>
-      <script type="application/json" id="paddle-config">{{ paddle_checkout_json | safe }}</script>
+      <p class="hint muted">{{ t('buy.paddle_hint') }}</p>
       {% elif pg_available %}
       <form method="post" action="/buy" class="buy-form" id="buy-form-card">
         <input type="hidden" name="email" id="email-hidden-card" value="{{ email }}">
