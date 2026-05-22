@@ -93,11 +93,23 @@ body {
 }
 
 .site-footer {
-  padding: 1.5rem;
-  text-align: center;
+  padding: 1.25rem 1.25rem 1.5rem;
   color: var(--muted);
   font-size: 0.85rem;
   border-top: 1px solid var(--border);
+}
+.site-footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  flex-wrap: wrap;
+  width: min(920px, 100%);
+  margin: 0 auto;
+}
+.site-footer .footer-copy {
+  margin: 0;
+  text-align: left;
 }
 .site-footer a { color: var(--accent); }
 
@@ -215,12 +227,20 @@ body {
 .legal-prose h2 { font-size: 1rem; margin: 1.25rem 0 0.5rem; }
 .legal-prose h2:first-child { margin-top: 0; }
 .legal-prose ul { padding-left: 1.25rem; }
-.footer-legal {
-  margin: 0.5rem 0 0;
-  font-size: 0.85rem;
+.site-footer .footer-legal {
+  margin: 0 0 0 auto;
+  text-align: right;
+  white-space: nowrap;
 }
-.footer-legal a { color: var(--muted, #9ca3af); }
-.footer-legal a:hover { color: var(--accent, #2dd4bf); }
+.site-footer .footer-legal a { color: var(--muted, #9ca3af); }
+.site-footer .footer-legal a:hover { color: var(--accent, #2dd4bf); }
+@media (max-width: 640px) {
+  .site-footer .footer-legal {
+    white-space: normal;
+    width: 100%;
+    text-align: right;
+  }
+}
 .buy-form label { display: block; font-weight: 600; margin-bottom: 0.35rem; font-size: 0.9rem; }
 .buy-form input[type="email"] {
   width: 100%;

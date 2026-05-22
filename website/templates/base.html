@@ -61,16 +61,18 @@
     {% block content %}{% endblock %}
   </main>
   <footer class="site-footer">
-    <p>© {{ content.hero_title if content is defined else 'Body Exporter' }} ·
-      <a href="mailto:{{ support_email }}">{{ support_email }}</a>
-    </p>
-    <p class="footer-legal">
-      <a href="/terms-and-conditions">{{ t('footer.terms') }}</a>
-      <span aria-hidden="true"> · </span>
-      <a href="/privacy">{{ t('footer.privacy') }}</a>
-      <span aria-hidden="true"> · </span>
-      <a href="/refund">{{ t('footer.refund') }}</a>
-    </p>
+    <div class="site-footer-inner">
+      <p class="footer-copy">© {{ content.hero_title if content is defined else 'Body Exporter' }} ·
+        <a href="mailto:{{ support_email }}">{{ support_email }}</a>
+      </p>
+      <p class="footer-legal">
+        <a href="/terms-and-conditions">{{ t('footer.terms') }}</a>
+        <span aria-hidden="true"> · </span>
+        <a href="/privacy">{{ t('footer.privacy') }}</a>
+        <span aria-hidden="true"> · </span>
+        <a href="/refund">{{ t('footer.refund') }}</a>
+      </p>
+    </div>
   </footer>
 </body>
 </html>
