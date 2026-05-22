@@ -142,7 +142,12 @@ MESSAGES = {
     "buy.step2_intl_lead": "Step 2: pay <strong>${usd} USD</strong> by card / PayPal.",
     "buy.paddle_default_link": (
         "Paddle default payment link is not set. In Paddle → Checkout → Checkout settings, "
-        "set your homepage (e.g. https://bodyexporter.com) and try again."
+        "set https://bodyexporter.com/buy (not /webhook/paddle)."
+    ),
+    "buy.paddle_network": (
+        "Your browser cannot reach checkout-service.paddle.com. "
+        "Disable ad blockers, try incognito Chrome or another network. "
+        "In Paddle: default payment link = https://bodyexporter.com/buy and bodyexporter.com is approved under Website approval."
     ),
     "buy.pay_mode_label": "Payment method",
     "buy.mode_vn": "VietQR · bank transfer",

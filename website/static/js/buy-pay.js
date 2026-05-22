@@ -275,12 +275,15 @@
           if (ev && ev.name === "checkout.error") {
             console.error("Paddle checkout.error", ev);
             setContinueLoading(false);
-            const detail = (ev.data && ev.data.detail) || "";
-            if (
-              lastPaddleCheckoutUrl &&
-              /network error/i.test(String(detail))
-            ) {
-              window.location.assign(lastPaddleCheckoutUrl);
+            const detail = String((ev.data && ev.data.detail) || "");
+            if (/failed to fetch|network error/i.test(detail)) {
+              alert(
+                root.dataset.msgPaddleNetwork ||
+                  "Trình duyệt chặn Paddle (checkout-service.paddle.com). " +
+                    "Tắt adblock, thử Chrome ẩn danh hoặc mạng khác. " +
+                    "Kiểm tra Paddle: Default payment link = https://bodyexporter.com/buy " +
+                    "và domain đã được duyệt (Website approval)."
+              );
             }
           }
           if (ev && (ev.name === "checkout.closed" || ev.name === "checkout.completed")) {
@@ -326,10 +329,10 @@
     const email = (params.get("email") || (emailInput && emailInput.value) || "").trim();
     if (emailInput && email && !emailInput.value) emailInput.value = email;
     setContinueLoading(true);
+    /* Paddle.js tự mở checkout khi URL có ?_ptxn= — không gọi Checkout.open() thêm */
     ensurePaddleReady()
-      .then(() => openPaddleOverlay(txn, email))
       .catch((err) => console.error(err))
-      .finally(() => setTimeout(() => setContinueLoading(false), 600));
+      .finally(() => setTimeout(() => setContinueLoading(false), 1200));
   }
 
   if (paddleAvailable && paddleCfg.client_token) {
@@ -384,33 +387,15 @@
       return Promise.resolve();
     }
     if (data.ok && data.transaction_id) {
-      if (redirectToPaddleCheckout(buildBuyPtxnUrl(data.transaction_id))) {
-        return Promise.resolve();
-      }
+      redirectToPaddleCheckout(buildBuyPtxnUrl(data.transaction_id));
+      return Promise.resolve();
     }
-    return ensurePaddleReady().then(() => {
-      if (data.ok && data.transaction_id) {
-        openPaddleOverlay(data.transaction_id, email);
-        return;
-      }
-      if (data.use_client_price !== false && paddleCfg.price_id) {
-        Paddle.Checkout.open({
-          items: [{ priceId: paddleCfg.price_id, quantity: 1 }],
-          customer: { email: email },
-          customData: { buyer_email: email },
-          settings: {
-            successUrl:
-              paddleCfg.success_url + "?email=" + encodeURIComponent(email),
-          },
-        });
-        return;
-      }
-      alert(
-        (data.error && String(data.error)) ||
-          root.dataset.msgPaddleFail ||
-          "Checkout unavailable"
-      );
-    });
+    alert(
+      (data.error && String(data.error)) ||
+        root.dataset.msgPaddleFail ||
+        "Checkout unavailable"
+    );
+    return Promise.resolve();
   }
 
   function startIntlPaddleCheckout() {

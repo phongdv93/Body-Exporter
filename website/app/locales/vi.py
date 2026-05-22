@@ -138,7 +138,12 @@ MESSAGES = {
     "buy.step2_intl_lead": "Bước 2: thanh toán <strong>${usd} USD</strong> bằng thẻ / PayPal.",
     "buy.paddle_default_link": (
         "Paddle chưa có Default payment link. Vào Paddle → Checkout → Checkout settings "
-        "→ đặt link trang chủ (vd. https://bodyexporter.com) rồi thử lại."
+        "→ đặt https://bodyexporter.com/buy (không phải /webhook/paddle)."
+    ),
+    "buy.paddle_network": (
+        "Trình duyệt không kết nối được checkout-service.paddle.com. "
+        "Tắt adblock (uBlock, Brave…), thử Chrome ẩn danh hoặc mạng khác. "
+        "Trên Paddle: Default payment link = https://bodyexporter.com/buy và domain bodyexporter.com đã duyệt (Website approval)."
     ),
     "buy.pay_mode_label": "Phương thức thanh toán",
     "buy.mode_vn": "VietQR · chuyển khoản",
