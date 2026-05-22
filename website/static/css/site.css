@@ -209,11 +209,30 @@ body {
   font-weight: 600;
   margin: 0 0 0.5rem;
 }
+.pricing-price-row { margin: 0.75rem 0 0; }
+.pricing-price-row.is-hidden { display: none; }
+.pricing-amount {
+  margin: 0.15rem 0 0;
+  font-size: 1.75rem;
+  line-height: 1.2;
+}
+.pricing-amount strong { color: var(--accent, #2dd4bf); }
+.pricing-sub { margin: 0.35rem 0 0; font-size: 0.9rem; }
 .pricing-price-vnd {
   margin: 0 0 0.35rem;
   font-size: 1.5rem;
 }
 .pricing-price-vnd strong { color: var(--accent, #2dd4bf); }
+.pay-active-box {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+.pay-active-box.is-hidden { display: none; }
+#email-hint.is-hidden { display: none; }
+.pay-panel-title { margin: 0 0 1rem; font-size: 1rem; }
+.buy-page-legal { text-align: center; margin: 1rem 0 2rem; font-size: 0.85rem; }
+.buy-page-legal a { color: var(--accent, #2dd4bf); }
 .pricing-label {
   display: block;
   font-size: 0.8rem;

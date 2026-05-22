@@ -2,7 +2,7 @@ import json
 import re
 
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
@@ -18,7 +18,11 @@ from app.geo_pay import (
     resolve_pay_mode,
 )
 from app.legal_pages import legal_html, legal_page_title
-from app.paddle_billing import paddle_checkout_settings, paddle_configured
+from app.paddle_billing import (
+    create_paddle_checkout_transaction,
+    paddle_checkout_settings,
+    paddle_configured,
+)
 from app.i18n import (
     LANG_COOKIE,
     LANG_COOKIE_MAX_AGE,
@@ -263,6 +267,68 @@ def download_go(request: Request, db: Session = Depends(get_db)):
 @router.get("/buy")
 def buy_get(request: Request, email: str = "", pay: str = "", db: Session = Depends(get_db)):
     return _buy_response(request, db, email=email.strip(), pay_query=pay)
+
+
+def _vietqr_payload(content, email: str) -> dict | None:
+    email = (email or "").strip()
+    if not email or "@" not in email:
+        return None
+    base = (content.sepay_qr_base_url or config.SEPAY_QR_BASE_URL or "").strip()
+    if not base:
+        return None
+    bank = parse_qr_base(base)
+    amount = content.license_price_vnd or config.LICENSE_PRICE_VND
+    if bank.get("amount_vnd"):
+        amount = bank["amount_vnd"]
+    return {
+        "qr_url": build_qr_image_url(base, email),
+        "memo": build_transfer_memo(email),
+        "bank": bank,
+        "amount_vnd": amount,
+        "amount_fmt": "{:,}".format(amount).replace(",", "."),
+    }
+
+
+@router.get("/buy/api/vietqr")
+def buy_vietqr_api(request: Request, email: str = "", db: Session = Depends(get_db)):
+    content = get_content(db)
+    payload = _vietqr_payload(content, email)
+    if not payload:
+        return JSONResponse({"ok": False, "error": "invalid"}, status_code=400)
+    lang = resolve_lang(request)
+    return JSONResponse(
+        {
+            "ok": True,
+            **payload,
+            "wait_hint_html": translate(
+                lang, "buy.wait_hint", email=email.strip(), memo=payload["memo"]
+            ),
+            "labels": {
+                "title": translate(lang, "buy.transfer_title", amount=payload["amount_fmt"]),
+                "bank": translate(lang, "buy.bank"),
+                "account": translate(lang, "buy.account"),
+                "amount": translate(lang, "buy.amount"),
+                "memo": translate(lang, "buy.memo"),
+            },
+        }
+    )
+
+
+@router.post("/buy/api/paddle-checkout")
+async def buy_paddle_checkout_api(request: Request, db: Session = Depends(get_db)):
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    email = (body.get("email") or "").strip()
+    if not email or "@" not in email:
+        return JSONResponse({"ok": False, "error": "invalid_email"}, status_code=400)
+    if not paddle_configured():
+        return JSONResponse({"ok": False, "error": "not_configured"}, status_code=503)
+    txn_id, err = create_paddle_checkout_transaction(email)
+    if txn_id:
+        return JSONResponse({"ok": True, "transaction_id": txn_id})
+    return JSONResponse({"ok": False, "error": err or "unknown", "use_client_price": True})
 
 
 @router.post("/buy")

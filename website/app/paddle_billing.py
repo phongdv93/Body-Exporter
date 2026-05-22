@@ -82,6 +82,44 @@ def paddle_admin_status() -> dict[str, Any]:
     }
 
 
+def create_paddle_checkout_transaction(email: str) -> tuple[str | None, str | None]:
+    """Create Paddle transaction server-side; returns (transaction_id, error)."""
+    api_key = (config.PADDLE_API_KEY or "").strip()
+    price_id = (config.PADDLE_PRICE_ID or "").strip()
+    if not api_key or not price_id:
+        return None, "paddle_api_not_configured"
+    email = (email or "").strip()
+    if not email or "@" not in email:
+        return None, "invalid_email"
+    body = {
+        "items": [{"price_id": price_id, "quantity": 1}],
+        "customer": {"email": email},
+        "custom_data": {"buyer_email": email},
+    }
+    try:
+        r = httpx.post(
+            f"{_paddle_api_base()}/transactions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json=body,
+            timeout=20.0,
+        )
+        if not r.is_success:
+            detail = r.text[:500]
+            log.warning("Paddle create transaction %s: %s", r.status_code, detail)
+            return None, f"paddle_api_{r.status_code}"
+        data = r.json().get("data") or {}
+        txn_id = (data.get("id") or "").strip()
+        if txn_id:
+            return txn_id, None
+        return None, "no_transaction_id"
+    except Exception as ex:
+        log.exception("Paddle create transaction failed")
+        return None, str(ex)[:120]
+
+
 def paddle_checkout_settings() -> dict[str, str]:
     env = (config.PADDLE_ENV or "sandbox").strip().lower()
     return {
