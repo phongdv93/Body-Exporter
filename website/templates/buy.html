@@ -101,6 +101,18 @@
   {% endif %}
 </section>
 
+{% if buy_footer %}
+<section class="card card-dim prose-footer">
+  {{ buy_footer | safe }}
+</section>
+{% endif %}
+{% if paddle_available %}
+<script src="/static/js/paddle-bridge.js?v=2"></script>
+{% endif %}
+<script src="/static/js/buy-pay.js?v=12" defer></script>
+{% endblock %}
+
+{% block page_modals %}
 <div id="pay-modal" class="pay-modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="pay-modal-summary-title">
   <div class="pay-modal-backdrop" id="pay-modal-backdrop"></div>
   <div class="pay-modal-panel">
@@ -153,14 +165,4 @@
     </div>
   </div>
 </div>
-
-{% if buy_footer %}
-<section class="card card-dim prose-footer">
-  {{ buy_footer | safe }}
-</section>
-{% endif %}
-{% if paddle_available %}
-<script src="/static/js/paddle-bridge.js"></script>
-{% endif %}
-<script src="/static/js/buy-pay.js?v=11" defer></script>
 {% endblock %}

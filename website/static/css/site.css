@@ -320,34 +320,48 @@ body {
 }
 .years-input::-webkit-outer-spin-button,
 .years-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-body.pay-modal-open { overflow: hidden; }
-html.paddle-checkout-open {
-  overflow: hidden !important;
+html.pay-modal-open,
+body.pay-modal-open {
+  overflow: hidden;
   width: 100%;
   max-width: 100%;
 }
+html.paddle-checkout-open,
 body.paddle-checkout-open {
   overflow: hidden !important;
   width: 100%;
   max-width: 100%;
-  position: fixed;
-  inset: 0;
   overscroll-behavior: none;
 }
 body.paddle-checkout-open .site-header,
 body.paddle-checkout-open .site-main,
 body.paddle-checkout-open .site-footer {
   max-width: 100%;
-  overflow-x: hidden;
+  overflow-x: clip;
+}
+/* Paddle overlay iframes can widen past viewport on the email step */
+body.paddle-checkout-open iframe[src*="paddle"],
+body.paddle-checkout-open iframe[name*="paddle"] {
+  max-width: 100% !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
 .pay-modal {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
   padding: 1rem;
+  overflow-x: clip;
+  box-sizing: border-box;
 }
 .pay-modal.is-hidden { display: none; }
 .pay-modal-backdrop {
@@ -359,7 +373,8 @@ body.paddle-checkout-open .site-footer {
 .pay-modal-panel {
   position: relative;
   width: 100%;
-  max-width: 900px;
+  max-width: min(900px, 100%);
+  box-sizing: border-box;
   height: auto;
   max-height: 88vh;
   overflow-x: hidden;
@@ -387,6 +402,8 @@ body.paddle-checkout-open .site-footer {
   display: grid;
   grid-template-columns: 42% 58%;
   min-height: 0;
+  min-width: 0;
+  max-width: 100%;
   align-items: stretch;
 }
 .pay-modal-summary {
@@ -394,7 +411,10 @@ body.paddle-checkout-open .site-footer {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  overflow: hidden;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
+  overflow-y: visible;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 .pay-modal-summary h3 {
@@ -471,9 +491,11 @@ body.paddle-checkout-open .site-footer {
 .pay-modal-discount-toggle:hover { color: #99f6e4; }
 .pay-modal-discount-form {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.4rem;
   margin-top: 0.35rem;
   align-items: center;
+  max-width: 100%;
 }
 .pay-modal-discount-form.is-hidden { display: none; }
 .pay-modal-discount-input {
@@ -543,6 +565,17 @@ body.paddle-checkout-open .site-footer {
   font-size: 0.74rem;
   background: transparent;
   padding: 0;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+.pay-modal-bank dd {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.pay-modal-wait,
+.pay-modal-due {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .pay-modal-wait {
   margin: 0.2rem 0 0;
@@ -589,7 +622,10 @@ body.paddle-checkout-open .site-footer {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  min-width: 0;
+  max-width: 100%;
   align-self: start;
+  box-sizing: border-box;
 }
 .pay-modal-qr-download {
   display: block;
@@ -606,6 +642,8 @@ body.paddle-checkout-open .site-footer {
   .pay-modal {
     padding: 0;
     align-items: stretch;
+    width: 100%;
+    max-width: 100%;
   }
   .pay-modal-panel {
     width: 100%;
@@ -615,30 +653,44 @@ body.paddle-checkout-open .site-footer {
     border-radius: 0;
     display: flex;
     flex-direction: column;
-    overflow-x: hidden;
+    overflow-x: clip;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
   .pay-modal-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: none;
     flex: none;
+    width: 100%;
+    max-width: 100%;
     min-height: 0;
-    overflow: visible;
+    min-width: 0;
+    overflow-x: clip;
   }
   .pay-modal-summary {
     flex: 0 0 auto;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding-left: max(1rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1rem, env(safe-area-inset-right, 0px));
     border-right: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    overflow: visible;
+    overflow-x: clip;
+    overflow-y: visible;
     max-height: none;
   }
   .pay-modal-qr-block {
     flex: 0 0 auto;
     flex-shrink: 0;
-    padding: 0 0.75rem max(1rem, env(safe-area-inset-bottom, 0px));
+    padding: 0 max(0.75rem, env(safe-area-inset-right, 0px))
+      max(1rem, env(safe-area-inset-bottom, 0px))
+      max(0.75rem, env(safe-area-inset-left, 0px));
     box-sizing: border-box;
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
   }
   .pay-modal-qr-pane {
     width: 100%;

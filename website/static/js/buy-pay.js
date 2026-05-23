@@ -206,10 +206,15 @@
     });
   }
 
+  function setPayModalOpen(on) {
+    document.documentElement.classList.toggle("pay-modal-open", on);
+    document.body.classList.toggle("pay-modal-open", on);
+  }
+
   function openVnModal() {
     if (!payModal) return;
     payModal.classList.remove("is-hidden");
-    document.body.classList.add("pay-modal-open");
+    setPayModalOpen(true);
     appliedDiscountCode = "";
     if (modalDiscountCode) modalDiscountCode.value = "";
     if (modalDiscountForm) modalDiscountForm.classList.add("is-hidden");
@@ -233,7 +238,7 @@
   function closeModal() {
     if (!payModal) return;
     payModal.classList.add("is-hidden");
-    document.body.classList.remove("pay-modal-open");
+    setPayModalOpen(false);
     clearTimeout(qrFetchTimer);
   }
 
@@ -434,8 +439,6 @@
       btnContinue.textContent = root.dataset.msgPaddleLoading || "…";
     }
     window.BodyExporterPaddle.setConfig(cfg);
-    document.documentElement.classList.add("paddle-checkout-open");
-    document.body.classList.add("paddle-checkout-open");
     const qty = 1;
     const p = window.BodyExporterPaddle.openWithItems
       ? window.BodyExporterPaddle.openWithItems({
@@ -444,8 +447,6 @@
         })
       : Promise.reject(new Error("no_items"));
     p.catch(function () {
-      document.documentElement.classList.remove("paddle-checkout-open");
-      document.body.classList.remove("paddle-checkout-open");
       alert(root.dataset.msgPaddleFail || "Could not open checkout");
     }).finally(function () {
       if (btnContinue) {

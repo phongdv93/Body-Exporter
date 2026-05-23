@@ -4,6 +4,70 @@
 window.BodyExporterPaddle = (function () {
   let cfg = null;
   let initialized = false;
+  let widthGuardObserver = null;
+
+  function isPaddleFrame(el) {
+    if (!el || el.tagName !== "IFRAME") return false;
+    const src = (el.getAttribute("src") || "").toLowerCase();
+    const name = (el.getAttribute("name") || "").toLowerCase();
+    return src.indexOf("paddle") !== -1 || name.indexOf("paddle") !== -1;
+  }
+
+  function constrainPaddleOverlayWidth() {
+    const vw = document.documentElement.clientWidth + "px";
+    document.querySelectorAll("iframe").forEach(function (frame) {
+      if (!isPaddleFrame(frame)) return;
+      frame.style.setProperty("max-width", vw, "important");
+      frame.style.setProperty("box-sizing", "border-box", "important");
+      let node = frame.parentElement;
+      for (let i = 0; i < 12 && node && node !== document.documentElement; i++) {
+        node.style.setProperty("max-width", vw, "important");
+        node.style.setProperty("overflow-x", "clip", "important");
+        node.style.setProperty("box-sizing", "border-box", "important");
+        node = node.parentElement;
+      }
+    });
+  }
+
+  function schedulePaddleWidthFix() {
+    constrainPaddleOverlayWidth();
+    requestAnimationFrame(constrainPaddleOverlayWidth);
+    setTimeout(constrainPaddleOverlayWidth, 80);
+    setTimeout(constrainPaddleOverlayWidth, 350);
+  }
+
+  function startPaddleWidthGuard() {
+    if (widthGuardObserver) return;
+    widthGuardObserver = new MutationObserver(function () {
+      schedulePaddleWidthFix();
+    });
+    widthGuardObserver.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["style", "class", "width"],
+    });
+    window.addEventListener("resize", schedulePaddleWidthFix);
+  }
+
+  function stopPaddleWidthGuard() {
+    if (widthGuardObserver) {
+      widthGuardObserver.disconnect();
+      widthGuardObserver = null;
+    }
+    window.removeEventListener("resize", schedulePaddleWidthFix);
+  }
+
+  function setPaddleCheckoutOpen(on) {
+    document.documentElement.classList.toggle("paddle-checkout-open", on);
+    document.body.classList.toggle("paddle-checkout-open", on);
+    if (on) {
+      startPaddleWidthGuard();
+      schedulePaddleWidthFix();
+    } else {
+      stopPaddleWidthGuard();
+    }
+  }
 
   function formatError(ev) {
     if (!ev || !ev.data) return "";
@@ -32,6 +96,7 @@ window.BodyExporterPaddle = (function () {
         checkout: {
           settings: {
             displayMode: "overlay",
+            variant: "one-page",
             theme: "dark",
             locale: document.documentElement.lang === "vi" ? "vi" : "en",
             successUrl: cfg.success_url || "/buy/success",
@@ -39,17 +104,21 @@ window.BodyExporterPaddle = (function () {
         },
         eventCallback: function (ev) {
           if (!ev) return;
-          if (ev.name === "checkout.loaded") {
-            document.documentElement.classList.add("paddle-checkout-open");
-            document.body.classList.add("paddle-checkout-open");
+          if (
+            ev.name === "checkout.loaded" ||
+            ev.name === "checkout.updated" ||
+            ev.name === "checkout.customer.created" ||
+            ev.name === "checkout.customer.updated"
+          ) {
+            setPaddleCheckoutOpen(true);
+            schedulePaddleWidthFix();
           }
           if (
             ev.name === "checkout.completed" ||
             ev.name === "checkout.closed" ||
             ev.name === "checkout.error"
           ) {
-            document.documentElement.classList.remove("paddle-checkout-open");
-            document.body.classList.remove("paddle-checkout-open");
+            setPaddleCheckoutOpen(false);
           }
           if (ev.name === "checkout.completed" && cfg.success_url) {
             let em = (cfg._pending_email || "").trim();
@@ -98,8 +167,11 @@ window.BodyExporterPaddle = (function () {
     }
     try {
       Paddle.Checkout.open(payload);
+      setPaddleCheckoutOpen(true);
+      schedulePaddleWidthFix();
       return Promise.resolve();
     } catch (err) {
+      setPaddleCheckoutOpen(false);
       if (cfg.onError) cfg.onError(String(err), err);
       return Promise.reject(err);
     }
@@ -138,9 +210,16 @@ window.BodyExporterPaddle = (function () {
     try {
       Paddle.Checkout.open({
         items: [{ priceId: opts.priceId, quantity: opts.quantity || 1 }],
+        settings: {
+          displayMode: "overlay",
+          variant: "one-page",
+        },
       });
+      setPaddleCheckoutOpen(true);
+      schedulePaddleWidthFix();
       return Promise.resolve();
     } catch (err) {
+      setPaddleCheckoutOpen(false);
       if (cfg.onError) cfg.onError(String(err), err);
       return Promise.reject(err);
     }
