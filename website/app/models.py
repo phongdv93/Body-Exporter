@@ -55,6 +55,7 @@ class SiteContent(Base):
     sepay_webhook_secret: Mapped[str] = mapped_column(String(300), default="")
     sepay_webhook_api_key: Mapped[str] = mapped_column(String(300), default="")
     license_term_days: Mapped[int] = mapped_column(Integer, default=365)
+    vn_discount_codes: Mapped[str] = mapped_column(Text, default="")
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 

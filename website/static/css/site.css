@@ -430,6 +430,50 @@ body.pay-modal-open { overflow: hidden; }
   color: #5eead4;
   font-size: 1.05rem;
 }
+.pay-modal-due-was {
+  color: #6b7280;
+  text-decoration: line-through;
+  font-size: 0.85rem;
+  margin-right: 0.35rem;
+}
+.pay-modal-discount {
+  margin: 0.05rem 0 0.15rem;
+}
+.pay-modal-discount-toggle {
+  border: none;
+  background: none;
+  padding: 0;
+  color: #5eead4;
+  font-size: 0.82rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.pay-modal-discount-toggle:hover { color: #99f6e4; }
+.pay-modal-discount-form {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+  align-items: center;
+}
+.pay-modal-discount-form.is-hidden { display: none; }
+.pay-modal-discount-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.38rem 0.5rem !important;
+  font-size: 0.85rem !important;
+}
+.pay-modal-discount-form .btn-sm {
+  padding: 0.38rem 0.65rem;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+.pay-modal-discount-msg {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  color: #fca5a5;
+}
+.pay-modal-discount-msg.is-hidden { display: none; }
+.pay-modal-discount-msg.is-ok { color: #5eead4; }
 .pay-modal-email-field label {
   display: block;
   font-size: 0.78rem;

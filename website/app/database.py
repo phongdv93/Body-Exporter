@@ -60,6 +60,7 @@ _SITE_CONTENT_ALTER = [
     ("download_policy_html_en", "TEXT DEFAULT ''"),
     ("download_guides_html", "TEXT DEFAULT ''"),
     ("download_guides_html_en", "TEXT DEFAULT ''"),
+    ("vn_discount_codes", "TEXT DEFAULT ''"),
 ]
 
 

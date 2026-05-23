@@ -82,6 +82,8 @@ Link ba trang policy cũng có ở **footer** mọi trang công khai. Tùy chọ
 - IP **khác**: mặc định **Paddle**; công tắc sang VietQR nếu cần.
 - Cookie `be_pay_mode` = `vn` | `intl` (hoặc `?pay=vn` / `?pay=intl`).
 
+**Mã giảm giá VietQR (SePay CK):** không dùng chung Paddle. Tạo trong **Admin → Nội dung** (mỗi dòng `MÃ:phần_trăm`, vd `TESTRUN:99`) hoặc env `VN_DISCOUNT_CODES=TESTRUN:99`. Khách nhập mã trong modal VietQR → QR đổi số tiền; webhook chấp nhận đúng số sau giảm. Tối đa **99%** (100% = 0 VND, không tạo QR).
+
 **Paddle (Render env):**
 
 | Biến | Lấy ở đâu |

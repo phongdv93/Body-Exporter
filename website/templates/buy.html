@@ -76,6 +76,8 @@
          data-msg-vn-qr-hint="{{ t('buy.vn_modal_qr_hint') | e }}"
          data-msg-total="{{ t('buy.modal_total') | e }}"
          data-msg-years-count="{{ t('buy.modal_years_count') | e }}"
+         data-msg-discount-invalid="{{ t('buy.discount_invalid') | e }}"
+         data-msg-discount-zero="{{ t('buy.discount_amount_zero') | e }}"
          data-msg-btn-pay="{{ t('buy.btn_pay') | e }}"
          data-prefill-email="{{ email | e }}">
   <h2 class="buy-step-heading">{{ t('buy.checkout_title') }}</h2>
@@ -116,6 +118,19 @@
           </div>
         </div>
         <p class="pay-modal-due" id="modal-total-line"></p>
+        <div class="pay-modal-discount">
+          <button type="button" class="pay-modal-discount-toggle" id="modal-discount-toggle">
+            {{ t('buy.add_discount') }}
+          </button>
+          <div class="pay-modal-discount-form is-hidden" id="modal-discount-form">
+            <input type="text" id="modal-discount-code" class="pay-modal-input pay-modal-discount-input"
+                   autocomplete="off" spellcheck="false" placeholder="{{ t('buy.discount_placeholder') }}">
+            <button type="button" class="btn btn-secondary btn-sm" id="modal-discount-apply">
+              {{ t('buy.discount_apply') }}
+            </button>
+          </div>
+          <p id="modal-discount-msg" class="pay-modal-discount-msg is-hidden" role="status"></p>
+        </div>
         <div class="pay-modal-email-field">
           <label for="modal-email">{{ t('buy.email_label') }}</label>
           <input type="email" id="modal-email" class="pay-modal-input" autocomplete="email"
@@ -143,5 +158,5 @@
 {% if paddle_available %}
 <script src="/static/js/paddle-bridge.js"></script>
 {% endif %}
-<script src="/static/js/buy-pay.js?v=6" defer></script>
+<script src="/static/js/buy-pay.js?v=7" defer></script>
 {% endblock %}

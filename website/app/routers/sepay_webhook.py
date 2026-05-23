@@ -17,7 +17,7 @@ from app import config
 from app.database import SessionLocal, get_content
 from app.email_notify import send_license_key_email
 from app.license_service import find_license_by_sepay_tx, issue_license_record
-from app.sepay import parse_qr_base
+from app.vn_discount import all_allowed_amounts_vnd, years_from_transfer_amount
 
 log = logging.getLogger("uvicorn.error")
 
@@ -115,40 +115,6 @@ def extract_email_from_transfer_text(*parts: str | None) -> str | None:
     return None
 
 
-def _unit_price_vnd(content) -> int:
-    base = (content.sepay_qr_base_url or "").strip() or config.SEPAY_QR_BASE_URL
-    info = parse_qr_base(base)
-    n = info.get("amount_vnd")
-    if isinstance(n, int) and n > 0:
-        return n
-    return int(content.license_price_vnd or config.LICENSE_PRICE_VND or 0)
-
-
-def _years_from_transfer_amount(content, amount_vnd: float) -> int:
-    unit = _unit_price_vnd(content)
-    if unit <= 0:
-        return 1
-    years = int(round(float(amount_vnd) / unit))
-    return max(1, min(years, config.MAX_LICENSE_YEARS))
-
-
-def _allowed_amounts_vnd(content) -> list[int]:
-    amounts: set[int] = set()
-    unit = _unit_price_vnd(content)
-    if unit > 0:
-        for y in range(1, config.MAX_LICENSE_YEARS + 1):
-            amounts.add(unit * y)
-    legacy = (config.SEPAY_LEGACY_AMOUNTS_VND or "").strip()
-    if legacy:
-        for part in legacy.split(","):
-            part = part.strip()
-            if part.isdigit():
-                amounts.add(int(part))
-    if not amounts:
-        amounts.add(990000)
-    return sorted(amounts)
-
-
 def _parse_payload(raw: str) -> dict[str, Any]:
     return json.loads(raw)
 
@@ -221,7 +187,7 @@ async def sepay_webhook(request: Request):
                 )
             return Response(json.dumps({"success": True}), media_type="application/json")
 
-        allowed = _allowed_amounts_vnd(content)
+        allowed = all_allowed_amounts_vnd(content)
         amount = float(payload.get("transferAmount") or 0)
         if not any(float(a) == amount for a in allowed):
             log.info("SePay tx %s ignored: amount %s not in %s", tx_int, amount, allowed)
@@ -236,7 +202,7 @@ async def sepay_webhook(request: Request):
             log.info("SePay tx %s ignored: no email in memo", tx_int)
             return Response(json.dumps({"success": True}), media_type="application/json")
 
-        years = _years_from_transfer_amount(content, amount)
+        years = years_from_transfer_amount(content, amount)
         per_year = max(1, int(content.license_term_days or config.SEPAY_LICENSE_DAYS))
         days = per_year * years
         try:

@@ -40,6 +40,7 @@ from app.i18n import (
     translate,
 )
 from app.template_response import html_response
+from app.vn_discount import checkout_amount_vnd, lookup_discount, unit_price_vnd
 from app.sepay import (
     build_pg_checkout_fields,
     build_qr_image_url,
@@ -348,14 +349,6 @@ def buy_paddle_sepay_fallback(
     return _redirect_pg_checkout(request, email, db)
 
 
-def _unit_price_vnd(content) -> int:
-    base = (content.sepay_qr_base_url or config.SEPAY_QR_BASE_URL or "").strip()
-    bank = parse_qr_base(base) if base else {}
-    if bank.get("amount_vnd"):
-        return int(bank["amount_vnd"])
-    return int(content.license_price_vnd or config.LICENSE_PRICE_VND)
-
-
 def _clamp_years(years: int | str | None) -> int:
     try:
         y = int(years) if years is not None else 1
@@ -364,25 +357,39 @@ def _clamp_years(years: int | str | None) -> int:
     return max(1, min(y, config.MAX_LICENSE_YEARS))
 
 
-def _vietqr_payload(content, email: str, years: int = 1) -> dict | None:
+def _vietqr_payload(
+    content,
+    email: str,
+    years: int = 1,
+    discount_code: str | None = None,
+) -> dict | None:
     email = (email or "").strip()
     if not email or "@" not in email:
         return None
     base = (content.sepay_qr_base_url or config.SEPAY_QR_BASE_URL or "").strip()
     if not base:
         return None
+    code = (discount_code or "").strip()
+    if code and not lookup_discount(code, content):
+        return {"error": "invalid_discount"}
     bank = parse_qr_base(base)
     y = _clamp_years(years)
-    unit = _unit_price_vnd(content)
-    amount = unit * y
+    unit = unit_price_vnd(content)
+    amount, subtotal, disc = checkout_amount_vnd(content, years=y, discount_code=code or None)
+    if amount <= 0:
+        return {"error": "amount_zero"}
     return {
         "qr_url": build_qr_image_url(base, email, amount_vnd=amount),
         "memo": build_transfer_memo(email),
         "bank": bank,
         "amount_vnd": amount,
+        "subtotal_vnd": subtotal,
         "amount_fmt": "{:,}".format(amount).replace(",", "."),
+        "subtotal_fmt": "{:,}".format(subtotal).replace(",", "."),
         "years": y,
         "unit_price_vnd": unit,
+        "discount_code": disc.code if disc else "",
+        "discount_percent": disc.percent_off if disc else 0,
     }
 
 
@@ -391,12 +398,38 @@ def buy_vietqr_api(
     request: Request,
     email: str = "",
     years: int = 1,
+    discount: str = "",
     db: Session = Depends(get_db),
 ):
     content = get_content(db)
-    payload = _vietqr_payload(content, email, years=_clamp_years(years))
+    payload = _vietqr_payload(
+        content,
+        email,
+        years=_clamp_years(years),
+        discount_code=discount,
+    )
     if not payload:
         return JSONResponse({"ok": False, "error": "invalid"}, status_code=400)
+    if payload.get("error") == "invalid_discount":
+        lang = resolve_lang(request)
+        return JSONResponse(
+            {
+                "ok": False,
+                "error": "invalid_discount",
+                "message": translate(lang, "buy.discount_invalid"),
+            },
+            status_code=400,
+        )
+    if payload.get("error") == "amount_zero":
+        lang = resolve_lang(request)
+        return JSONResponse(
+            {
+                "ok": False,
+                "error": "amount_zero",
+                "message": translate(lang, "buy.discount_amount_zero"),
+            },
+            status_code=400,
+        )
     lang = resolve_lang(request)
     return JSONResponse(
         {
@@ -515,7 +548,7 @@ def _buy_response(request: Request, db: Session, email: str = "", pay_query: str
     content = get_content(db)
     base = content.sepay_qr_base_url or config.SEPAY_QR_BASE_URL
     bank = parse_qr_base(base)
-    amount = _unit_price_vnd(content)
+    amount = unit_price_vnd(content)
     qr_url = build_qr_image_url(base, email) if email else ""
     memo = build_transfer_memo(email) if email else ""
     term_days = max(1, int(content.license_term_days or config.SEPAY_LICENSE_DAYS))

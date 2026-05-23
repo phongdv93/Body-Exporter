@@ -15,6 +15,11 @@
   const modalYearsMinus = document.getElementById("modal-years-minus");
   const modalYearsPlus = document.getElementById("modal-years-plus");
   const modalTotalLine = document.getElementById("modal-total-line");
+  const modalDiscountToggle = document.getElementById("modal-discount-toggle");
+  const modalDiscountForm = document.getElementById("modal-discount-form");
+  const modalDiscountCode = document.getElementById("modal-discount-code");
+  const modalDiscountApply = document.getElementById("modal-discount-apply");
+  const modalDiscountMsg = document.getElementById("modal-discount-msg");
   const modalBankDl = document.getElementById("modal-bank-dl");
   const modalWaitHint = document.getElementById("modal-wait-hint");
   const modalQrInner = document.getElementById("pay-modal-qr-inner");
@@ -26,6 +31,7 @@
   let currentMode = root.dataset.payMode || "vn";
   let qrFetchTimer = null;
   let lastQrKey = "";
+  let appliedDiscountCode = "";
 
   function validEmail(v) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((v || "").trim());
@@ -49,19 +55,44 @@
     return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   }
 
-  function syncModalSummary() {
+  function syncModalSummary(data) {
     if (!modalTotalLine || unitVnd <= 0) return;
     const y = getYears();
-    const total = unitVnd * y;
+    const subtotal = data && data.subtotal_vnd ? data.subtotal_vnd : unitVnd * y;
+    const total = data && data.amount_vnd ? data.amount_vnd : subtotal;
     const totalLbl = root.dataset.msgTotal || "Total";
     const yearsLbl = root.dataset.msgYearsCount || "years";
     const label = y === 1 ? totalLbl : y + " " + yearsLbl;
-    modalTotalLine.innerHTML =
-      '<span class="pay-modal-due-label">' +
-      escapeHtml(label) +
-      '</span> <strong class="pay-modal-due-amt">' +
-      fmtVnd(total) +
-      " VND</strong>";
+    let html =
+      '<span class="pay-modal-due-label">' + escapeHtml(label) + "</span> ";
+    if (data && data.discount_code && subtotal > total) {
+      html +=
+        '<span class="pay-modal-due-was">' +
+        fmtVnd(subtotal) +
+        " VND</span>";
+    }
+    html +=
+      '<strong class="pay-modal-due-amt">' + fmtVnd(total) + " VND</strong>";
+    if (data && data.discount_percent) {
+      html +=
+        ' <span class="pay-modal-due-label">(-' +
+        escapeHtml(String(data.discount_percent)) +
+        "%)</span>";
+    }
+    modalTotalLine.innerHTML = html;
+  }
+
+  function showDiscountMsg(msg, ok) {
+    if (!modalDiscountMsg) return;
+    if (!msg) {
+      modalDiscountMsg.textContent = "";
+      modalDiscountMsg.classList.add("is-hidden");
+      modalDiscountMsg.classList.remove("is-ok");
+      return;
+    }
+    modalDiscountMsg.textContent = msg;
+    modalDiscountMsg.classList.remove("is-hidden");
+    modalDiscountMsg.classList.toggle("is-ok", !!ok);
   }
 
   function setCookie(mode) {
@@ -124,10 +155,40 @@
     }
   }
 
+  if (modalDiscountToggle && modalDiscountForm) {
+    modalDiscountToggle.addEventListener("click", function () {
+      modalDiscountForm.classList.toggle("is-hidden");
+      if (!modalDiscountForm.classList.contains("is-hidden") && modalDiscountCode) {
+        modalDiscountCode.focus();
+      }
+    });
+  }
+  if (modalDiscountApply) {
+    modalDiscountApply.addEventListener("click", function () {
+      appliedDiscountCode = (modalDiscountCode && modalDiscountCode.value.trim()) || "";
+      showDiscountMsg("");
+      scheduleVnQrReload();
+    });
+  }
+  if (modalDiscountCode) {
+    modalDiscountCode.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter") {
+        ev.preventDefault();
+        appliedDiscountCode = modalDiscountCode.value.trim();
+        showDiscountMsg("");
+        scheduleVnQrReload();
+      }
+    });
+  }
+
   function openVnModal() {
     if (!payModal) return;
     payModal.classList.remove("is-hidden");
     document.body.classList.add("pay-modal-open");
+    appliedDiscountCode = "";
+    if (modalDiscountCode) modalDiscountCode.value = "";
+    if (modalDiscountForm) modalDiscountForm.classList.add("is-hidden");
+    showDiscountMsg("");
     syncModalSummary();
     showModalEmailHint("");
     lastQrKey = "";
@@ -179,6 +240,12 @@
   }
 
   function renderVnQr(data) {
+    syncModalSummary(data);
+    if (data.discount_code) {
+      appliedDiscountCode = data.discount_code;
+      if (modalDiscountCode) modalDiscountCode.value = data.discount_code;
+      showDiscountMsg("-" + data.discount_percent + "%", true);
+    }
     if (modalQrInner) {
       modalQrInner.innerHTML =
         '<img class="pay-modal-qr-img" src="' +
@@ -210,7 +277,8 @@
       return;
     }
     showModalEmailHint("");
-    const key = email + "|" + years;
+    const disc = appliedDiscountCode || "";
+    const key = email + "|" + years + "|" + disc;
     if (key === lastQrKey) return;
     lastQrKey = key;
 
@@ -220,20 +288,32 @@
         escapeHtml(root.dataset.msgQrLoading || "…") +
         "</p>";
     }
-    fetch(
+    let url =
       "/buy/api/vietqr?email=" +
-        encodeURIComponent(email) +
-        "&years=" +
-        encodeURIComponent(String(years))
-    )
+      encodeURIComponent(email) +
+      "&years=" +
+      encodeURIComponent(String(years));
+    if (disc) {
+      url += "&discount=" + encodeURIComponent(disc);
+    }
+    fetch(url)
       .then((r) => r.json())
       .then((data) => {
         if (data.ok) renderVnQr(data);
         else {
           lastQrKey = "";
+          if (data.error === "invalid_discount") {
+            showDiscountMsg(data.message || root.dataset.msgDiscountInvalid || "");
+          } else if (data.error === "amount_zero") {
+            showDiscountMsg(data.message || root.dataset.msgDiscountZero || "");
+          }
           if (modalQrInner) {
             modalQrInner.innerHTML =
-              '<p class="pay-modal-qr-err">' + escapeHtml(root.dataset.msgQrFail || "") + "</p>";
+              '<p class="pay-modal-qr-err">' +
+              escapeHtml(
+                data.message || data.error || root.dataset.msgQrFail || ""
+              ) +
+              "</p>";
           }
         }
       })
@@ -250,6 +330,7 @@
     if (!payModal || payModal.classList.contains("is-hidden")) return;
     clearTimeout(qrFetchTimer);
     lastQrKey = "";
+    syncModalSummary();
     qrFetchTimer = setTimeout(loadVnQr, 300);
   }
 

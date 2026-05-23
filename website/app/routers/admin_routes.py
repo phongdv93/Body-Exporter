@@ -167,6 +167,7 @@ def save_content(
     buy_success_html_en: str = Form(""),
     sepay_qr_base_url: str = Form(""),
     license_price_vnd: int = Form(1590000),
+    vn_discount_codes: str = Form(""),
     license_term_days: int = Form(365),
     support_email: str = Form(""),
     author_name: str = Form(""),
@@ -212,6 +213,7 @@ def save_content(
     c.buy_success_html_en = buy_success_html_en.strip()
     c.sepay_qr_base_url = sepay_qr_base_url.strip()
     c.license_price_vnd = max(1, license_price_vnd)
+    c.vn_discount_codes = vn_discount_codes.strip()
     c.license_term_days = max(1, int(license_term_days))
     c.support_email = support_email.strip() or config.SUPPORT_EMAIL
     c.author_name = author_name.strip() or config.AUTHOR_NAME
