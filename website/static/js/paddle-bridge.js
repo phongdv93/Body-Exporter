@@ -39,6 +39,18 @@ window.BodyExporterPaddle = (function () {
         },
         eventCallback: function (ev) {
           if (!ev) return;
+          if (ev.name === "checkout.loaded") {
+            document.documentElement.classList.add("paddle-checkout-open");
+            document.body.classList.add("paddle-checkout-open");
+          }
+          if (
+            ev.name === "checkout.completed" ||
+            ev.name === "checkout.closed" ||
+            ev.name === "checkout.error"
+          ) {
+            document.documentElement.classList.remove("paddle-checkout-open");
+            document.body.classList.remove("paddle-checkout-open");
+          }
           if (ev.name === "checkout.completed" && cfg.success_url) {
             let em = (cfg._pending_email || "").trim();
             const d = ev.data || {};

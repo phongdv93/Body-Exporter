@@ -23,6 +23,7 @@
   const modalBankDl = document.getElementById("modal-bank-dl");
   const modalWaitHint = document.getElementById("modal-wait-hint");
   const modalQrInner = document.getElementById("pay-modal-qr-inner");
+  const modalQrDownload = document.getElementById("modal-qr-download");
 
   const unitVnd = parseInt(root.dataset.unitPriceVnd || "0", 10) || 0;
   const maxYears = parseInt(root.dataset.maxYears || "5", 10) || 5;
@@ -218,6 +219,7 @@
     lastQrKey = "";
     if (modalBankDl) modalBankDl.classList.add("is-hidden");
     if (modalWaitHint) modalWaitHint.classList.add("is-hidden");
+    setQrDownloadVisible("");
     if (modalQrInner) {
       modalQrInner.innerHTML =
         '<p class="pay-modal-qr-placeholder">' +
@@ -263,6 +265,49 @@
     modalBankDl.classList.remove("is-hidden");
   }
 
+  function setQrDownloadVisible(url) {
+    if (!modalQrDownload) return;
+    if (!url) {
+      modalQrDownload.classList.add("is-hidden");
+      modalQrDownload.removeAttribute("href");
+      return;
+    }
+    modalQrDownload.href = url;
+    modalQrDownload.classList.remove("is-hidden");
+  }
+
+  function downloadQrImage(url) {
+    if (!url) return;
+    fetch(url)
+      .then(function (r) {
+        return r.blob();
+      })
+      .then(function (blob) {
+        const objectUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = objectUrl;
+        a.download = "bodyexporter-vietqr.png";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function () {
+          URL.revokeObjectURL(objectUrl);
+        }, 2000);
+      })
+      .catch(function () {
+        window.open(url, "_blank", "noopener,noreferrer");
+      });
+  }
+
+  if (modalQrDownload) {
+    modalQrDownload.addEventListener("click", function (ev) {
+      const href = modalQrDownload.getAttribute("href");
+      if (!href || href === "#") return;
+      ev.preventDefault();
+      downloadQrImage(href);
+    });
+  }
+
   function renderVnQr(data) {
     syncModalSummary(data);
     if (data.discount_code) {
@@ -276,6 +321,7 @@
         escapeHtml(data.qr_url) +
         '" alt="VietQR" loading="lazy">';
     }
+    setQrDownloadVisible(data.qr_url || "");
     renderBankDl(data);
     if (modalWaitHint) {
       modalWaitHint.innerHTML = data.wait_hint_html || "";
@@ -298,6 +344,7 @@
           escapeHtml(root.dataset.msgVnQrHint || "") +
           "</p>";
       }
+      setQrDownloadVisible("");
       return;
     }
     showModalEmailHint("");
@@ -312,6 +359,7 @@
         escapeHtml(root.dataset.msgQrLoading || "…") +
         "</p>";
     }
+    setQrDownloadVisible("");
     let url =
       "/buy/api/vietqr?email=" +
       encodeURIComponent(email) +
@@ -339,6 +387,7 @@
               ) +
               "</p>";
           }
+          setQrDownloadVisible("");
         }
       })
       .catch(() => {
@@ -347,6 +396,7 @@
           modalQrInner.innerHTML =
             '<p class="pay-modal-qr-err">' + escapeHtml(root.dataset.msgNetFail || "") + "</p>";
         }
+        setQrDownloadVisible("");
       });
   }
 
@@ -384,6 +434,8 @@
       btnContinue.textContent = root.dataset.msgPaddleLoading || "…";
     }
     window.BodyExporterPaddle.setConfig(cfg);
+    document.documentElement.classList.add("paddle-checkout-open");
+    document.body.classList.add("paddle-checkout-open");
     const qty = 1;
     const p = window.BodyExporterPaddle.openWithItems
       ? window.BodyExporterPaddle.openWithItems({
@@ -392,6 +444,8 @@
         })
       : Promise.reject(new Error("no_items"));
     p.catch(function () {
+      document.documentElement.classList.remove("paddle-checkout-open");
+      document.body.classList.remove("paddle-checkout-open");
       alert(root.dataset.msgPaddleFail || "Could not open checkout");
     }).finally(function () {
       if (btnContinue) {

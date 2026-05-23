@@ -206,6 +206,7 @@ MESSAGES = {
     "buy.mode_intl": "Quốc tế · thẻ",
     "buy.enter_email_hint": "Nhập email hợp lệ để hiện hình thức thanh toán.",
     "buy.qr_loading": "Đang tải QR…",
+    "buy.qr_download": "Tải mã QR",
     "buy.qr_fail": "Không tạo được QR. Kiểm tra email.",
     "buy.net_fail": "Lỗi mạng. Thử lại.",
     "buy.paddle_loading": "Cổng thanh toán đang tải. Đợi vài giây rồi thử lại.",

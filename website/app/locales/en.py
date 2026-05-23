@@ -210,6 +210,7 @@ MESSAGES = {
     "buy.mode_intl": "International · card",
     "buy.enter_email_hint": "Enter your email to see payment options.",
     "buy.qr_loading": "Loading QR…",
+    "buy.qr_download": "Download QR code",
     "buy.qr_fail": "Could not generate QR. Check your email.",
     "buy.net_fail": "Network error. Try again.",
     "buy.paddle_loading": "Checkout is loading. Wait a few seconds and try again.",
