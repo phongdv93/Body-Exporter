@@ -449,6 +449,7 @@ def _issue_paddle_license(
             paddle_transaction_id=dedup_id,
             notes=notes,
             order_id_suffix=f"paddle-{dedup_id}",
+            email_lang="en",
         )
         log.info("Paddle %s: license issued for %s", dedup_id, email)
         return {"status": "ok"}

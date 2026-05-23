@@ -29,6 +29,7 @@ def issue_license_record(
     notes: str = "",
     send_email: bool = True,
     order_id_suffix: str = "",
+    email_lang: str = "vi",
 ) -> License:
     """Mint on Worker (if configured), persist in Postgres, email buyer."""
     content = get_content(db)
@@ -69,6 +70,7 @@ def issue_license_record(
             order_id=oid,
             plan=plan,
             expires_at=expires_at,
+            lang=email_lang,
         )
         if out.get("skipped"):
             log.warning(

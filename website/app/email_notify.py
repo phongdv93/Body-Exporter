@@ -11,10 +11,15 @@ import httpx
 from app import config
 
 
-def _display_name(email: str) -> str:
+def _normalize_lang(lang: str | None) -> str:
+    v = (lang or "vi").strip().lower()
+    return "en" if v.startswith("en") else "vi"
+
+
+def _display_name(email: str, lang: str) -> str:
     local = (email or "").split("@", 1)[0].strip()
     if not local:
-        return "bạn"
+        return "there" if lang == "en" else "bạn"
     return local.replace(".", " ").replace("_", " ").title()[:80]
 
 
@@ -27,6 +32,18 @@ def _format_expires(expires_at: datetime | None) -> str:
         return str(expires_at)[:10]
 
 
+def _template_id_for_lang(lang: str) -> str:
+    if lang == "en":
+        return (config.RESEND_LICENSE_TEMPLATE_ID_EN or config.RESEND_LICENSE_TEMPLATE_ID or "").strip()
+    return (config.RESEND_LICENSE_TEMPLATE_ID_VI or config.RESEND_LICENSE_TEMPLATE_ID or "").strip()
+
+
+def _subject_for_lang(lang: str) -> str:
+    if lang == "en":
+        return config.RESEND_LICENSE_SUBJECT_EN or "Your Body Exporter license key — SolidWorks"
+    return config.RESEND_LICENSE_SUBJECT_VI or "License key Body Exporter — SolidWorks"
+
+
 def send_license_key_email(
     *,
     to: str,
@@ -35,20 +52,22 @@ def send_license_key_email(
     plan: str = "personal",
     expires_at: datetime | None = None,
     buyer_name: str | None = None,
+    lang: str = "vi",
 ) -> dict:
-    """Return {ok, id?, detail?, skipped?}."""
+    """Return {ok, id?, detail?, skipped?}. lang: vi (VietQR/SePay) or en (Paddle)."""
     api_key = (config.RESEND_API_KEY or "").strip()
     if not api_key:
         return {"ok": True, "skipped": True}
 
+    lang = _normalize_lang(lang)
     to = (to or "").strip()
     from_addr = config.RESEND_FROM.strip() or "Body Exporter <onboarding@resend.dev>"
-    subject = config.RESEND_LICENSE_SUBJECT or "Your SolidWorks Body Exporter license key"
-    name = (buyer_name or "").strip() or _display_name(to)
+    subject = _subject_for_lang(lang)
+    name = (buyer_name or "").strip() or _display_name(to, lang)
     plan_label = (plan or "personal").strip() or "personal"
     expires_label = _format_expires(expires_at)
 
-    template_id = (config.RESEND_LICENSE_TEMPLATE_ID or "").strip()
+    template_id = _template_id_for_lang(lang)
     if template_id:
         payload: dict = {
             "from": from_addr,
@@ -65,22 +84,34 @@ def send_license_key_email(
             },
         }
     else:
-        text = (
-            "Thank you for your purchase.\n\n"
-            f"License key: {license_key}\n\n"
-            "Online activation: set LicenseKey and ApiBaseUrl in "
-            "%APPDATA%\\SolidWorksBodyExporter\\settings.json (see product documentation).\n\n"
-            f"Order reference: {order_id}"
-        )
-        esc = html.escape(license_key)
-        esc_o = html.escape(order_id)
-        body_html = (
-            "<p>Thank you for your purchase.</p>"
-            f"<p><strong>License key:</strong> <code>{esc}</code></p>"
-            "<p>Online activation: set <code>LicenseKey</code> and <code>ApiBaseUrl</code> "
-            "in your Body Exporter settings (see documentation).</p>"
-            f'<p style="color:#666;font-size:12px">Order: {esc_o}</p>'
-        )
+        if lang == "en":
+            text = (
+                "Thank you for your purchase.\n\n"
+                f"License key: {license_key}\n\n"
+                "In Body Exporter: License → Activate license → paste key → Apply.\n\n"
+                f"Order: {order_id}"
+            )
+            body_html = (
+                "<p>Thank you for your purchase.</p>"
+                f"<p><strong>License key:</strong> <code>{html.escape(license_key)}</code></p>"
+                "<p>In Body Exporter: <strong>License</strong> → <strong>Activate license</strong> "
+                "→ paste key → <strong>Apply</strong>.</p>"
+                f'<p style="color:#666;font-size:12px">Order: {html.escape(order_id)}</p>'
+            )
+        else:
+            text = (
+                "Cảm ơn bạn đã mua Body Exporter.\n\n"
+                f"License key: {license_key}\n\n"
+                "Trong plugin: License → Kích hoạt license → dán key → Apply.\n\n"
+                f"Mã đơn: {order_id}"
+            )
+            body_html = (
+                "<p>Cảm ơn bạn đã mua Body Exporter.</p>"
+                f"<p><strong>License key:</strong> <code>{html.escape(license_key)}</code></p>"
+                "<p>Trong plugin: <strong>License</strong> → <strong>Kích hoạt license</strong> "
+                "→ dán key → <strong>Apply</strong>.</p>"
+                f'<p style="color:#666;font-size:12px">Mã đơn: {html.escape(order_id)}</p>'
+            )
         payload = {
             "from": from_addr,
             "to": [to],

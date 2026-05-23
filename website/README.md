@@ -148,10 +148,13 @@ Mail **gửi** license tự động: **Resend** + Worker (`noreply@bodyexporter.
 
 1. Resend → Templates → **Publish** template (không để Draft).
 2. Copy **Template ID** (hoặc alias).
-3. Render env: `RESEND_LICENSE_TEMPLATE_ID=<id>` — biến trong template: `name`, `license_key`, `plan`, `expires`.
-4. Redeploy → thanh toán thử → mail giống hình 3 (có key thật).
+3. Render env (hai template **Published**):
+   - `RESEND_LICENSE_TEMPLATE_ID_VI` — HTML tiếng Việt (`template.html` của mày)
+   - `RESEND_LICENSE_TEMPLATE_ID_EN` — HTML tiếng Anh (`website/email-templates/license-en.html`)
+   - Biến: `name`, `license_key`, `plan`, `expires`
+4. Redeploy → **VietQR** gửi mail VI, **Paddle** gửi mail EN.
 
-Không set `RESEND_LICENSE_TEMPLATE_ID` → vẫn gửi mail plain như hình 1.
+Không set template id → mail plain (VI hoặc EN tùy kênh thanh toán).
 
 ### Resend (Worker — tùy chọn)
 

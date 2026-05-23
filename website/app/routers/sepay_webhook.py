@@ -184,6 +184,7 @@ async def sepay_webhook(request: Request):
                     to=buyer,
                     license_key=existing.license_key,
                     order_id=f"sepay-{tx_int}",
+                    lang="vi",
                 )
             return Response(json.dumps({"success": True}), media_type="application/json")
 
@@ -215,6 +216,7 @@ async def sepay_webhook(request: Request):
                 notes=f"SePay bank transfer ({years}y)",
                 send_email=True,
                 order_id_suffix=f"sepay-{tx_int}",
+                email_lang="vi",
             )
             log.info("SePay tx %s minted for %s", tx_int, buyer_email)
         except IntegrityError:
