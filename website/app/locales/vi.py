@@ -137,6 +137,8 @@ MESSAGES = {
     "buy.per_year": "năm",
     "buy.vn_modal_title": "Thanh toán VietQR",
     "buy.vn_modal_summary": "<strong>{years}</strong> năm · tổng <strong>{amount} VND</strong>",
+    "buy.vn_modal_qr_hint": "Nhập email hợp lệ bên trái để hiện mã QR.",
+    "buy.intl_modal_right": "Nhập email license, rồi bấm thanh toán để mở cổng Paddle.",
     "buy.paddle_opening": "Đang mở cổng thanh toán Paddle…",
     "buy.paddle_overlay_hint": "Cửa sổ thanh toán Paddle sẽ bật lên. Nếu không thấy, cho phép pop-up hoặc bấm «Mở cửa sổ thanh toán» bên dưới.",
     "buy.paddle_open_window": "Mở cửa sổ thanh toán Paddle",

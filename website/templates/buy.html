@@ -77,19 +77,18 @@
          data-msg-paddle-loading="{{ t('buy.paddle_loading') | e }}"
          data-msg-paddle-fail="{{ t('buy.paddle_fail', email=support_email) | e }}"
          data-msg-enter-email="{{ t('buy.enter_email_hint') | e }}"
+         data-msg-email-label="{{ t('buy.email_label') | e }}"
+         data-msg-modal-product="{{ t('buy.pricing_product') | e }}"
          data-msg-modal-title-vn="{{ t('buy.vn_modal_title') | e }}"
+         data-msg-modal-title-intl="{{ t('buy.paddle_page_title') | e }}"
+         data-msg-modal-intl-right="{{ t('buy.intl_modal_right') | e }}"
+         data-msg-vn-qr-hint="{{ t('buy.vn_modal_qr_hint') | e }}"
          data-msg-per-year="{{ t('buy.per_year') | e }}"
-         data-msg-btn-pay="{{ t('buy.btn_pay') | e }}">
+         data-msg-btn-pay="{{ t('buy.btn_pay') | e }}"
+         data-prefill-email="{{ email | e }}">
   <h2 class="buy-step-heading">{{ t('buy.checkout_title') }}</h2>
 
   <div id="checkout-step-1" class="checkout-step-panel">
-    <div class="checkout-email-field">
-      <label for="email">{{ t('buy.email_label') }}</label>
-      <input type="email" id="email" name="email" class="buy-checkout-email" required
-             placeholder="you@company.com" value="{{ email }}" autocomplete="email">
-    </div>
-    <p id="email-hint" class="hint checkout-email-hint">{{ t('buy.enter_email_hint') }}</p>
-
     <div class="checkout-years-field">
       <label for="license-years">{{ t('buy.years_label') }}</label>
       <div class="years-stepper">
@@ -122,12 +121,36 @@
 
 <div id="pay-modal" class="pay-modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="pay-modal-title">
   <div class="pay-modal-backdrop" id="pay-modal-backdrop"></div>
-  <div class="pay-modal-panel">
-    <header class="pay-modal-header">
-      <h2 id="pay-modal-title">{{ t('buy.vn_modal_title') }}</h2>
-      <button type="button" class="pay-modal-close" id="pay-modal-close" aria-label="Close">×</button>
-    </header>
-    <div class="pay-modal-body" id="pay-modal-body"></div>
+  <div class="pay-modal-panel pay-modal-panel--paddle">
+    <button type="button" class="pay-modal-close" id="pay-modal-close" aria-label="Close">×</button>
+    <div class="pay-modal-grid">
+      <div class="pay-modal-col pay-modal-col--info">
+        <p class="pay-modal-kicker" id="pay-modal-kicker">{{ t('buy.vn_modal_title') }}</p>
+        <h2 class="pay-modal-title" id="pay-modal-title">{{ t('buy.pricing_product') }}</h2>
+        <div class="pay-modal-email-field">
+          <label for="modal-email">{{ t('buy.email_label') }}</label>
+          <input type="email" id="modal-email" class="buy-checkout-email" autocomplete="email"
+                 placeholder="you@company.com" value="{{ email }}">
+        </div>
+        <p id="modal-email-hint" class="hint flash-err is-hidden" role="alert"></p>
+        <p class="pay-modal-meta">
+          <span class="muted">{{ t('buy.years_label') }}</span>
+          <strong id="modal-years-display">1</strong>
+        </p>
+        <p class="pay-modal-total" id="modal-total-line"></p>
+        <dl class="bank-dl pay-modal-bank is-hidden" id="modal-bank-dl"></dl>
+        <p class="hint muted pay-modal-wait is-hidden" id="modal-wait-hint"></p>
+        <div class="pay-modal-intl-actions is-hidden" id="modal-intl-actions">
+          <p class="muted">{{ t('buy.intl_modal_right') }}</p>
+          <button type="button" class="btn btn-primary btn-lg" id="modal-btn-paddle">{{ t('buy.btn_pay') }}</button>
+        </div>
+      </div>
+      <div class="pay-modal-col pay-modal-col--qr" id="pay-modal-qr-col">
+        <div class="pay-modal-qr-inner" id="pay-modal-qr-inner">
+          <p class="hint muted">{{ t('buy.vn_modal_qr_hint') }}</p>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -140,5 +163,5 @@
 {% if paddle_available %}
 <script src="/static/js/paddle-bridge.js"></script>
 {% endif %}
-<script src="/static/js/buy-pay.js?v=2" defer></script>
+<script src="/static/js/buy-pay.js?v=3" defer></script>
 {% endblock %}

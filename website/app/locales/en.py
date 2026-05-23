@@ -141,6 +141,8 @@ MESSAGES = {
     "buy.per_year": "year",
     "buy.vn_modal_title": "VietQR payment",
     "buy.vn_modal_summary": "<strong>{years}</strong> year(s) · total <strong>{amount} VND</strong>",
+    "buy.vn_modal_qr_hint": "Enter a valid email on the left to show the QR code.",
+    "buy.intl_modal_right": "Enter your license email, then pay to open Paddle checkout.",
     "buy.paddle_opening": "Opening Paddle checkout…",
     "buy.paddle_overlay_hint": "A secure Paddle payment window should open. Allow pop-ups, or click «Open payment window» below.",
     "buy.paddle_open_window": "Open Paddle payment window",
