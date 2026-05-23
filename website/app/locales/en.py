@@ -235,9 +235,8 @@ MESSAGES = {
     "buy.amount": "Amount",
     "buy.memo": "Transfer memo",
     "buy.wait_hint": (
-        "<strong>License email is not instant.</strong> Key is sent to <strong>{email}</strong> "
-        "after the bank confirms payment (usually 1–10 minutes). "
-        "Memo must include <code>{memo}</code>. Check spam."
+        "License emailed to <strong>{email}</strong> after bank confirms (1–10 min). "
+        "Memo: <code>{memo}</code> · check spam."
     ),
     "buy.success_title": "Thank you",
     "buy.success_with_email": (

@@ -230,9 +230,8 @@ MESSAGES = {
     "buy.amount": "Số tiền",
     "buy.memo": "Nội dung CK",
     "buy.wait_hint": (
-        "<strong>Chưa có email ngay sau khi bấm nút.</strong> Key gửi tới <strong>{email}</strong> "
-        "sau khi ngân hàng xác nhận (thường 1–10 phút). "
-        "Nội dung CK phải có <code>{memo}</code>. Kiểm tra cả thư mục spam."
+        "License gửi <strong>{email}</strong> sau khi bank xác nhận (1–10 phút). "
+        "CK: <code>{memo}</code> · kiểm tra spam."
     ),
     "buy.success_title": "Cảm ơn bạn",
     "buy.success_with_email": (
