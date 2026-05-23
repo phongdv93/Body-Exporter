@@ -102,7 +102,19 @@
       <label>Giá (VND)</label>
       <input type="number" name="license_price_vnd" value="{{ content.license_price_vnd }}" min="1">
       <label>Mã giảm giá VietQR (mỗi dòng <code>MÃ:phần_trăm</code>, vd <code>TESTRUN:99</code>)</label>
+      <p class="admin-notice" style="font-size:13px;margin:0 0 8px">
+        <strong>Chỉ lưu tại trang này</strong> (không phải Dashboard). Sau khi sửa phải bấm <strong>Lưu</strong> cuối form.
+        Khách dùng trên <code>/buy</code> → <strong>VietQR</strong> → modal → <em>Thêm mã giảm giá</em> → Áp dụng.
+      </p>
       <textarea name="vn_discount_codes" rows="4" placeholder="TESTRUN:99&#10;FRIEND20:20">{{ content.vn_discount_codes }}</textarea>
+      {% if vn_discount_active %}
+      <p class="flash-ok" style="font-size:13px;margin:8px 0">
+        Đang có {{ vn_discount_active|length }} mã:
+        {% for d in vn_discount_active %}<code>{{ d.code }}</code> (−{{ d.percent_off }}%){% if not loop.last %}, {% endif %}{% endfor %}
+      </p>
+      {% elif content.vn_discount_codes %}
+      <p class="flash-err" style="font-size:13px;margin:8px 0">Ô trên có text nhưng không parse được — dùng đúng dạng <code>TESTRUN:99</code> (mỗi dòng một mã).</p>
+      {% endif %}
       <p class="muted" style="font-size:13px">Hoặc env <code>VN_DISCOUNT_CODES</code> trên Render. Webhook chấp nhận số tiền sau giảm.</p>
       <label>Số ngày license khi bán (SePay / tạo tay)</label>
       <input type="number" name="license_term_days" value="{{ content.license_term_days or 365 }}" min="1">

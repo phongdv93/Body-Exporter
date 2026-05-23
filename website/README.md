@@ -142,7 +142,18 @@ Render/Railway: sau khi đổi `SITE_URL`, redeploy và mở lại sitemap trên
 
 Mail **gửi** license tự động: **Resend** + Worker (`noreply@bodyexporter.com`), không qua Python site — làm tiếp:
 
-### Resend (gửi mail license — Worker)
+### Resend (gửi mail license — Render + VietQR/Paddle webhook)
+
+**Hình 1** (mail đơn giản) = website gửi qua Resend API. **Hình 2** (`help@paddle.com`) = mail hóa đơn của Paddle — không chứa license key; tắt trong Paddle nếu không cần. **Hình 3** = template Resend — gắn vào site:
+
+1. Resend → Templates → **Publish** template (không để Draft).
+2. Copy **Template ID** (hoặc alias).
+3. Render env: `RESEND_LICENSE_TEMPLATE_ID=<id>` — biến trong template: `name`, `license_key`, `plan`, `expires`.
+4. Redeploy → thanh toán thử → mail giống hình 3 (có key thật).
+
+Không set `RESEND_LICENSE_TEMPLATE_ID` → vẫn gửi mail plain như hình 1.
+
+### Resend (Worker — tùy chọn)
 
 1. [resend.com](https://resend.com) → **Domains** → Add **bodyexporter.com**.
 2. Thêm bản ghi DNS (DKIM, SPF) trong Cloudflare — Resend hiển thị đúng giá trị.

@@ -108,6 +108,11 @@ VN_DISCOUNT_CODES = os.getenv("VN_DISCOUNT_CODES", "").strip()
 
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "").strip()
 RESEND_FROM = os.getenv("RESEND_FROM", "Body Exporter <noreply@bodyexporter.com>").strip()
+# Published Resend template (dashboard) — variables: name, license_key, plan, expires
+RESEND_LICENSE_TEMPLATE_ID = os.getenv("RESEND_LICENSE_TEMPLATE_ID", "").strip()
+RESEND_LICENSE_SUBJECT = os.getenv(
+    "RESEND_LICENSE_SUBJECT", "License key Body Exporter — SolidWorks"
+).strip()
 
 # Admin dashboard: machine "still in use" vs "likely removed" (days since last ping)
 TELEMETRY_ACTIVE_DAYS = max(1, int(os.getenv("TELEMETRY_ACTIVE_DAYS", "14")))

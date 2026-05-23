@@ -63,7 +63,13 @@ def issue_license_record(
 
     if send_email:
         oid = order_id_suffix.strip() or (f"manual-{lic.id}" if lic.id else "manual")
-        out = send_license_key_email(to=email, license_key=key, order_id=oid)
+        out = send_license_key_email(
+            to=email,
+            license_key=key,
+            order_id=oid,
+            plan=plan,
+            expires_at=expires_at,
+        )
         if out.get("skipped"):
             log.warning(
                 "RESEND_API_KEY not set — license %s saved for %s but email not sent",

@@ -393,6 +393,34 @@ def _vietqr_payload(
     }
 
 
+@router.get("/buy/api/discount-check")
+def buy_discount_check_api(
+    request: Request,
+    code: str = "",
+    db: Session = Depends(get_db),
+):
+    """Validate VietQR discount code (no email required)."""
+    content = get_content(db)
+    disc = lookup_discount(code, content)
+    lang = resolve_lang(request)
+    if not disc:
+        return JSONResponse(
+            {
+                "ok": False,
+                "error": "invalid_discount",
+                "message": translate(lang, "buy.discount_invalid"),
+            },
+            status_code=400,
+        )
+    return JSONResponse(
+        {
+            "ok": True,
+            "code": disc.code,
+            "percent_off": disc.percent_off,
+        }
+    )
+
+
 @router.get("/buy/api/vietqr")
 def buy_vietqr_api(
     request: Request,

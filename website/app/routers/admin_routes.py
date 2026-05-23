@@ -11,6 +11,7 @@ from app.database import get_content
 from app.paddle_billing import paddle_admin_status, paddle_configured
 from app.sepay import pg_checkout_available_for_content
 from app.template_response import html_response
+from app.vn_discount import list_discounts
 from app.worker_client import sync_client_config_from_site
 
 router = APIRouter(prefix="/admin")
@@ -119,14 +120,17 @@ def edit_content(
     db: Session = Depends(get_db),
     _user=Depends(require_admin),
 ):
+    content = get_content(db)
+    vn_codes = list_discounts(content)
     return html_response(
         templates,
         "admin/content.html",
         {
             "request": request,
-            "content": get_content(db),
+            "content": content,
             "saved": bool(saved),
             "site_url": config.SITE_URL.rstrip("/"),
+            "vn_discount_active": vn_codes,
         },
     )
 

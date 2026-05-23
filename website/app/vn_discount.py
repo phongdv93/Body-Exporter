@@ -39,8 +39,9 @@ def _parse_discount_blob(raw: str) -> list[VnDiscount]:
         code = code_part.strip().upper()
         if not code or len(code) > 40:
             continue
+        pct_raw = pct_part.strip().rstrip("%").strip().rstrip(".,;")
         try:
-            pct = int(pct_part.strip().rstrip("%"))
+            pct = int(pct_raw)
         except ValueError:
             continue
         pct = max(1, min(100, pct))

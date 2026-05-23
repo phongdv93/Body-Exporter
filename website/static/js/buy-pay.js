@@ -163,20 +163,44 @@
       }
     });
   }
-  if (modalDiscountApply) {
-    modalDiscountApply.addEventListener("click", function () {
-      appliedDiscountCode = (modalDiscountCode && modalDiscountCode.value.trim()) || "";
+  function applyDiscountCode() {
+    const code = (modalDiscountCode && modalDiscountCode.value.trim()) || "";
+    if (!code) {
+      appliedDiscountCode = "";
       showDiscountMsg("");
       scheduleVnQrReload();
-    });
+      return;
+    }
+    fetch("/buy/api/discount-check?code=" + encodeURIComponent(code))
+      .then(function (r) {
+        return r.json().then(function (data) {
+          return { ok: r.ok, data: data };
+        });
+      })
+      .then(function (res) {
+        if (!res.data.ok) {
+          appliedDiscountCode = "";
+          lastQrKey = "";
+          showDiscountMsg(res.data.message || root.dataset.msgDiscountInvalid || "");
+          return;
+        }
+        appliedDiscountCode = res.data.code || code;
+        showDiscountMsg("-" + res.data.percent_off + "%", true);
+        scheduleVnQrReload();
+      })
+      .catch(function () {
+        showDiscountMsg(root.dataset.msgNetFail || "");
+      });
+  }
+
+  if (modalDiscountApply) {
+    modalDiscountApply.addEventListener("click", applyDiscountCode);
   }
   if (modalDiscountCode) {
     modalDiscountCode.addEventListener("keydown", function (ev) {
       if (ev.key === "Enter") {
         ev.preventDefault();
-        appliedDiscountCode = modalDiscountCode.value.trim();
-        showDiscountMsg("");
-        scheduleVnQrReload();
+        applyDiscountCode();
       }
     });
   }
