@@ -40,7 +40,13 @@ window.BodyExporterPaddle = (function () {
         eventCallback: function (ev) {
           if (!ev) return;
           if (ev.name === "checkout.completed" && cfg.success_url) {
-            const em = (cfg._pending_email || "").trim();
+            let em = (cfg._pending_email || "").trim();
+            const d = ev.data || {};
+            const cust = d.customer || {};
+            if (!em && cust.email) em = String(cust.email).trim();
+            if (!em && d.custom_data && d.custom_data.buyer_email) {
+              em = String(d.custom_data.buyer_email).trim();
+            }
             const url =
               cfg.success_url + (em ? "?email=" + encodeURIComponent(em) : "");
             window.location.href = url;

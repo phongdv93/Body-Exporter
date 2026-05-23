@@ -94,7 +94,15 @@ Link ba trang policy cũng có ở **footer** mọi trang công khai. Tùy chọ
 | `PADDLE_WEBHOOK_SECRET` | Notifications → destination → endpoint secret key |
 | `PADDLE_ENV` | `sandbox` hoặc `production` |
 
-Webhook URL: `https://bodyexporter.com/webhook/paddle` — subscribe `transaction.completed` + `transaction.paid`.  
+Webhook URL: `https://bodyexporter.com/webhook/paddle` — subscribe ít nhất:
+`transaction.completed`, `transaction.paid`, `subscription.created` (bắt buộc nếu gói có **trial**).
+
+**Không nhận email key sau Paddle?** Kiểm tra lần lượt:
+1. Paddle → Notifications → destination → log gửi tới `/webhook/paddle` (200, không 401).
+2. Render: `PADDLE_WEBHOOK_SECRET` trùng secret destination; `PADDLE_API_KEY` có quyền đọc customer (lấy email từ `customer_id`).
+3. Render: `RESEND_API_KEY` + `RESEND_FROM` (domain đã verify Resend).
+4. **Admin → Danh sách license**: đã có key cho email chưa? Có key mà không mail = thiếu Resend; gửi lại tay hoặc cấu hình Resend.
+5. Gói **14 ngày trial**: license gửi khi bắt đầu trial (`subscription.created`), không đợi đến ngày trừ tiền.  
 Sau deploy: **Admin → Dashboard** xem dòng Paddle (price API OK / lỗi). Thử sandbox trên `/buy?pay=intl`.
 
 **Lỗi checkout «Something went wrong» / Network 403 / «Client token is invalid»:**

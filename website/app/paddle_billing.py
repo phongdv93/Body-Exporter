@@ -27,6 +27,13 @@ _COMPLETED_EVENTS = frozenset(
         "transaction.paid",
     }
 )
+_SUBSCRIPTION_ACCESS_EVENTS = frozenset(
+    {
+        "subscription.created",
+        "subscription.activated",
+    }
+)
+_SUBSCRIPTION_ACCESS_STATUSES = frozenset({"trialing", "active"})
 _SIGNATURE_MAX_SKEW_SEC = 300
 
 
@@ -177,6 +184,29 @@ def paddle_customer_id_for_email(email: str) -> str | None:
     if not api_key:
         return None
     return _get_or_create_paddle_customer(api_key, email)
+
+
+def paddle_customer_email_by_id(customer_id: str) -> str | None:
+    """Webhook payloads often include only customer_id — fetch email from Paddle API."""
+    cid = (customer_id or "").strip()
+    api_key = (config.PADDLE_API_KEY or "").strip()
+    if not cid or not api_key or not cid.startswith("ctm_"):
+        return None
+    try:
+        r = httpx.get(
+            f"{_paddle_api_base()}/customers/{cid}",
+            headers=_paddle_headers(api_key),
+            timeout=15.0,
+        )
+        if r.is_success:
+            val = ((r.json().get("data") or {}).get("email") or "").strip()
+            if val and "@" in val:
+                return val.lower()
+        else:
+            log.warning("Paddle GET customer %s: %s", cid, r.status_code)
+    except Exception as ex:
+        log.debug("Paddle customer fetch failed: %s", ex)
+    return None
 
 
 def _clamp_license_years(years: int | str | None) -> int:
@@ -339,19 +369,29 @@ def _extract_email(data: dict[str, Any]) -> str:
         for key in ("buyer_email", "email", "customer_email"):
             val = (custom.get(key) or "").strip()
             if val and "@" in val:
-                return val
+                return val.lower()
     customer = data.get("customer") or {}
     if isinstance(customer, dict):
         val = (customer.get("email") or "").strip()
         if val and "@" in val:
-            return val
+            return val.lower()
+        cid = (customer.get("id") or "").strip()
+        if cid:
+            fetched = paddle_customer_email_by_id(cid)
+            if fetched:
+                return fetched
     details = data.get("details") or {}
     if isinstance(details, dict):
         for block in details.values():
             if isinstance(block, dict):
                 val = (block.get("email") or "").strip()
                 if val and "@" in val:
-                    return val
+                    return val.lower()
+    cid = (data.get("customer_id") or "").strip()
+    if cid:
+        fetched = paddle_customer_email_by_id(cid)
+        if fetched:
+            return fetched
     return ""
 
 
@@ -376,21 +416,75 @@ def _license_years_from_transaction(data: dict[str, Any]) -> int:
 def _transaction_paid_ok(data: dict[str, Any], event_type: str) -> bool:
     status = (data.get("status") or "").strip().lower()
     if event_type == "transaction.completed":
-        return status in ("", "completed", "paid", "billed")
+        return status in ("", "completed", "paid", "billed", "ready")
     if event_type == "transaction.paid":
         return status in ("paid", "completed", "billed")
     return False
 
 
-def handle_paddle_webhook(db: Session, payload: dict[str, Any]) -> dict[str, str]:
-    event_type = (payload.get("event_type") or "").strip()
-    if event_type not in _COMPLETED_EVENTS:
-        return {"status": "ignored", "reason": event_type or "unknown"}
+def _subscription_dedup_id(data: dict[str, Any]) -> str:
+    sub_id = (data.get("id") or data.get("subscription_id") or "").strip()
+    if sub_id.startswith("sub_"):
+        return sub_id
+    return ""
 
-    data = payload.get("data") or {}
-    if not isinstance(data, dict):
-        return {"status": "ignored", "reason": "no_data"}
 
+def _issue_paddle_license(
+    db: Session,
+    *,
+    dedup_id: str,
+    email: str,
+    years: int,
+    notes: str,
+) -> dict[str, str]:
+    if find_license_by_paddle_tx(db, dedup_id):
+        return {"status": "ok", "reason": "duplicate"}
+    content = get_content(db)
+    term_days = max(1, int(content.license_term_days or config.SEPAY_LICENSE_DAYS)) * years
+    try:
+        issue_license_record(
+            db,
+            buyer_email=email,
+            days=term_days,
+            paddle_transaction_id=dedup_id,
+            notes=notes,
+            order_id_suffix=f"paddle-{dedup_id}",
+        )
+        log.info("Paddle %s: license issued for %s", dedup_id, email)
+        return {"status": "ok"}
+    except ValueError as ex:
+        log.error("Paddle %s: %s", dedup_id, ex)
+        return {"status": "error", "reason": str(ex)[:200]}
+    except Exception:
+        log.exception("Paddle webhook issue_license failed for %s", dedup_id)
+        return {"status": "error"}
+
+
+def _handle_subscription_webhook(db: Session, data: dict[str, Any]) -> dict[str, str]:
+    status = (data.get("status") or "").strip().lower()
+    if status not in _SUBSCRIPTION_ACCESS_STATUSES:
+        return {"status": "ignored", "reason": status or "subscription_not_active"}
+
+    dedup_id = _subscription_dedup_id(data)
+    if not dedup_id:
+        return {"status": "ignored", "reason": "no_subscription_id"}
+
+    email = _extract_email(data)
+    if not email:
+        log.warning("Paddle %s: no customer email (subscription)", dedup_id)
+        return {"status": "ignored", "reason": "no_email"}
+
+    years = _license_years_from_transaction(data)
+    return _issue_paddle_license(
+        db,
+        dedup_id=dedup_id,
+        email=email,
+        years=years,
+        notes=f"Paddle subscription ({years}y, {status})",
+    )
+
+
+def _handle_transaction_webhook(db: Session, data: dict[str, Any], event_type: str) -> dict[str, str]:
     if not _transaction_paid_ok(data, event_type):
         return {"status": "ignored", "reason": data.get("status") or "not_paid"}
 
@@ -398,32 +492,36 @@ def handle_paddle_webhook(db: Session, payload: dict[str, Any]) -> dict[str, str
     if not txn_id:
         return {"status": "ignored", "reason": "no_txn_id"}
 
-    if find_license_by_paddle_tx(db, txn_id):
-        return {"status": "ok", "reason": "duplicate"}
+    sub_dedup = _subscription_dedup_id({"subscription_id": data.get("subscription_id")})
+    if sub_dedup and find_license_by_paddle_tx(db, sub_dedup):
+        return {"status": "ok", "reason": "duplicate_subscription"}
 
     email = _extract_email(data)
     if not email:
-        log.warning("Paddle %s: no buyer email in custom_data", txn_id)
+        log.warning("Paddle %s: no buyer email (transaction)", txn_id)
         return {"status": "ignored", "reason": "no_email"}
 
     years = _license_years_from_transaction(data)
-    content = get_content(db)
-    term_days = max(1, int(content.license_term_days or config.SEPAY_LICENSE_DAYS)) * years
+    return _issue_paddle_license(
+        db,
+        dedup_id=txn_id,
+        email=email,
+        years=years,
+        notes=f"Paddle checkout ({years}y)",
+    )
 
-    try:
-        issue_license_record(
-            db,
-            buyer_email=email,
-            days=term_days,
-            paddle_transaction_id=txn_id,
-            notes=f"Paddle checkout ({years}y)",
-            order_id_suffix=f"paddle-{txn_id}",
-        )
-        log.info("Paddle %s: license issued for %s", txn_id, email)
-        return {"status": "ok"}
-    except Exception:
-        log.exception("Paddle webhook issue_license failed for %s", txn_id)
-        return {"status": "error"}
+
+def handle_paddle_webhook(db: Session, payload: dict[str, Any]) -> dict[str, str]:
+    event_type = (payload.get("event_type") or "").strip()
+    data = payload.get("data") or {}
+    if not isinstance(data, dict):
+        return {"status": "ignored", "reason": "no_data"}
+
+    if event_type in _SUBSCRIPTION_ACCESS_EVENTS:
+        return _handle_subscription_webhook(db, data)
+    if event_type in _COMPLETED_EVENTS:
+        return _handle_transaction_webhook(db, data, event_type)
+    return {"status": "ignored", "reason": event_type or "unknown"}
 
 
 def parse_webhook_json(raw_body: bytes) -> dict[str, Any]:

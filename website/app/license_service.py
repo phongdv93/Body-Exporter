@@ -65,13 +65,14 @@ def issue_license_record(
         oid = order_id_suffix.strip() or (f"manual-{lic.id}" if lic.id else "manual")
         out = send_license_key_email(to=email, license_key=key, order_id=oid)
         if out.get("skipped"):
-            raise ValueError(
-                "Chưa cấu hình RESEND_API_KEY trên server (Render → Environment). "
-                "License đã lưu DB nhưng không gửi được email."
+            log.warning(
+                "RESEND_API_KEY not set — license %s saved for %s but email not sent",
+                lic.license_key[:8] + "…",
+                email,
             )
-        if not out.get("ok"):
+        elif not out.get("ok"):
             detail = out.get("detail") or "unknown"
-            log.error("Resend license email failed: %s", detail)
+            log.error("Resend license email failed for %s: %s", email, detail)
             raise ValueError(f"Gửi email thất bại: {detail}")
 
     return lic
