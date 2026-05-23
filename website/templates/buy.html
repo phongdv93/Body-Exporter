@@ -36,15 +36,15 @@
 
   <div class="pricing-price-row price-vn{% if pay_mode != 'vn' %} is-hidden{% endif %}">
     <span class="pricing-label">{{ t('buy.pricing_amount_label') }}</span>
-    <p class="pricing-amount" id="pricing-amount-vn"><strong>{{ '{:,}'.format(amount_vnd).replace(',', '.') }} VND</strong></p>
-    <p class="pricing-sub muted" id="pricing-sub-vn">{% if price_usd %}{{ t('buy.pricing_vn_sub', usd=price_usd) }}{% endif %}</p>
+    <p class="pricing-amount"><strong>{{ '{:,}'.format(amount_vnd).replace(',', '.') }} VND</strong></p>
+    <p class="pricing-sub muted">{% if price_usd %}{{ t('buy.pricing_vn_sub', usd=price_usd) }}{% endif %} · {{ t('buy.pricing_per_year') }}</p>
   </div>
 
   <div class="pricing-price-row price-intl{% if pay_mode != 'intl' %} is-hidden{% endif %}">
     <span class="pricing-label">{{ t('buy.pricing_amount_label') }}</span>
     {% if price_usd %}
-    <p class="pricing-amount" id="pricing-amount-usd"><strong>${{ price_usd }} USD</strong></p>
-    <p class="pricing-sub muted" id="pricing-sub-intl">{{ t('buy.pricing_intl_sub', vnd=('{:,}'.format(amount_vnd).replace(',', '.'))) }}</p>
+    <p class="pricing-amount"><strong>${{ price_usd }} USD</strong></p>
+    <p class="pricing-sub muted">{{ t('buy.pricing_intl_sub', vnd=('{:,}'.format(amount_vnd).replace(',', '.'))) }} · {{ t('buy.pricing_per_year') }}</p>
     {% else %}
     <p class="pricing-amount muted">{{ t('buy.pricing_intl_pending') }}</p>
     {% endif %}
@@ -61,93 +61,73 @@
 
 <section class="card buy-form-card buy-checkout"
          data-pay-mode="{{ pay_mode }}"
-         data-geo-default="{{ geo_default_pay_mode }}"
          data-cookie-name="be_pay_mode"
          data-vietqr-available="{{ '1' if vietqr_available else '0' }}"
          data-paddle-available="{{ '1' if paddle_available else '0' }}"
          data-pg-available="{{ '1' if pg_available else '0' }}"
          data-unit-price-vnd="{{ unit_price_vnd }}"
-         data-price-usd="{{ price_usd or '' }}"
-         data-usd-rate="{{ usd_vnd_rate }}"
          data-max-years="{{ max_license_years }}"
-         data-term-days="{{ license_term_days }}"
          data-msg-qr-loading="{{ t('buy.qr_loading') | e }}"
          data-msg-qr-fail="{{ t('buy.qr_fail') | e }}"
          data-msg-net-fail="{{ t('buy.net_fail') | e }}"
          data-msg-paddle-loading="{{ t('buy.paddle_loading') | e }}"
          data-msg-paddle-fail="{{ t('buy.paddle_fail', email=support_email) | e }}"
          data-msg-enter-email="{{ t('buy.enter_email_hint') | e }}"
-         data-msg-email-label="{{ t('buy.email_label') | e }}"
-         data-msg-modal-product="{{ t('buy.pricing_product') | e }}"
-         data-msg-modal-title-vn="{{ t('buy.vn_modal_title') | e }}"
-         data-msg-modal-title-intl="{{ t('buy.paddle_page_title') | e }}"
-         data-msg-modal-intl-right="{{ t('buy.intl_modal_right') | e }}"
          data-msg-vn-qr-hint="{{ t('buy.vn_modal_qr_hint') | e }}"
-         data-msg-per-year="{{ t('buy.per_year') | e }}"
+         data-msg-total="{{ t('buy.modal_total') | e }}"
+         data-msg-years-count="{{ t('buy.modal_years_count') | e }}"
          data-msg-btn-pay="{{ t('buy.btn_pay') | e }}"
          data-prefill-email="{{ email | e }}">
   <h2 class="buy-step-heading">{{ t('buy.checkout_title') }}</h2>
 
-  <div id="checkout-step-1" class="checkout-step-panel">
-    <div class="checkout-years-field">
-      <label for="license-years">{{ t('buy.years_label') }}</label>
-      <div class="years-stepper">
-        <button type="button" class="years-btn" id="years-minus" aria-label="-">−</button>
-        <input type="number" id="license-years" name="years" class="years-input" value="1"
-               min="1" max="{{ max_license_years }}" step="1" inputmode="numeric">
-        <button type="button" class="years-btn" id="years-plus" aria-label="+">+</button>
-      </div>
-      <p class="hint muted" id="years-hint">{{ t('buy.years_hint', max=max_license_years) }}</p>
-    </div>
-
-    {% if vietqr_available and (paddle_available or pg_available) %}
-    <div class="pay-mode-switch" role="tablist" aria-label="{{ t('buy.pay_mode_label') }}">
-      <button type="button" class="pay-mode-btn{% if pay_mode == 'vn' %} active{% endif %}" data-pay-mode="vn" role="tab">
-        {{ t('buy.mode_vn') }}
-      </button>
-      <button type="button" class="pay-mode-btn{% if pay_mode == 'intl' %} active{% endif %}" data-pay-mode="intl" role="tab">
-        {{ t('buy.mode_intl') }}
-      </button>
-    </div>
-    {% endif %}
-
-    <button type="button" class="btn btn-primary btn-lg" id="btn-checkout-continue">{{ t('buy.btn_pay') }}</button>
+  {% if vietqr_available and (paddle_available or pg_available) %}
+  <div class="pay-mode-switch" role="tablist" aria-label="{{ t('buy.pay_mode_label') }}">
+    <button type="button" class="pay-mode-btn{% if pay_mode == 'vn' %} active{% endif %}" data-pay-mode="vn" role="tab">
+      {{ t('buy.mode_vn') }}
+    </button>
+    <button type="button" class="pay-mode-btn{% if pay_mode == 'intl' %} active{% endif %}" data-pay-mode="intl" role="tab">
+      {{ t('buy.mode_intl') }}
+    </button>
   </div>
+  {% endif %}
+
+  <button type="button" class="btn btn-primary btn-lg" id="btn-checkout-continue">{{ t('buy.btn_pay') }}</button>
 
   {% if not vietqr_available and not paddle_available and not pg_available %}
   <p class="muted">{{ t('buy.checkout_unavailable', email=support_email) | safe }}</p>
   {% endif %}
 </section>
 
-<div id="pay-modal" class="pay-modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="pay-modal-title">
+<div id="pay-modal" class="pay-modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="pay-modal-summary-title">
   <div class="pay-modal-backdrop" id="pay-modal-backdrop"></div>
-  <div class="pay-modal-panel pay-modal-panel--paddle">
+  <div class="pay-modal-panel">
     <button type="button" class="pay-modal-close" id="pay-modal-close" aria-label="Close">×</button>
     <div class="pay-modal-grid">
-      <div class="pay-modal-col pay-modal-col--info">
-        <p class="pay-modal-kicker" id="pay-modal-kicker">{{ t('buy.vn_modal_title') }}</p>
-        <h2 class="pay-modal-title" id="pay-modal-title">{{ t('buy.pricing_product') }}</h2>
+      <div class="pay-modal-summary">
+        <h3 id="pay-modal-summary-title">{{ t('buy.order_summary') }}</h3>
+        <p class="pay-modal-product">{{ t('buy.pricing_product') }}</p>
+        <div class="pay-modal-qty">
+          <span class="pay-modal-qty-label">{{ t('buy.years_label') }}</span>
+          <div class="years-stepper years-stepper--modal">
+            <button type="button" class="years-btn" id="modal-years-minus" aria-label="-">−</button>
+            <input type="number" id="modal-years" class="years-input" value="1"
+                   min="1" max="{{ max_license_years }}" step="1" inputmode="numeric">
+            <button type="button" class="years-btn" id="modal-years-plus" aria-label="+">+</button>
+          </div>
+        </div>
+        <p class="pay-modal-due" id="modal-total-line"></p>
         <div class="pay-modal-email-field">
           <label for="modal-email">{{ t('buy.email_label') }}</label>
-          <input type="email" id="modal-email" class="buy-checkout-email" autocomplete="email"
+          <input type="email" id="modal-email" class="pay-modal-input" autocomplete="email"
                  placeholder="you@company.com" value="{{ email }}">
         </div>
-        <p id="modal-email-hint" class="hint flash-err is-hidden" role="alert"></p>
-        <p class="pay-modal-meta">
-          <span class="muted">{{ t('buy.years_label') }}</span>
-          <strong id="modal-years-display">1</strong>
-        </p>
-        <p class="pay-modal-total" id="modal-total-line"></p>
+        <p id="modal-email-hint" class="pay-modal-email-err is-hidden" role="alert"></p>
         <dl class="bank-dl pay-modal-bank is-hidden" id="modal-bank-dl"></dl>
-        <p class="hint muted pay-modal-wait is-hidden" id="modal-wait-hint"></p>
-        <div class="pay-modal-intl-actions is-hidden" id="modal-intl-actions">
-          <p class="muted">{{ t('buy.intl_modal_right') }}</p>
-          <button type="button" class="btn btn-primary btn-lg" id="modal-btn-paddle">{{ t('buy.btn_pay') }}</button>
-        </div>
+        <p class="pay-modal-wait is-hidden" id="modal-wait-hint"></p>
       </div>
-      <div class="pay-modal-col pay-modal-col--qr" id="pay-modal-qr-col">
+      <div class="pay-modal-qr-pane">
         <div class="pay-modal-qr-inner" id="pay-modal-qr-inner">
-          <p class="hint muted">{{ t('buy.vn_modal_qr_hint') }}</p>
+          <p class="pay-modal-qr-placeholder">{{ t('buy.vn_modal_qr_hint') }}</p>
         </div>
       </div>
     </div>
@@ -163,5 +143,5 @@
 {% if paddle_available %}
 <script src="/static/js/paddle-bridge.js"></script>
 {% endif %}
-<script src="/static/js/buy-pay.js?v=3" defer></script>
+<script src="/static/js/buy-pay.js?v=4" defer></script>
 {% endblock %}

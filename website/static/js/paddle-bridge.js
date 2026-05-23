@@ -109,6 +109,25 @@ window.BodyExporterPaddle = (function () {
       });
   }
 
+  function openWithItems(opts) {
+    opts = opts || {};
+    if (!cfg || !cfg.client_token || !opts.priceId) {
+      return Promise.reject(new Error("not_configured"));
+    }
+    if (!initConfig(cfg)) {
+      return Promise.reject(new Error("paddle_init_failed"));
+    }
+    try {
+      Paddle.Checkout.open({
+        items: [{ priceId: opts.priceId, quantity: opts.quantity || 1 }],
+      });
+      return Promise.resolve();
+    } catch (err) {
+      if (cfg.onError) cfg.onError(String(err), err);
+      return Promise.reject(err);
+    }
+  }
+
   return {
     setConfig: function (config) {
       cfg = config;
@@ -116,5 +135,6 @@ window.BodyExporterPaddle = (function () {
     },
     openCheckout: openCheckout,
     startFromApi: startFromApi,
+    openWithItems: openWithItems,
   };
 })();
