@@ -236,7 +236,7 @@
   }
 
   if (payModalClose) payModalClose.addEventListener("click", closeModal);
-  if (payModalBackdrop) payModalBackdrop.addEventListener("click", closeModal);
+  // Backdrop click does not close — avoid losing email/years/discount on mis-click.
 
   function renderBankDl(data) {
     if (!modalBankDl) return;
