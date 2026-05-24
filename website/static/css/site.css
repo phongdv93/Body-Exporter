@@ -644,6 +644,14 @@ body.paddle-checkout-open .site-footer {
 }
 .pay-modal-qr-download:hover { color: #5eead4; text-decoration: underline; }
 .pay-modal-qr-download.is-hidden { display: none; }
+@media (min-width: 721px) {
+  .pay-modal-qr-download {
+    display: none !important;
+  }
+  .pay-modal-qr-pane {
+    border-radius: 0 10px 10px 0;
+  }
+}
 @media (max-width: 720px) {
   .pay-modal {
     padding: 0;

@@ -270,9 +270,13 @@
     modalBankDl.classList.remove("is-hidden");
   }
 
+  function isDesktopPayModal() {
+    return window.matchMedia("(min-width: 721px)").matches;
+  }
+
   function setQrDownloadVisible(url) {
     if (!modalQrDownload) return;
-    if (!url) {
+    if (!url || isDesktopPayModal()) {
       modalQrDownload.classList.add("is-hidden");
       modalQrDownload.removeAttribute("href");
       return;

@@ -111,6 +111,8 @@ Sau deploy: **Admin → Dashboard** xem dòng Paddle (price API OK / lỗi). Th�
 2. Paddle → **Developer tools → Authentication** → tạo token mới → copy vào Render → **Redeploy**.
 3. Paddle → **Checkout → Checkout settings** → **Default payment link** = `https://bodyexporter.com/buy/paddle` và domain **Approved**.
 4. Khách VN: dùng **VietQR** trên `/buy` (Paddle hay bị chặn `checkout-service.paddle.com` từ VN/VPN).
+
+**Checkout hiện «Return to HoaPhong» / tên cá nhân thay vì Body Exporter:** không set trong code website — Paddle lấy **Legal Name** / **Company Display Name** trên tài khoản seller. Vào Paddle Dashboard → **Account / Invoice settings** (hoặc Checkout settings) → đặt **Company Display Name** = `Body Exporter`. Đổi **Legal Name** cần email **sellers@paddle.com**. Đồng thời chỉnh **Statement descriptor** (Checkout → Transactions) cho khớp thẻ ngân hàng khách.
 - Optional **`SEO_OG_IMAGE`** in `.env` = full URL of a 1200×630 image for social share.
 
 **Production bắt buộc:** biến `SITE_URL=https://bodyexporter.com` (không dấu `/` cuối). Nếu sai, sitemap sẽ ghi URL `127.0.0.1` → Google không index.
