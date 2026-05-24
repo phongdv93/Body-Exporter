@@ -107,7 +107,7 @@
 </section>
 {% endif %}
 {% if paddle_available %}
-<script src="/static/js/paddle-bridge.js?v=2"></script>
+<script src="/static/js/paddle-bridge.js?v=3"></script>
 {% endif %}
 <script src="/static/js/buy-pay.js?v=12" defer></script>
 {% endblock %}
@@ -159,10 +159,10 @@
             <p class="pay-modal-qr-placeholder">{{ t('buy.vn_modal_qr_hint') }}</p>
           </div>
         </div>
-        <a id="modal-qr-download" class="pay-modal-qr-download is-hidden" href="#" target="_blank"
-           rel="noopener noreferrer" download="bodyexporter-vietqr.png">{{ t('buy.qr_download') }}</a>
       </div>
     </div>
+    <a id="modal-qr-download" class="pay-modal-qr-download is-hidden" href="#" target="_blank"
+       rel="noopener noreferrer" download="bodyexporter-vietqr.png">{{ t('buy.qr_download') }}</a>
   </div>
 </div>
 {% endblock %}

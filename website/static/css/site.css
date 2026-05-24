@@ -339,12 +339,12 @@ body.paddle-checkout-open .site-footer {
   max-width: 100%;
   overflow-x: clip;
 }
-/* Paddle overlay iframes can widen past viewport on the email step */
-body.paddle-checkout-open iframe[src*="paddle"],
-body.paddle-checkout-open iframe[name*="paddle"] {
-  max-width: 100% !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
+@media (max-width: 720px) {
+  body.paddle-checkout-open iframe[src*="paddle"],
+  body.paddle-checkout-open iframe[name*="paddle"] {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
 }
 .pay-modal {
   position: fixed;
@@ -379,6 +379,8 @@ body.paddle-checkout-open iframe[name*="paddle"] {
   max-height: 88vh;
   overflow-x: hidden;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   background: #2b2f36;
   color: #e8eaed;
   border-radius: 10px;
@@ -404,6 +406,7 @@ body.paddle-checkout-open iframe[name*="paddle"] {
   min-height: 0;
   min-width: 0;
   max-width: 100%;
+  flex: 1 1 auto;
   align-items: stretch;
 }
 .pay-modal-summary {
@@ -592,7 +595,7 @@ body.paddle-checkout-open iframe[name*="paddle"] {
   aspect-ratio: 1;
   background: #fff;
   overflow: hidden;
-  border-radius: 0 10px 10px 0;
+  border-radius: 0 10px 0 0;
 }
 .pay-modal-qr-inner {
   position: absolute;
@@ -629,14 +632,17 @@ body.paddle-checkout-open iframe[name*="paddle"] {
 }
 .pay-modal-qr-download {
   display: block;
-  margin: 0.65rem 0 0;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0.45rem 1rem 0.65rem;
   text-align: center;
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: #5eead4;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #9ca3af;
   text-decoration: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
-.pay-modal-qr-download:hover { color: #99f6e4; text-decoration: underline; }
+.pay-modal-qr-download:hover { color: #5eead4; text-decoration: underline; }
 .pay-modal-qr-download.is-hidden { display: none; }
 @media (max-width: 720px) {
   .pay-modal {
@@ -712,8 +718,14 @@ body.paddle-checkout-open iframe[name*="paddle"] {
     width: 100%;
   }
   .pay-modal-qr-download {
-    margin-top: 0.5rem;
+    margin: 0.5rem max(0.75rem, env(safe-area-inset-right, 0px))
+      max(1rem, env(safe-area-inset-bottom, 0px))
+      max(0.75rem, env(safe-area-inset-left, 0px));
     padding: 0.55rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #5eead4;
+    border-top: none;
     background: rgba(94, 234, 212, 0.12);
     border: 1px solid rgba(94, 234, 212, 0.35);
     border-radius: 8px;

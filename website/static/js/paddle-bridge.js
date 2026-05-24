@@ -6,6 +6,18 @@ window.BodyExporterPaddle = (function () {
   let initialized = false;
   let widthGuardObserver = null;
 
+  function isMobileViewport() {
+    return window.matchMedia("(max-width: 720px)").matches;
+  }
+
+  function overlayCheckoutSettings() {
+    const settings = { displayMode: "overlay" };
+    if (isMobileViewport()) {
+      settings.variant = "one-page";
+    }
+    return settings;
+  }
+
   function isPaddleFrame(el) {
     if (!el || el.tagName !== "IFRAME") return false;
     const src = (el.getAttribute("src") || "").toLowerCase();
@@ -14,6 +26,7 @@ window.BodyExporterPaddle = (function () {
   }
 
   function constrainPaddleOverlayWidth() {
+    if (!isMobileViewport()) return;
     const vw = document.documentElement.clientWidth + "px";
     document.querySelectorAll("iframe").forEach(function (frame) {
       if (!isPaddleFrame(frame)) return;
@@ -62,8 +75,10 @@ window.BodyExporterPaddle = (function () {
     document.documentElement.classList.toggle("paddle-checkout-open", on);
     document.body.classList.toggle("paddle-checkout-open", on);
     if (on) {
-      startPaddleWidthGuard();
-      schedulePaddleWidthFix();
+      if (isMobileViewport()) {
+        startPaddleWidthGuard();
+        schedulePaddleWidthFix();
+      }
     } else {
       stopPaddleWidthGuard();
     }
@@ -96,7 +111,6 @@ window.BodyExporterPaddle = (function () {
         checkout: {
           settings: {
             displayMode: "overlay",
-            variant: "one-page",
             theme: "dark",
             locale: document.documentElement.lang === "vi" ? "vi" : "en",
             successUrl: cfg.success_url || "/buy/success",
@@ -111,7 +125,7 @@ window.BodyExporterPaddle = (function () {
             ev.name === "checkout.customer.updated"
           ) {
             setPaddleCheckoutOpen(true);
-            schedulePaddleWidthFix();
+            if (isMobileViewport()) schedulePaddleWidthFix();
           }
           if (
             ev.name === "checkout.completed" ||
@@ -168,7 +182,7 @@ window.BodyExporterPaddle = (function () {
     try {
       Paddle.Checkout.open(payload);
       setPaddleCheckoutOpen(true);
-      schedulePaddleWidthFix();
+      if (isMobileViewport()) schedulePaddleWidthFix();
       return Promise.resolve();
     } catch (err) {
       setPaddleCheckoutOpen(false);
@@ -210,13 +224,10 @@ window.BodyExporterPaddle = (function () {
     try {
       Paddle.Checkout.open({
         items: [{ priceId: opts.priceId, quantity: opts.quantity || 1 }],
-        settings: {
-          displayMode: "overlay",
-          variant: "one-page",
-        },
+        settings: overlayCheckoutSettings(),
       });
       setPaddleCheckoutOpen(true);
-      schedulePaddleWidthFix();
+      if (isMobileViewport()) schedulePaddleWidthFix();
       return Promise.resolve();
     } catch (err) {
       setPaddleCheckoutOpen(false);
