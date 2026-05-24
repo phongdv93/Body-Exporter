@@ -4,13 +4,15 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using SolidWorksBodyExporter.AddIn.Models;
 
 namespace SolidWorksBodyExporter.AddIn.Services
 {
     /// <summary>
-    /// Rule-based row ordering (no AI): match display/body names against priority keyword tiers.
+    /// Rule-based row ordering (no AI): match display/body names against priority keyword tiers
+    /// for production BOM (main panels first, trim/edge band last).
     /// </summary>
     public sealed class BodySortRulesService
     {
@@ -21,14 +23,46 @@ namespace SolidWorksBodyExporter.AddIn.Services
             _rules = rules ?? BodySortRulesFile.CreateDefault();
         }
 
-        public static BodySortRulesService LoadFromUserSettings()
+        public static string GetUserRulesPath()
+        {
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "SolidWorksBodyExporter",
+                "sort-rules.json");
+        }
+
+        /// <summary>Writes default <c>sort-rules.json</c> on first run so users can edit tiers.</summary>
+        public static void EnsureUserRulesFile()
         {
             try
             {
-                var dir = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                    "SolidWorksBodyExporter");
-                var path = Path.Combine(dir, "sort-rules.json");
+                var path = GetUserRulesPath();
+                if (File.Exists(path))
+                {
+                    return;
+                }
+
+                var dir = Path.GetDirectoryName(path);
+                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                {
+                    Directory.CreateDirectory(dir);
+                }
+
+                var json = JsonConvert.SerializeObject(BodySortRulesFile.CreateDefault(), Formatting.Indented);
+                File.WriteAllText(path, json, Encoding.UTF8);
+            }
+            catch
+            {
+                // Non-fatal — built-in defaults still apply.
+            }
+        }
+
+        public static BodySortRulesService LoadFromUserSettings()
+        {
+            EnsureUserRulesFile();
+            try
+            {
+                var path = GetUserRulesPath();
                 if (!File.Exists(path))
                 {
                     return new BodySortRulesService();
@@ -125,13 +159,7 @@ namespace SolidWorksBodyExporter.AddIn.Services
 
                 foreach (var keyword in tier.Keywords)
                 {
-                    var needle = Normalize(keyword);
-                    if (needle.Length == 0)
-                    {
-                        continue;
-                    }
-
-                    if (haystack.Contains(needle))
+                    if (NameContainsKeyword(haystack, keyword))
                     {
                         best = Math.Min(best, tier.Priority);
                         break;
@@ -140,6 +168,30 @@ namespace SolidWorksBodyExporter.AddIn.Services
             }
 
             return best;
+        }
+
+        private static bool NameContainsKeyword(string haystack, string keyword)
+        {
+            var needle = Normalize(keyword);
+            if (needle.Length == 0 || string.IsNullOrEmpty(haystack))
+            {
+                return false;
+            }
+
+            if (needle.Contains(" "))
+            {
+                return haystack.Contains(needle);
+            }
+
+            if (needle.Length <= 3)
+            {
+                return Regex.IsMatch(
+                    haystack,
+                    @"(^|[\s_\-./\\])" + Regex.Escape(needle) + @"($|[\s_\-./\\])",
+                    RegexOptions.CultureInvariant);
+            }
+
+            return haystack.Contains(needle);
         }
 
         private string FindTierLabel(int score)
@@ -184,31 +236,73 @@ namespace SolidWorksBodyExporter.AddIn.Services
                     new BodySortTier
                     {
                         Priority = 10,
-                        Label = "Chính / khung",
+                        Label = "Mặt / nóc",
                         Keywords = new List<string>
                         {
-                            "mat ban", "mặt bàn", "khung", "frame", "than chinh", "thân",
-                            "panel chinh", "main", "table top", "desktop"
+                            "mat ban", "mat tren", "mat duoi", "mat chinh", "mat go", "mat",
+                            "mặt bàn", "mặt trên", "mặt dưới", "mặt chính", "mặt",
+                            "noc", "nóc", "nap", "nắp", "top", "table top", "desktop", "countertop"
                         }
                     },
                     new BodySortTier
                     {
                         Priority = 20,
-                        Label = "Vách / cánh",
+                        Label = "Chân / khung",
                         Keywords = new List<string>
                         {
-                            "vach", "vách", "canh", "cánh", "side", "panel", "hồi", "hoi",
-                            "wing", "door", "cua", "cửa"
+                            "chan ban", "chan tu", "chan go", "chan",
+                            "chân bàn", "chân tủ", "chân",
+                            "khung", "frame", "than chinh", "than doc", "than ngang", "leg", "foot", "base"
                         }
                     },
                     new BodySortTier
                     {
                         Priority = 30,
-                        Label = "Phụ kiện / bọ",
+                        Label = "Cửa / cánh",
                         Keywords = new List<string>
                         {
-                            "bo goc", "bọ góc", "bo", "bọ", "nep", "nẹp", "trim", "cap",
-                            "cover", "treo", "hook", "bracket", "phu kien", "phụ kiện"
+                            "cua tu", "cua kinh", "canh cua", "canh kinh", "canh trai", "canh phai",
+                            "cua", "cửa", "door", "flap", "canh", "cánh", "wing", "draw front"
+                        }
+                    },
+                    new BodySortTier
+                    {
+                        Priority = 40,
+                        Label = "Hông / vách / hồi",
+                        Keywords = new List<string>
+                        {
+                            "hong tu", "hong trai", "hong phai", "hong",
+                            "hông", "side", "vach", "vách", "hoi", "hồi", "panel", "back", "partition"
+                        }
+                    },
+                    new BodySortTier
+                    {
+                        Priority = 50,
+                        Label = "Ngăn / kệ / hộc",
+                        Keywords = new List<string>
+                        {
+                            "ngan keo", "ngan tu", "ngan", "ngăn kéo", "ngăn",
+                            "ke", "kệ", "shelf", "drawer", "hop", "hộc", "tray"
+                        }
+                    },
+                    new BodySortTier
+                    {
+                        Priority = 60,
+                        Label = "Chi tiết phụ",
+                        Keywords = new List<string>
+                        {
+                            "tam lot", "tấm lót", "de", "đế", "vach lot", "divider", "support", "bracket", "treo", "hook"
+                        }
+                    },
+                    new BodySortTier
+                    {
+                        Priority = 80,
+                        Label = "Bọ / nẹp / viền",
+                        Keywords = new List<string>
+                        {
+                            "bo goc", "bo canh", "bo nep",
+                            "bọ góc", "bọ cạnh", "bọ",
+                            "nep", "nẹp", "trim", "edging", "cap", "vien", "viền", "lip", "edge band"
                         }
                     }
                 }

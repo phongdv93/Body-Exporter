@@ -177,6 +177,8 @@ namespace SolidWorksBodyExporter.AddIn.Ui
 
             // Open empty: user picks a part from the Active part dropdown or opens a file later.
             RefreshExcelTemplateBar();
+            var settings = AppSettings.LoadOrCreate();
+            AutoSortBeforeExportCheck.IsChecked = settings.AutoSortBeforeExport;
         }
 
         public ObservableCollection<BodyExportRow> Rows { get; }
@@ -1037,6 +1039,7 @@ namespace SolidWorksBodyExporter.AddIn.Ui
 
             try
             {
+                MaybeAutoSortBeforeExport();
                 // Excel export keeps the Preview column when it is present in the grid order:
                 // ExcelExporter sees it and switches to image embedding for that cell. The
                 // user toggles Preview inclusion via the "Include preview images" checkbox in
@@ -1110,6 +1113,7 @@ namespace SolidWorksBodyExporter.AddIn.Ui
 
             try
             {
+                MaybeAutoSortBeforeExport();
                 var exporter = new ExcelTemplateExporter();
                 var result = exporter.Export(templatePath, saveDialog.FileName, Rows);
 
@@ -1144,6 +1148,61 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             }
         }
 
+        private void AutoSortBeforeExportCheck_Changed(object sender, RoutedEventArgs e)
+        {
+            if (AutoSortBeforeExportCheck == null)
+            {
+                return;
+            }
+
+            var settings = AppSettings.LoadOrCreate();
+            settings.AutoSortBeforeExport = AutoSortBeforeExportCheck.IsChecked == true;
+            settings.Save();
+        }
+
+        /// <summary>Reorder grid rows by production BOM keyword tiers (sort-rules.json).</summary>
+        private bool ApplyProductionSort(bool showToastWhenUnchanged = false)
+        {
+            if (Rows.Count == 0)
+            {
+                return false;
+            }
+
+            var service = BodySortRulesService.LoadFromUserSettings();
+            var snapshot = Rows.ToList();
+            var sorted = service.Sort(snapshot);
+            if (snapshot.SequenceEqual(sorted))
+            {
+                if (showToastWhenUnchanged)
+                {
+                    ShowToast("BOM order already matches keyword rules.", ToastKind.Info);
+                }
+
+                return false;
+            }
+
+            Rows.Clear();
+            foreach (var row in sorted)
+            {
+                Rows.Add(row);
+            }
+
+            return true;
+        }
+
+        private void MaybeAutoSortBeforeExport()
+        {
+            if (AutoSortBeforeExportCheck?.IsChecked != true)
+            {
+                return;
+            }
+
+            if (ApplyProductionSort())
+            {
+                ShowToast("Sorted for production BOM before export.", ToastKind.Info);
+            }
+        }
+
         private void SuggestSort_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -1157,12 +1216,10 @@ namespace SolidWorksBodyExporter.AddIn.Ui
                 var service = BodySortRulesService.LoadFromUserSettings();
                 var snapshot = Rows.ToList();
                 var analysis = service.Analyze(snapshot);
-                var sorted = service.Sort(snapshot);
-
-                Rows.Clear();
-                foreach (var row in sorted)
+                if (!ApplyProductionSort())
                 {
-                    Rows.Add(row);
+                    ShowToast("BOM order already matches keyword rules.", ToastKind.Success);
+                    return;
                 }
 
                 if (analysis.HasIssues)
@@ -1174,17 +1231,17 @@ namespace SolidWorksBodyExporter.AddIn.Ui
                     }
 
                     ShowToast(
-                        "Sorted by rules. " + analysis.OutOfOrder.Count + " row(s) were out of suggested order: " + preview,
+                        "Sorted for production BOM. " + analysis.OutOfOrder.Count + " row(s) moved: " + preview,
                         ToastKind.Info);
                 }
                 else
                 {
-                    ShowToast("Sorted by keyword rules — order looks good.", ToastKind.Success);
+                    ShowToast("Sorted for production BOM.", ToastKind.Success);
                 }
             }
             catch (Exception ex)
             {
-                ShowToast("Suggest order failed: " + ex.Message, ToastKind.Error);
+                ShowToast("BOM order failed: " + ex.Message, ToastKind.Error);
             }
         }
 

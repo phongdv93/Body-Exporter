@@ -88,6 +88,9 @@ namespace SolidWorksBodyExporter.AddIn.Services.Api
         /// <summary>Last workbook produced by "Fill Excel template…" (quick reopen in Excel).</summary>
         public string ExcelTemplateLastOutputPath { get; set; }
 
+        /// <summary>When true, Excel/template export re-sorts rows by BOM keyword tiers first.</summary>
+        public bool AutoSortBeforeExport { get; set; } = true;
+
         /// <summary>Email used for VN bank transfer memo (Sepay). Prefilled from license owner when possible.</summary>
         public string PaymentEmail { get; set; }
 

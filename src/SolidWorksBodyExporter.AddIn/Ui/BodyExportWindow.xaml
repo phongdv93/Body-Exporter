@@ -795,15 +795,24 @@
                                 Background="{StaticResource AccentGradient}"
                                 Template="{StaticResource GradientButtonTemplate}" />
 
-                        <Button Content="Suggest order"
-                                ToolTip="Sort rows by keyword rules (edit %AppData%\SolidWorksBodyExporter\sort-rules.json). Not AI — workshop priority tiers."
-                                Width="108" Height="32"
-                                Margin="0,0,0,0"
+                        <Button Content="BOM order"
+                                ToolTip="Sort rows for production BOM: mặt/nóc → chân/khung → cửa → hông → ngăn → bọ/nẹp. Edit tiers in %AppData%\SolidWorksBodyExporter\sort-rules.json"
+                                Width="96" Height="32"
+                                Margin="0,0,8,0"
                                 Click="SuggestSort_Click"
                                 FontWeight="SemiBold" FontSize="12"
                                 Foreground="#FF334155"
                                 Background="#FFE8EDF5"
                                 Template="{StaticResource GradientButtonTemplate}" />
+
+                        <CheckBox x:Name="AutoSortBeforeExportCheck"
+                                  Style="{StaticResource ThemedCheckBox}"
+                                  Content="Auto BOM order on export"
+                                  IsChecked="True"
+                                  ToolTip="Before Excel or template export, sort rows using the same keyword tiers as BOM order."
+                                  Checked="AutoSortBeforeExportCheck_Changed"
+                                  Unchecked="AutoSortBeforeExportCheck_Changed"
+                                  Margin="0,0,8,0" />
 
                         <!-- Divider -->
                         <Rectangle Width="1" Fill="#FFD8E0EC"
