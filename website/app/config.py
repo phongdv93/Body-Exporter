@@ -35,8 +35,10 @@ SEO_DESCRIPTION = (
 SEO_KEYWORDS = (
     os.getenv(
         "SEO_KEYWORDS",
-        "SolidWorks, add-in, Body Exporter, xuat body, Excel, license, plugin CAD, "
-        "go, nesting, Viet Nam, SePay",
+        "SolidWorks, add-in, Body Exporter, body export, BOM export, part export, "
+        "xuat body, xuat BOM, xuat BOM tu SolidWorks, xuat danh sach chi tiet tu SolidWorks, "
+        "xuất BOM từ SolidWorks, xuất danh sách chi tiết từ SolidWorks, xuất body từ SolidWorks, "
+        "Excel, license, plugin CAD, go, nesting, Viet Nam, SePay",
     )
     .strip()
 )
@@ -51,8 +53,10 @@ SEO_DESCRIPTION_EN = (
 SEO_KEYWORDS_EN = (
     os.getenv(
         "SEO_KEYWORDS_EN",
-        "SolidWorks, add-in, Body Exporter, export bodies, Excel, license, CAD plugin, "
-        "woodworking, nesting, bill of materials",
+        "SolidWorks, add-in, Body Exporter, body export, BOM export, export body, export BOM, "
+        "export bodies, export part list, export detail list, export BOM from SolidWorks, "
+        "export body from SolidWorks, Excel, license, CAD plugin, woodworking, nesting, "
+        "bill of materials",
     )
     .strip()
 )
