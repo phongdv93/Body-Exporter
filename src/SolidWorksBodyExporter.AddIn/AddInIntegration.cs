@@ -138,6 +138,8 @@ namespace SolidWorksBodyExporter.AddIn
             EnsureWpfApplication();
             StartIpcServer();
 
+            LicenseManager.Current.EnsureStartupOnlineValidation();
+
             var installRoot = Path.GetDirectoryName(asmPath);
             TelemetryReporter.TrySendConnectPing(_solidWorks, installRoot);
 

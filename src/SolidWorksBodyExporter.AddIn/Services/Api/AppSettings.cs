@@ -193,13 +193,66 @@ namespace SolidWorksBodyExporter.AddIn.Services.Api
 
         public bool HasAppliedLicenseKey(string key)
         {
+            return IsKnownLicenseKey(key);
+        }
+
+        /// <summary>Active or retired — already stacked on this machine; must not add days again.</summary>
+        public bool IsKnownLicenseKey(string key)
+        {
             if (string.IsNullOrWhiteSpace(key))
             {
                 return false;
             }
 
             NormalizeAppliedLicenseKeys();
-            return AppliedLicenseKeys.Any(x => string.Equals(x, key.Trim(), StringComparison.OrdinalIgnoreCase));
+            key = key.Trim();
+            if (AppliedLicenseKeys != null
+                && AppliedLicenseKeys.Any(x => string.Equals(x, key, StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+
+            if (RetiredLicenseKeys != null
+                && RetiredLicenseKeys.Any(x => string.Equals(x, key, StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>Distinct UUID keys ever applied on this machine (active + retired).</summary>
+        public IList<string> GetAllKnownLicenseKeys()
+        {
+            NormalizeAppliedLicenseKeys();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var list = new List<string>();
+
+            void AddKeys(IEnumerable<string> source)
+            {
+                if (source == null)
+                {
+                    return;
+                }
+
+                foreach (var raw in source)
+                {
+                    var k = raw?.Trim();
+                    if (string.IsNullOrWhiteSpace(k) || !Guid.TryParse(k, out _))
+                    {
+                        continue;
+                    }
+
+                    if (seen.Add(k))
+                    {
+                        list.Add(k);
+                    }
+                }
+            }
+
+            AddKeys(AppliedLicenseKeys);
+            AddKeys(RetiredLicenseKeys);
+            return list;
         }
 
         public void RegisterAppliedLicenseKey(string key)

@@ -8,7 +8,7 @@ using Newtonsoft.Json;
 namespace SolidWorksBodyExporter.AddIn.Services.Api
 {
     /// <summary>POST /v1/trial/start — server-authoritative 14-day trial per machine.</summary>
-    public sealed class TrialApiClient
+    internal sealed class TrialApiClient
     {
         private readonly string _baseUrl;
 
@@ -77,7 +77,7 @@ namespace SolidWorksBodyExporter.AddIn.Services.Api
         }
     }
 
-    public sealed class TrialStartResponse
+    internal sealed class TrialStartResponse
     {
         [JsonProperty("startedUtc")]
         public DateTime StartedUtc { get; set; }

@@ -5,11 +5,11 @@ namespace SolidWorksBodyExporter.AddIn.Services.Security
     /// <summary>Only these API hosts are accepted — blocks pointing settings.json at a fake license server.</summary>
     internal static class ApiUrlPolicy
     {
-        public const string DefaultApiBaseUrl = "https://bodyexporter-api.bodyexporter.workers.dev";
+        public static string DefaultApiBaseUrl => EmbeddedEndpoints.DefaultApiBaseUrl;
 
         private static readonly string[] AllowedHosts =
         {
-            "bodyexporter-api.bodyexporter.workers.dev",
+            EmbeddedEndpoints.DefaultApiHost,
         };
 
         public static string Normalize(string apiBaseUrl, string defaultUrl)

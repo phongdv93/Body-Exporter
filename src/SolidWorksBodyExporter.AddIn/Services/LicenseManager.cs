@@ -40,14 +40,16 @@ namespace SolidWorksBodyExporter.AddIn.Services
     /// is mirrored in two callsites so that disabling one bypass doesn't unlock the add-in.
     /// </para>
     /// </summary>
-    public sealed class LicenseActivationSummary
+    internal sealed class LicenseActivationSummary
     {
         public int NewlyActivated { get; set; }
         public int SkippedAlreadyApplied { get; set; }
         public int RetiredPreviousKeys { get; set; }
+        public bool RecalculatedStack { get; set; }
+        public int KeysInStack { get; set; }
     }
 
-    public sealed class LicenseManager
+    internal sealed class LicenseManager
     {
         // Embedded RSA-2048 public key. The matching private key lives in tools/license-keys/
         // (gitignored) and is the ONLY thing that can produce signatures this code will accept.
@@ -67,8 +69,12 @@ namespace SolidWorksBodyExporter.AddIn.Services
         /// <summary>Used when <see cref="AppSettings.ApiBaseUrl"/> is empty during online activation.</summary>
         public static string DefaultApiBaseUrl => ApiUrlPolicy.DefaultApiBaseUrl;
 
-        private const int OnlineRecheckDays = 7;
-        private const int OnlineOfflineGraceDays = 7;
+        /// <summary>Re-validate online license once per SolidWorks session (ConnectToSW).</summary>
+        private static bool _sessionStartupValidated;
+
+        /// <summary>Every online check when reachable; short offline grace after last OK validation.</summary>
+        private const int OnlineRecheckDays = 0;
+        private const int OnlineOfflineGraceDays = 1;
 
         private static readonly object Gate = new object();
         private static LicenseManager _instance;
@@ -121,6 +127,47 @@ namespace SolidWorksBodyExporter.AddIn.Services
                 _cachedFingerprint = ComputeMachineFingerprint();
             }
             return _cachedFingerprint;
+        }
+
+        /// <summary>
+        /// Called from <see cref="AddInIntegration.ConnectToSW"/> once per SolidWorks process.
+        /// Forces a server round-trip when a license key is installed (revoked keys fail fast).
+        /// </summary>
+        public void EnsureStartupOnlineValidation()
+        {
+            lock (Gate)
+            {
+                if (_sessionStartupValidated)
+                {
+                    return;
+                }
+
+                _sessionStartupValidated = true;
+            }
+
+            try
+            {
+                var settings = AppSettings.LoadOrCreate();
+                if (string.IsNullOrWhiteSpace(settings.LicenseKey))
+                {
+                    return;
+                }
+
+                var fingerprint = GetMachineFingerprint();
+                var api = ResolveApiBaseUrl(settings);
+                if (!TryRefreshOnlineLicense(settings, fingerprint, api))
+                {
+                    DiagnosticLog.Warn("Startup license refresh failed (offline or invalid).");
+                }
+            }
+            catch (LicenseApiException ex)
+            {
+                DiagnosticLog.Warn("Startup license refresh rejected: " + ex.Message);
+            }
+            catch (Exception ex)
+            {
+                DiagnosticLog.Warn("Startup license refresh error: " + ex.Message);
+            }
         }
 
         public LicenseStatus GetStatus()
@@ -471,12 +518,23 @@ namespace SolidWorksBodyExporter.AddIn.Services
                 settings = AppSettings.LoadOrCreate();
             }
 
+            if (summary.NewlyActivated == 0 && summary.SkippedAlreadyApplied > 0 && ordered.Count > 1)
+            {
+                if (!TryRecalculateStackedEntitlement(out error, out var stacked))
+                {
+                    return false;
+                }
+
+                summary.RecalculatedStack = true;
+                summary.KeysInStack = stacked;
+            }
+
             return true;
         }
 
         /// <summary>
-        /// Rebuild stacked expiry from every UUID in <see cref="AppSettings.AppliedLicenseKeys"/>
-        /// (fixes machines that accumulated multiple keys before stacking logic shipped).
+        /// Rebuild stacked expiry from every UUID ever applied on this machine
+        /// (<see cref="AppSettings.GetAllKnownLicenseKeys"/>).
         /// </summary>
         public bool TryRecalculateStackedEntitlement(out string error, out int keysStacked)
         {
@@ -486,8 +544,7 @@ namespace SolidWorksBodyExporter.AddIn.Services
             try
             {
                 var settings = AppSettings.LoadOrCreate();
-                settings.NormalizeAppliedLicenseKeys();
-                var keys = (settings.AppliedLicenseKeys ?? new List<string>())
+                var keys = settings.GetAllKnownLicenseKeys()
                     .Select(k => k?.Trim())
                     .Where(k => !string.IsNullOrWhiteSpace(k) && Guid.TryParse(k, out _))
                     .Distinct(StringComparer.OrdinalIgnoreCase)

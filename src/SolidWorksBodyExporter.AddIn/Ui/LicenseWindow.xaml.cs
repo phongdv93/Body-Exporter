@@ -240,7 +240,22 @@ namespace SolidWorksBodyExporter.AddIn.Ui
 
             if (summary.NewlyActivated == 0 && summary.SkippedAlreadyApplied > 0)
             {
-                ShowResult(LicenseUiText.KeysAlreadyApplied, isError: false);
+                if (summary.RecalculatedStack)
+                {
+                    var recalcStatus = LicenseManager.Current.GetStatus();
+                    var recalcDays = recalcStatus.DaysRemaining.HasValue
+                        ? recalcStatus.DaysRemaining.Value.ToString(CultureInfo.InvariantCulture)
+                        : "?";
+                    ShowResult(
+                        "All keys already applied. Recalculated stack from "
+                        + summary.KeysInStack + " key(s). " + recalcDays + " day(s) remaining.",
+                        isError: false);
+                }
+                else
+                {
+                    ShowResult(LicenseUiText.KeysAlreadyApplied, isError: false);
+                }
+
                 return;
             }
 
@@ -342,8 +357,7 @@ namespace SolidWorksBodyExporter.AddIn.Ui
         private void RefreshLicenseKeysText()
         {
             var settings = AppSettings.LoadOrCreate();
-            settings.NormalizeAppliedLicenseKeys();
-            var keys = settings.AppliedLicenseKeys ?? Enumerable.Empty<string>();
+            var keys = settings.GetAllKnownLicenseKeys();
             LicenseKeysEntry.Text = string.Join(Environment.NewLine, keys);
 
             if (RecalculateStackButton != null)

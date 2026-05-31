@@ -12,7 +12,7 @@ namespace SolidWorksBodyExporter.AddIn.Services.Api
     /// Fetches <see cref="ClientRemoteConfig"/> from the Worker (or any HTTPS host) and
     /// caches it under <c>%APPDATA%\SolidWorksBodyExporter\client-config-cache.json</c>.
     /// </summary>
-    public static class ClientConfigClient
+    internal static class ClientConfigClient
     {
         private static readonly TimeSpan CacheTtl = TimeSpan.FromHours(1);
 

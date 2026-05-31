@@ -67,5 +67,8 @@
     <!-- UI-facing license status types stay readable for support screenshots. -->
     <SkipType name="SolidWorksBodyExporter.AddIn.Services.LicenseStatus" />
     <SkipType name="SolidWorksBodyExporter.AddIn.Services.LicenseSource" />
+
+    <!-- LicenseManager + Services.Api + Services.Security: private/internal members renamed;
+         public COM/XAML surfaces above stay readable. Never ship the non-obfuscated Release DLL. -->
   </Module>
 </Obfuscator>

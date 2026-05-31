@@ -20,7 +20,7 @@ namespace SolidWorksBodyExporter.AddIn.Services.Api
     /// conflicting version into its AppDomain.
     /// </para>
     /// </summary>
-    public sealed class LicenseApiClient
+    internal sealed class LicenseApiClient
     {
         private readonly string _baseUrl;
 
@@ -93,7 +93,7 @@ namespace SolidWorksBodyExporter.AddIn.Services.Api
     }
 
     /// <summary>Payload mirror of the Cloudflare Worker's response.</summary>
-    public sealed class LicenseValidationResponse
+    internal sealed class LicenseValidationResponse
     {
         [JsonProperty("token")]
         public string Token { get; set; }
@@ -111,7 +111,7 @@ namespace SolidWorksBodyExporter.AddIn.Services.Api
         public DateTime LicenseExpires { get; set; }
     }
 
-    public sealed class LicenseApiException : Exception
+    internal sealed class LicenseApiException : Exception
     {
         public LicenseApiException(string message, Exception inner) : base(message, inner) { }
     }
