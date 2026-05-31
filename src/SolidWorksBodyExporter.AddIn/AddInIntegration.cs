@@ -410,8 +410,7 @@ namespace SolidWorksBodyExporter.AddIn
                 {
                     try
                     {
-                        _currentWindow.Activate();
-                        _currentWindow.Focus();
+                        BringBodyExporterToFront(_currentWindow);
                         DiagnosticLog.Info("ShowBodyExporter: activated existing window");
                         return 0;
                     }
@@ -527,7 +526,7 @@ namespace SolidWorksBodyExporter.AddIn
                 {
                     window.WindowState = WindowState.Normal;
                     window.ShowInTaskbar = true;
-                    window.Activate();
+                    BringBodyExporterToFront(window);
                 }
                 catch (Exception ex)
                 {
@@ -875,6 +874,39 @@ namespace SolidWorksBodyExporter.AddIn
                 }
             }
             return deleted;
+        }
+
+        private static void BringBodyExporterToFront(Window window)
+        {
+            if (window == null)
+            {
+                return;
+            }
+
+            if (!window.IsVisible)
+            {
+                window.Show();
+            }
+
+            window.WindowState = WindowState.Normal;
+            window.ShowInTaskbar = true;
+            window.Topmost = true;
+            window.Activate();
+            window.Focus();
+            window.Topmost = false;
+
+            try
+            {
+                var helper = new System.Windows.Interop.WindowInteropHelper(window);
+                if (helper.Handle != IntPtr.Zero)
+                {
+                    Win32Native.SetForegroundWindow(helper.Handle);
+                }
+            }
+            catch (Exception ex)
+            {
+                DiagnosticLog.Warn("BringBodyExporterToFront: " + ex.Message);
+            }
         }
 
     }

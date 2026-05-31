@@ -38,7 +38,8 @@ namespace SolidWorksBodyExporter.AddIn.Services
 
             var rows = new List<BodyExportRow>();
             var seenBodyNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var bodyObjects = (object[])part.GetBodies2((int)swBodyType_e.swSolidBody, true) ?? Array.Empty<object>();
+            // visibleOnly=false — include bodies hidden by preview-isolate; hidden ≠ deleted.
+            var bodyObjects = (object[])part.GetBodies2((int)swBodyType_e.swSolidBody, false) ?? Array.Empty<object>();
 
             foreach (var bodyObject in bodyObjects)
             {
@@ -171,7 +172,7 @@ namespace SolidWorksBodyExporter.AddIn.Services
         public void SaveNamesToSolidWorks(ModelDoc2 model, IEnumerable<BodyExportRow> rows)
         {
             var part = (PartDoc)model;
-            var bodyArray = ((object[])part.GetBodies2((int)swBodyType_e.swSolidBody, true) ?? Array.Empty<object>())
+            var bodyArray = ((object[])part.GetBodies2((int)swBodyType_e.swSolidBody, false) ?? Array.Empty<object>())
                 .Cast<Body2>()
                 .ToList();
 

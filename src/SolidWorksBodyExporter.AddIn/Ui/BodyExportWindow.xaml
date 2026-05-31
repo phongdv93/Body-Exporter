@@ -15,7 +15,8 @@
         TextOptions.TextHintingMode="Fixed"
         RenderOptions.BitmapScalingMode="HighQuality"
         RenderOptions.EdgeMode="Aliased"
-        PreviewKeyDown="BodyExportWindow_PreviewKeyDown">
+        PreviewKeyDown="BodyExportWindow_PreviewKeyDown"
+        PreviewMouseDown="BodyExportWindow_PreviewMouseDown">
 
     <Window.Resources>
         <ui:HexToColorConverter x:Key="HexToColorConverter" />

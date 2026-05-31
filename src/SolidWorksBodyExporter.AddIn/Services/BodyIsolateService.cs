@@ -4,11 +4,12 @@ using SolidWorks.Interop.swconst;
 
 namespace SolidWorksBodyExporter.AddIn.Services
 {
-    /// <summary>Focuses one solid body in the active part (hide others, zoom to selection).</summary>
+    /// <summary>
+    /// Shows one solid body by hiding the rest. Uses <see cref="PartDoc.GetBodies2"/> with
+    /// visibleOnly=false so hidden bodies stay enumerable (they are not deleted).
+    /// </summary>
     internal static class BodyIsolateService
     {
-        private const int IsolateCommandId = 1533;
-
         public static bool TryIsolateBody(ISldWorks swApp, ModelDoc2 model, string solidWorksBodyName)
         {
             if (swApp == null || model == null || string.IsNullOrWhiteSpace(solidWorksBodyName))
@@ -23,21 +24,16 @@ namespace SolidWorksBodyExporter.AddIn.Services
 
             try
             {
-                var title = model.GetTitle();
-                if (!string.IsNullOrEmpty(title))
-                {
-                    var errors = 0;
-                    swApp.ActivateDoc3(title, true, (int)swRebuildOnActivation_e.swDontRebuildActiveDoc, ref errors);
-                }
+                EnsurePartActive(swApp, model);
 
                 var part = (PartDoc)model;
-                var bodies = part.GetBodies2((int)swBodyType_e.swSolidBody, true) as object[];
+                var bodies = part.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
                 if (bodies == null || bodies.Length == 0)
                 {
                     return false;
                 }
 
-                var foundTarget = false;
+                Body2 target = null;
                 foreach (var bodyObj in bodies)
                 {
                     if (!(bodyObj is Body2 body))
@@ -48,23 +44,95 @@ namespace SolidWorksBodyExporter.AddIn.Services
                     var isTarget = string.Equals(body.Name, solidWorksBodyName, StringComparison.OrdinalIgnoreCase);
                     if (isTarget)
                     {
-                        foundTarget = true;
-                        body.HideBody(false);
+                        target = body;
                     }
-                    else
-                    {
-                        body.HideBody(true);
-                    }
+
+                    body.HideBody(!isTarget);
                 }
 
-                if (!foundTarget)
+                if (target == null)
                 {
                     return false;
                 }
 
+                ZoomToBody(model, target);
+                model.GraphicsRedraw2();
+                Win32Native.TryFocusSolidWorks(swApp);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                DiagnosticLog.Warn("BodyIsolateService: " + ex.Message);
+                return false;
+            }
+        }
+
+        /// <summary>Restores visibility for every solid body in the active part.</summary>
+        public static void ShowAllBodies(ModelDoc2 model)
+        {
+            if (model == null || model.GetType() != (int)swDocumentTypes_e.swDocPART)
+            {
+                return;
+            }
+
+            try
+            {
+                var part = (PartDoc)model;
+                var bodies = part.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
+                if (bodies == null)
+                {
+                    return;
+                }
+
+                foreach (var bodyObj in bodies)
+                {
+                    if (bodyObj is Body2 body)
+                    {
+                        body.HideBody(false);
+                    }
+                }
+
+                model.GraphicsRedraw2();
+            }
+            catch (Exception ex)
+            {
+                DiagnosticLog.Warn("BodyIsolateService.ShowAllBodies: " + ex.Message);
+            }
+        }
+
+        private static void EnsurePartActive(ISldWorks swApp, ModelDoc2 model)
+        {
+            try
+            {
+                var active = swApp.ActiveDoc as ModelDoc2;
+                if (active != null
+                    && string.Equals(active.GetTitle(), model.GetTitle(), StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+
+                var title = model.GetTitle();
+                if (string.IsNullOrEmpty(title))
+                {
+                    return;
+                }
+
+                var errors = 0;
+                swApp.ActivateDoc3(title, false, (int)swRebuildOnActivation_e.swDontRebuildActiveDoc, ref errors);
+            }
+            catch (Exception ex)
+            {
+                DiagnosticLog.Warn("BodyIsolateService.EnsurePartActive: " + ex.Message);
+            }
+        }
+
+        private static void ZoomToBody(ModelDoc2 model, Body2 body)
+        {
+            try
+            {
                 model.ClearSelection2(true);
                 model.Extension?.SelectByID2(
-                    solidWorksBodyName,
+                    body.Name,
                     "SOLIDBODY",
                     0,
                     0,
@@ -73,24 +141,18 @@ namespace SolidWorksBodyExporter.AddIn.Services
                     0,
                     null,
                     (int)swSelectOption_e.swSelectOptionDefault);
-
+                model.ViewZoomToSelection();
+            }
+            catch
+            {
                 try
                 {
-                    model.Extension?.RunCommand(IsolateCommandId, string.Empty);
+                    model.ViewZoomtofit2();
                 }
                 catch
                 {
-                    // Hide/show already applied.
+                    // Non-fatal.
                 }
-
-                model.ViewZoomToSelection();
-                model.GraphicsRedraw2();
-                return true;
-            }
-            catch (Exception ex)
-            {
-                DiagnosticLog.Warn("BodyIsolateService: " + ex.Message);
-                return false;
             }
         }
     }

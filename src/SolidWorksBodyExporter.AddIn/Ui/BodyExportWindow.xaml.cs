@@ -466,6 +466,15 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             return string.IsNullOrEmpty(cleaned) ? "export" : cleaned;
         }
 
+        private void BodyExportWindow_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (!IsActive)
+            {
+                Activate();
+                Focus();
+            }
+        }
+
         private void BodyExportWindow_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.F5)
@@ -541,6 +550,11 @@ namespace SolidWorksBodyExporter.AddIn.Ui
                 DispatcherPriority.Background,
                 new Action(() =>
                 {
+                    if (_model != null)
+                    {
+                        BodyIsolateService.ShowAllBodies(_model);
+                    }
+
                     RefreshOpenParts();
                     RefreshRows();
                 }));
@@ -644,22 +658,27 @@ namespace SolidWorksBodyExporter.AddIn.Ui
                 return;
             }
 
-            try
+            // Defer COM work so the preview popup closes immediately.
+            var displayLabel = row.DisplayName ?? bodyName;
+            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
             {
-                if (BodyIsolateService.TryIsolateBody(_solidWorks, _model, bodyName))
+                try
                 {
-                    ShowToast("Isolated \"" + (row.DisplayName ?? bodyName) + "\" in SolidWorks.", ToastKind.Success);
+                    if (BodyIsolateService.TryIsolateBody(_solidWorks, _model, bodyName))
+                    {
+                        ShowToast("Showing \"" + displayLabel + "\" in SolidWorks.", ToastKind.Success);
+                    }
+                    else
+                    {
+                        ShowToast("Could not isolate body in SolidWorks.", ToastKind.Error);
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    ShowToast("Could not isolate body in SolidWorks.", ToastKind.Error);
+                    DiagnosticLog.Error("PreviewThumbnail_Click isolate failed", ex);
+                    ShowToast("Isolate failed: " + ex.Message, ToastKind.Error);
                 }
-            }
-            catch (Exception ex)
-            {
-                DiagnosticLog.Error("PreviewThumbnail_Click isolate failed", ex);
-                ShowToast("Isolate failed: " + ex.Message, ToastKind.Error);
-            }
+            }));
         }
 
         private void UpdateBomOrderButtonVisual()
