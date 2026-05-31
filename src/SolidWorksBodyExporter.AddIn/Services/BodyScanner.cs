@@ -335,6 +335,16 @@ namespace SolidWorksBodyExporter.AddIn.Services
                 z = adjusted.Z;
             }
 
+            var profileWidth = BodyProfileWidthReader.TryMeasureMaxCrossSectionWidthMillimeters(body, x, y, z);
+            if (profileWidth.HasValue)
+            {
+                var widthAxis = BodyProfileWidthReader.MiddleAxisIndex(x, y, z);
+                var replaced = BodyProfileWidthReader.ReplaceAxisMillimeters(x, y, z, widthAxis, profileWidth.Value);
+                x = replaced.X;
+                y = replaced.Y;
+                z = replaced.Z;
+            }
+
             return new StoredBodySize { X = x, Y = y, Z = z };
         }
 

@@ -22,6 +22,7 @@
         <ui:MillimeterConverter x:Key="MillimeterConverter" />
         <ui:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
         <ui:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter" />
+        <ui:StringEmptyToVisibilityConverter x:Key="StringEmptyToVisibilityConverter" />
 
         <!-- ═══════════════════════════════════════════════════════════
              ROW ACTION BUTTON  –  rounded template so DataTriggers that
@@ -836,31 +837,51 @@
 
                 <Grid Margin="0,10,0,0">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" MinWidth="140"/>
+                        <ColumnDefinition Width="*" MinWidth="160"/>
+                        <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <TextBox x:Name="BodySearchBox"
-                             Grid.Column="0"
-                             Height="32"
-                             Margin="0,0,8,0"
-                             VerticalContentAlignment="Center"
-                             Padding="10,0,8,0"
-                             FontSize="12"
-                             ToolTip="Lọc theo tên body"
-                             TextChanged="BodySearchBox_TextChanged">
-                        <TextBox.Style>
-                            <Style TargetType="TextBox">
-                                <Setter Property="BorderBrush" Value="#FFD0D8E8"/>
-                                <Setter Property="Background" Value="#FFF8FAFC"/>
-                            </Style>
-                        </TextBox.Style>
-                    </TextBox>
+                    <Border Grid.Column="0"
+                            Height="32"
+                            Margin="0,0,8,0"
+                            CornerRadius="6"
+                            BorderBrush="#FFD0D8E8"
+                            BorderThickness="1"
+                            Background="#FFF8FAFC">
+                        <Grid>
+                            <TextBox x:Name="BodySearchBox"
+                                     BorderThickness="0"
+                                     Background="Transparent"
+                                     VerticalContentAlignment="Center"
+                                     Padding="10,0,8,0"
+                                     FontSize="12"
+                                     ToolTip="Search by name, material, or dimensions (e.g. 820 50 or 820×50×40)"
+                                     TextChanged="BodySearchBox_TextChanged" />
+                            <TextBlock Text="Search…"
+                                       IsHitTestVisible="False"
+                                       Margin="12,0,0,0"
+                                       VerticalAlignment="Center"
+                                       Foreground="#FF94A3B8"
+                                       FontSize="12"
+                                       Visibility="{Binding Text, ElementName=BodySearchBox, Converter={StaticResource StringEmptyToVisibilityConverter}, ConverterParameter=HideWhenEmpty}" />
+                        </Grid>
+                    </Border>
                     <Button Grid.Column="1"
+                            Content="Keywords…"
+                            ToolTip="Edit BOM sort keyword tiers"
+                            Width="88" Height="32"
+                            Margin="0,0,6,0"
+                            Click="EditSortRules_Click"
+                            FontWeight="SemiBold" FontSize="12"
+                            Foreground="#FF334155"
+                            Background="#FFE8EDF5"
+                            Template="{StaticResource GradientButtonTemplate}" />
+                    <Button Grid.Column="2"
                             Content="BOM order"
-                            ToolTip="Sắp lại thứ tự theo keywords bạn đã cấu hình (Export → BOM sort keywords…)"
+                            ToolTip="Reorder rows using your keyword tiers"
                             Width="96" Height="32"
                             Margin="0,0,6,0"
                             Click="SuggestSort_Click"
@@ -869,28 +890,28 @@
                             Background="#FFE8EDF5"
                             Template="{StaticResource GradientButtonTemplate}" />
                     <CheckBox x:Name="AutoSortBeforeExportCheck"
-                              Grid.Column="2"
+                              Grid.Column="3"
                               Style="{StaticResource ThemedCheckBox}"
                               Content="Auto BOM"
                               IsChecked="True"
-                              ToolTip="Tự sắp BOM khi refresh và trước export"
+                              ToolTip="Auto-sort on refresh and before export"
                               Checked="AutoSortBeforeExportCheck_Changed"
                               Unchecked="AutoSortBeforeExportCheck_Changed"
                               VerticalAlignment="Center"
                               Margin="0,0,10,0" />
                     <CheckBox x:Name="IncludeHeaderCheck"
-                              Grid.Column="3"
+                              Grid.Column="4"
                               Style="{StaticResource ThemedCheckBox}"
                               Content="Header"
                               IsChecked="True"
                               VerticalAlignment="Center"
                               Margin="0,0,8,0" />
                     <CheckBox x:Name="IncludePreviewImagesCheck"
-                              Grid.Column="4"
+                              Grid.Column="5"
                               Style="{StaticResource ThemedCheckBox}"
                               Content="Preview"
                               IsChecked="True"
-                              ToolTip="Excel: nhúng ảnh preview"
+                              ToolTip="Embed preview images in Excel export"
                               VerticalAlignment="Center" />
                 </Grid>
 
@@ -973,7 +994,7 @@
                     <TextBlock Foreground="#FF94A3B8"
                                FontSize="11"
                                TextWrapping="Wrap"
-                               Text="Edit row: nút Edit hoặc chuột phải → Move up/down. Search chỉ lọc grid; export/copy dùng full list. Auto BOM dùng keywords của bạn, không sort A–Z." />
+                               Text="Edit a row with the Edit button or right-click → Move up/down. Search filters the grid; export and copy use the full list. Auto BOM uses your keyword tiers, not A–Z." />
                 </DockPanel>
             </Border>
 

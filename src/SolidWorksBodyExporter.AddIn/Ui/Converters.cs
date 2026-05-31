@@ -134,4 +134,23 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             throw new NotSupportedException();
         }
     }
+
+    /// <summary>Shows placeholder text when a bound string is empty (parameter: HideWhenEmpty).</summary>
+    [Obfuscation(Feature = "renaming", Exclude = true, ApplyToMembers = true)]
+    public sealed class StringEmptyToVisibilityConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            var empty = string.IsNullOrWhiteSpace(value as string);
+            var hideWhenEmpty = string.Equals(parameter as string, "HideWhenEmpty", StringComparison.Ordinal);
+            return hideWhenEmpty
+                ? (empty ? Visibility.Visible : Visibility.Collapsed)
+                : (empty ? Visibility.Collapsed : Visibility.Visible);
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotSupportedException();
+        }
+    }
 }

@@ -9,6 +9,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
@@ -849,7 +850,10 @@ namespace SolidWorksBodyExporter.AddIn.Ui
 
         private void EditSortRules_Click(object sender, RoutedEventArgs e)
         {
-            BodySortRulesService.OpenForEditing(this);
+            if (BomSortRulesWindow.ShowEditor(this))
+            {
+                ShowToast("BOM keywords saved.", ToastKind.Success);
+            }
         }
 
         /// <summary>Template bar stays collapsed on open; user expands via Export menu or after linking a template.</summary>
@@ -1276,25 +1280,106 @@ namespace SolidWorksBodyExporter.AddIn.Ui
         private void ApplyBodySearchFilter()
         {
             var q = NormalizeSearchText(_bodySearchQuery);
+            var rawQuery = _bodySearchQuery ?? string.Empty;
             Rows.Clear();
             foreach (var row in _allRows)
             {
-                if (string.IsNullOrEmpty(q) || RowMatchesSearch(row, q))
+                if (string.IsNullOrWhiteSpace(rawQuery)
+                    || RowMatchesSearch(row, q, rawQuery))
                 {
                     Rows.Add(row);
                 }
             }
         }
 
-        private static bool RowMatchesSearch(BodyExportRow row, string normalizedQuery)
+        private static bool RowMatchesSearch(BodyExportRow row, string normalizedQuery, string rawQuery)
         {
-            if (row == null || string.IsNullOrEmpty(normalizedQuery))
+            if (row == null)
             {
                 return true;
             }
 
-            var hay = NormalizeSearchText((row.DisplayName ?? string.Empty) + " " + (row.SolidWorksBodyName ?? string.Empty));
-            return hay.IndexOf(normalizedQuery, StringComparison.Ordinal) >= 0;
+            if (!string.IsNullOrEmpty(normalizedQuery))
+            {
+                var hay = NormalizeSearchText(
+                    (row.DisplayName ?? string.Empty) + " "
+                    + (row.SolidWorksBodyName ?? string.Empty) + " "
+                    + (row.MaterialName ?? string.Empty) + " "
+                    + (row.ColorName ?? string.Empty));
+                if (hay.IndexOf(normalizedQuery, StringComparison.Ordinal) >= 0)
+                {
+                    return true;
+                }
+            }
+
+            return DimensionSearchMatches(row, rawQuery);
+        }
+
+        private static bool DimensionSearchMatches(BodyExportRow row, string query)
+        {
+            var numbers = ExtractSearchNumbers(query);
+            if (numbers.Count == 0)
+            {
+                return false;
+            }
+
+            var dims = new[] { row.Length, row.Width, row.Thickness };
+            var used = new bool[3];
+            foreach (var target in numbers)
+            {
+                var matched = false;
+                for (var i = 0; i < dims.Length; i++)
+                {
+                    if (used[i])
+                    {
+                        continue;
+                    }
+
+                    if (DimensionClose(dims[i], target))
+                    {
+                        used[i] = true;
+                        matched = true;
+                        break;
+                    }
+                }
+
+                if (!matched)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static List<double> ExtractSearchNumbers(string query)
+        {
+            var results = new List<double>();
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                return results;
+            }
+
+            foreach (Match match in Regex.Matches(query, @"\d+(?:[.,]\d+)?"))
+            {
+                var token = match.Value.Replace(',', '.');
+                if (double.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out var value))
+                {
+                    results.Add(value);
+                }
+            }
+
+            return results;
+        }
+
+        private static bool DimensionClose(double dimensionMillimeters, double targetMillimeters)
+        {
+            if (Math.Abs(dimensionMillimeters - targetMillimeters) <= 1.0)
+            {
+                return true;
+            }
+
+            return Math.Abs(Math.Round(dimensionMillimeters, 0, MidpointRounding.AwayFromZero) - targetMillimeters) <= 0.01;
         }
 
         private static string NormalizeSearchText(string value)

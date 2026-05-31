@@ -1,12 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Windows;
 using Newtonsoft.Json;
 using SolidWorksBodyExporter.AddIn.Models;
 
@@ -67,32 +65,7 @@ namespace SolidWorksBodyExporter.AddIn.Services
             }
         }
 
-        /// <summary>Opens the user's keyword file in Notepad (Export menu — not shown on the main toolbar).</summary>
-        public static void OpenForEditing(Window owner)
-        {
-            EnsureUserRulesFile();
-            var path = GetUserRulesPath();
-            try
-            {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = "notepad.exe",
-                    Arguments = "\"" + path + "\"",
-                    UseShellExecute = true
-                });
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(
-                    owner,
-                    "Could not open keyword editor: " + ex.Message,
-                    "Body Exporter",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
-            }
-        }
-
-        public static BodySortRulesService LoadFromUserSettings()
+        public static BodySortRulesFile LoadUserRulesFile()
         {
             EnsureUserRulesFile();
             try
@@ -100,22 +73,47 @@ namespace SolidWorksBodyExporter.AddIn.Services
                 var path = GetUserRulesPath();
                 if (!File.Exists(path))
                 {
-                    return new BodySortRulesService();
+                    return BodySortRulesFile.CreateUserTemplate();
                 }
 
                 var json = File.ReadAllText(path, Encoding.UTF8);
                 var file = JsonConvert.DeserializeObject<BodySortRulesFile>(json);
                 if (file?.Tiers == null || file.Tiers.Count == 0)
                 {
-                    return new BodySortRulesService();
+                    return BodySortRulesFile.CreateUserTemplate();
                 }
 
-                return new BodySortRulesService(file);
+                return file;
             }
             catch
             {
-                return new BodySortRulesService();
+                return BodySortRulesFile.CreateUserTemplate();
             }
+        }
+
+        public static void SaveUserRulesFile(BodySortRulesFile file)
+        {
+            EnsureUserRulesFile();
+            var path = GetUserRulesPath();
+            var dir = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+
+            var payload = file ?? BodySortRulesFile.CreateUserTemplate();
+            payload.Tiers = payload.Tiers?
+                .Where(t => t != null)
+                .OrderBy(t => t.Priority)
+                .ToList() ?? new List<BodySortTier>();
+
+            var json = JsonConvert.SerializeObject(payload, Formatting.Indented);
+            File.WriteAllText(path, json, Encoding.UTF8);
+        }
+
+        public static BodySortRulesService LoadFromUserSettings()
+        {
+            return new BodySortRulesService(LoadUserRulesFile());
         }
 
         public IReadOnlyList<BodyExportRow> Sort(IEnumerable<BodyExportRow> rows)
