@@ -767,75 +767,38 @@
                         <!-- Primary action buttons -->
                         <Button Content="Refresh"
                                 ToolTip="Refresh (F5)"
-                                Width="90" Height="32"
-                                Margin="0,0,8,0"
+                                Width="82" Height="32"
+                                Margin="0,0,6,0"
                                 Click="Refresh_Click"
                                 FontWeight="SemiBold" FontSize="12"
                                 Foreground="White"
                                 Background="{StaticResource AccentGradient}"
                                 Template="{StaticResource GradientButtonTemplate}" />
 
-                        <Button Content="Save to SolidWorks"
+                        <Button Content="Save"
                                 ToolTip="Save to SolidWorks (Ctrl+S)"
-                                Width="156" Height="32"
-                                Margin="0,0,8,0"
+                                Width="72" Height="32"
+                                Margin="0,0,6,0"
                                 Click="Save_Click"
                                 FontWeight="SemiBold" FontSize="12"
                                 Foreground="White"
                                 Background="{StaticResource AccentGradient}"
                                 Template="{StaticResource GradientButtonTemplate}" />
 
-                        <Button Content="Copy All"
-                                ToolTip="Copy All rows (Ctrl+C when focus is outside the grid; in grid: copy selection)"
-                                Width="90" Height="32"
-                                Margin="0,0,8,0"
+                        <Button Content="Copy"
+                                ToolTip="Copy all rows"
+                                Width="68" Height="32"
+                                Margin="0,0,6,0"
                                 Click="CopyAll_Click"
                                 FontWeight="SemiBold" FontSize="12"
                                 Foreground="White"
                                 Background="{StaticResource AccentGradient}"
                                 Template="{StaticResource GradientButtonTemplate}" />
 
-                        <Button Content="BOM order"
-                                ToolTip="Sort rows for production BOM: mặt/nóc → chân/khung → cửa → hông → ngăn → bọ/nẹp. Edit tiers in %AppData%\SolidWorksBodyExporter\sort-rules.json"
-                                Width="96" Height="32"
-                                Margin="0,0,8,0"
-                                Click="SuggestSort_Click"
-                                FontWeight="SemiBold" FontSize="12"
-                                Foreground="#FF334155"
-                                Background="#FFE8EDF5"
-                                Template="{StaticResource GradientButtonTemplate}" />
-
-                        <CheckBox x:Name="AutoSortBeforeExportCheck"
-                                  Style="{StaticResource ThemedCheckBox}"
-                                  Content="Auto BOM order on export"
-                                  IsChecked="True"
-                                  ToolTip="Before Excel or template export, sort rows using the same keyword tiers as BOM order."
-                                  Checked="AutoSortBeforeExportCheck_Changed"
-                                  Unchecked="AutoSortBeforeExportCheck_Changed"
-                                  Margin="0,0,8,0" />
-
-                        <!-- Divider -->
-                        <Rectangle Width="1" Fill="#FFD8E0EC"
-                                   VerticalAlignment="Stretch"
-                                   Margin="16,4" />
-
-                        <!-- Checkboxes (custom-styled to match theme) -->
-                        <CheckBox x:Name="IncludeHeaderCheck"
-                                  Style="{StaticResource ThemedCheckBox}"
-                                  Content="Include header row"
-                                  IsChecked="True"
-                                  Margin="0,0,14,0" />
-                        <CheckBox x:Name="IncludePreviewImagesCheck"
-                                  Style="{StaticResource ThemedCheckBox}"
-                                  Content="Include preview images"
-                                  IsChecked="True"
-                                  ToolTip="When checked, the Excel export embeds the Preview column as PNG images anchored to each row. Uncheck for a slim text-only workbook."
-                                  Margin="0,0,12,0" />
-
                         <Button x:Name="ExportMenuButton"
                                 Content="Export ▾"
-                                Width="100" Height="32"
-                                Margin="8,0,0,0"
+                                Width="92" Height="32"
+                                Margin="0,0,0,0"
                                 Click="ExportMenuButton_Click"
                                 ToolTip="Export to Excel, fill a company template, or set a default template path."
                                 FontWeight="SemiBold" FontSize="12"
@@ -867,6 +830,66 @@
                         </Button>
                     </StackPanel>
                 </DockPanel>
+
+                <Grid Margin="0,10,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MinWidth="140"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="BodySearchBox"
+                             Grid.Column="0"
+                             Height="32"
+                             Margin="0,0,8,0"
+                             VerticalContentAlignment="Center"
+                             Padding="10,0,8,0"
+                             FontSize="12"
+                             ToolTip="Lọc theo tên body"
+                             TextChanged="BodySearchBox_TextChanged">
+                        <TextBox.Style>
+                            <Style TargetType="TextBox">
+                                <Setter Property="BorderBrush" Value="#FFD0D8E8"/>
+                                <Setter Property="Background" Value="#FFF8FAFC"/>
+                            </Style>
+                        </TextBox.Style>
+                    </TextBox>
+                    <Button Grid.Column="1"
+                            Content="BOM order"
+                            ToolTip="Sắp theo tier sản xuất (mặt → chân → cửa → hông → ngăn → bọ). Sửa sort-rules.json trong AppData."
+                            Width="96" Height="32"
+                            Margin="0,0,6,0"
+                            Click="SuggestSort_Click"
+                            FontWeight="SemiBold" FontSize="12"
+                            Foreground="#FF334155"
+                            Background="#FFE8EDF5"
+                            Template="{StaticResource GradientButtonTemplate}" />
+                    <CheckBox x:Name="AutoSortBeforeExportCheck"
+                              Grid.Column="2"
+                              Style="{StaticResource ThemedCheckBox}"
+                              Content="Auto BOM"
+                              IsChecked="True"
+                              ToolTip="Tự sắp BOM khi refresh và trước export"
+                              Checked="AutoSortBeforeExportCheck_Changed"
+                              Unchecked="AutoSortBeforeExportCheck_Changed"
+                              VerticalAlignment="Center"
+                              Margin="0,0,10,0" />
+                    <CheckBox x:Name="IncludeHeaderCheck"
+                              Grid.Column="3"
+                              Style="{StaticResource ThemedCheckBox}"
+                              Content="Header"
+                              IsChecked="True"
+                              VerticalAlignment="Center"
+                              Margin="0,0,8,0" />
+                    <CheckBox x:Name="IncludePreviewImagesCheck"
+                              Grid.Column="4"
+                              Style="{StaticResource ThemedCheckBox}"
+                              Content="Preview"
+                              IsChecked="True"
+                              ToolTip="Excel: nhúng ảnh preview"
+                              VerticalAlignment="Center" />
+                </Grid>
 
                 <!-- Excel template bar (Export → Excel template panel…) -->
                 <Border x:Name="ExcelTemplateBar"
@@ -939,7 +962,7 @@
                 <TextBlock Foreground="#FF94A3B8"
                            FontSize="11"
                            TextWrapping="Wrap"
-                           Text="Click 'Edit' on a row to unlock dimension swap. In edit mode each cell has '↔ W' / '↔ T' pills that swap values with the target column. Drag column headers to reorder columns. Use ▲ / ▼ in Action to reorder rows (Copy All and Excel follow row order).&#x0A;" />
+                           Text="Click Edit on a row (right-click → Move up/down). Drag column headers to reorder. Search filters the grid; export/copy use full list. Auto BOM sorts by production tier, not A–Z.&#x0A;" />
             </Border>
 
             <!-- ───────────────────────────────────────────────────────
@@ -961,6 +984,7 @@
                           EnableRowVirtualization="False"
                           VirtualizingPanel.IsVirtualizingWhenGrouping="False"
                           CanUserAddRows="False"
+                          CanUserSortColumns="False"
                           CanUserReorderColumns="True"
                           ClipboardCopyMode="IncludeHeader"
                           SelectionMode="Extended"
@@ -976,6 +1000,12 @@
                           BorderThickness="0"
                           Background="White"
                           IsReadOnly="False">
+                    <DataGrid.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Move row up" Click="MoveRowUp_Click" />
+                            <MenuItem Header="Move row down" Click="MoveRowDown_Click" />
+                        </ContextMenu>
+                    </DataGrid.ContextMenu>
                     <DataGrid.Columns>
 
                         <!-- PREVIEW ─────────────────────────────────── -->
@@ -1078,7 +1108,7 @@
                         </DataGridTemplateColumn>
 
                         <!-- ACTION (Edit / Confirm) ──────────────────── -->
-                        <DataGridTemplateColumn Header="Action" Width="148" IsReadOnly="True">
+                        <DataGridTemplateColumn Header="Action" Width="72" IsReadOnly="True">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <Border HorizontalAlignment="Center">
@@ -1092,44 +1122,32 @@
                                                 </Style.Triggers>
                                             </Style>
                                         </Border.Style>
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <Button Content="▲"
-                                                    Style="{StaticResource RowReorderMiniButton}"
-                                                    Margin="0,0,2,0"
-                                                    ToolTip="Move row up (export / copy order)"
-                                                    Click="MoveRowUp_Click" />
-                                            <Button Content="▼"
-                                                    Style="{StaticResource RowReorderMiniButton}"
-                                                    Margin="0,0,6,0"
-                                                    ToolTip="Move row down (export / copy order)"
-                                                    Click="MoveRowDown_Click" />
-                                            <Button Click="EditConfirm_Click"
-                                                    VerticalAlignment="Center"
-                                                    HorizontalAlignment="Center">
-                                                <Button.Style>
-                                                    <Style TargetType="Button" BasedOn="{StaticResource RowActionButton}">
-                                                        <Setter Property="Width" Value="72" />
-                                                        <Setter Property="Content" Value="Edit" />
-                                                        <Setter Property="Background" Value="#FFF0F2F5" />
-                                                        <Setter Property="Foreground" Value="#FF4A5568" />
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsEditing}" Value="True">
-                                                                <Setter Property="Content" Value="Confirm" />
-                                                                <Setter Property="Foreground" Value="White" />
-                                                                <Setter Property="Background">
-                                                                    <Setter.Value>
-                                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                                                            <GradientStop Color="#FF58B7FF" Offset="0" />
-                                                                            <GradientStop Color="#FFBA56FF" Offset="1" />
-                                                                        </LinearGradientBrush>
-                                                                    </Setter.Value>
-                                                                </Setter>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Button.Style>
-                                            </Button>
-                                        </StackPanel>
+                                        <Button Click="EditConfirm_Click"
+                                                VerticalAlignment="Center"
+                                                HorizontalAlignment="Center">
+                                            <Button.Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource RowActionButton}">
+                                                    <Setter Property="Width" Value="56" />
+                                                    <Setter Property="Content" Value="Edit" />
+                                                    <Setter Property="Background" Value="#FFF0F2F5" />
+                                                    <Setter Property="Foreground" Value="#FF4A5568" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                                            <Setter Property="Content" Value="OK" />
+                                                            <Setter Property="Foreground" Value="White" />
+                                                            <Setter Property="Background">
+                                                                <Setter.Value>
+                                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                                        <GradientStop Color="#FF58B7FF" Offset="0" />
+                                                                        <GradientStop Color="#FFBA56FF" Offset="1" />
+                                                                    </LinearGradientBrush>
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
                                     </Border>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>

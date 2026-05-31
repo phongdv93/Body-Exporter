@@ -239,8 +239,8 @@ namespace SolidWorksBodyExporter.AddIn.Services
                         Label = "Mặt / nóc",
                         Keywords = new List<string>
                         {
-                            "mat ban", "mat tren", "mat duoi", "mat chinh", "mat go", "mat",
-                            "mặt bàn", "mặt trên", "mặt dưới", "mặt chính", "mặt",
+                            "mat ban", "mat tren", "mat duoi", "mat chinh", "mat go",
+                            "mặt bàn", "mặt trên", "mặt dưới", "mặt chính",
                             "noc", "nóc", "nap", "nắp", "top", "table top", "desktop", "countertop"
                         }
                     },
@@ -250,8 +250,8 @@ namespace SolidWorksBodyExporter.AddIn.Services
                         Label = "Chân / khung",
                         Keywords = new List<string>
                         {
-                            "chan ban", "chan tu", "chan go", "chan",
-                            "chân bàn", "chân tủ", "chân",
+                            "chan ban", "chan tu", "chan go",
+                            "chân bàn", "chân tủ",
                             "khung", "frame", "than chinh", "than doc", "than ngang", "leg", "foot", "base"
                         }
                     },
@@ -291,7 +291,7 @@ namespace SolidWorksBodyExporter.AddIn.Services
                         Label = "Chi tiết phụ",
                         Keywords = new List<string>
                         {
-                            "tam lot", "tấm lót", "de", "đế", "vach lot", "divider", "support", "bracket", "treo", "hook"
+                            "tam lot", "tấm lót", "de", "đế", "vach lot", "divider", "support", "bracket", "hook"
                         }
                     },
                     new BodySortTier
@@ -300,8 +300,8 @@ namespace SolidWorksBodyExporter.AddIn.Services
                         Label = "Bọ / nẹp / viền",
                         Keywords = new List<string>
                         {
-                            "bo goc", "bo canh", "bo nep",
-                            "bọ góc", "bọ cạnh", "bọ",
+                            "bo goc", "bo canh", "bo nep", "bo treo",
+                            "bọ góc", "bọ cạnh", "bọ treo", "bọ",
                             "nep", "nẹp", "trim", "edging", "cap", "vien", "viền", "lip", "edge band"
                         }
                     }

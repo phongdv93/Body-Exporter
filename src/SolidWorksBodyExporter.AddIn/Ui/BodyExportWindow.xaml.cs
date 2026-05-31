@@ -63,6 +63,8 @@ namespace SolidWorksBodyExporter.AddIn.Ui
         /// </summary>
         private bool _suppressActivePartChange;
 
+        private readonly List<BodyExportRow> _allRows = new List<BodyExportRow>();
+        private string _bodySearchQuery = string.Empty;
 
         private Popup _previewPopup;
         private Image _previewPopupImage;
@@ -179,6 +181,7 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             RefreshExcelTemplateBar();
             var settings = AppSettings.LoadOrCreate();
             AutoSortBeforeExportCheck.IsChecked = settings.AutoSortBeforeExport;
+            UpdateChecker.CheckForUpdatesIfStale(this, forceRefresh: true);
         }
 
         public ObservableCollection<BodyExportRow> Rows { get; }
@@ -619,7 +622,7 @@ namespace SolidWorksBodyExporter.AddIn.Ui
                     return;
                 }
 
-                _scanner.SaveNamesToSolidWorks(_model, Rows);
+                _scanner.SaveNamesToSolidWorks(_model, GetRowsForExport());
                 if (TrySaveSolidWorksPartFile(_model, out var saveMsg))
                 {
                     ShowToast("Saved to SolidWorks and part file", ToastKind.Success);
@@ -649,9 +652,9 @@ namespace SolidWorksBodyExporter.AddIn.Ui
                 // Preview column is always stripped before the text builder runs. Excel export
                 // keeps Preview in via the same GetExportColumnOrder() helper.
                 var columns = GetExportColumnOrder().Where(c => c != ExportColumn.Preview).ToList();
-                var payload = BuildTabSeparatedText(Rows, columns, includeHeader);
+                var payload = BuildTabSeparatedText(GetRowsForExport(), columns, includeHeader);
                 CopyTextToClipboardWithRetry(payload);
-                var rowCount = Rows.Count;
+                var rowCount = _allRows.Count;
                 ShowToast(rowCount == 1
                     ? "Copied 1 row to clipboard"
                     : "Copied " + rowCount + " rows to clipboard", ToastKind.Success);
@@ -1049,7 +1052,7 @@ namespace SolidWorksBodyExporter.AddIn.Ui
                     .Where(c => c != ExportColumn.Preview || includePreview)
                     .ToList();
 
-                _excelExporter.Export(dialog.FileName, Rows, columns);
+                _excelExporter.Export(dialog.FileName, GetRowsForExport(), columns);
                 ShowToast("Excel file exported" + (includePreview ? " with previews" : string.Empty), ToastKind.Success);
             }
             catch (Exception ex)
@@ -1115,7 +1118,7 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             {
                 MaybeAutoSortBeforeExport();
                 var exporter = new ExcelTemplateExporter();
-                var result = exporter.Export(templatePath, saveDialog.FileName, Rows);
+                var result = exporter.Export(templatePath, saveDialog.FileName, GetRowsForExport());
 
                 var msg = "Template filled with " + result.RowsWritten + " bodies";
                 if (result.UnknownPlaceholders != null && result.UnknownPlaceholders.Count > 0)
@@ -1163,15 +1166,14 @@ namespace SolidWorksBodyExporter.AddIn.Ui
         /// <summary>Reorder grid rows by production BOM keyword tiers (sort-rules.json).</summary>
         private bool ApplyProductionSort(bool showToastWhenUnchanged = false)
         {
-            if (Rows.Count == 0)
+            if (_allRows.Count == 0)
             {
                 return false;
             }
 
             var service = BodySortRulesService.LoadFromUserSettings();
-            var snapshot = Rows.ToList();
-            var sorted = service.Sort(snapshot);
-            if (snapshot.SequenceEqual(sorted))
+            var sorted = service.Sort(_allRows);
+            if (sorted.SequenceEqual(_allRows))
             {
                 if (showToastWhenUnchanged)
                 {
@@ -1181,13 +1183,20 @@ namespace SolidWorksBodyExporter.AddIn.Ui
                 return false;
             }
 
-            Rows.Clear();
-            foreach (var row in sorted)
+            _allRows.Clear();
+            _allRows.AddRange(sorted);
+            ApplyBodySearchFilter();
+            return true;
+        }
+
+        private void MaybeApplyAutoProductionSort()
+        {
+            if (AutoSortBeforeExportCheck?.IsChecked != true)
             {
-                Rows.Add(row);
+                return;
             }
 
-            return true;
+            ApplyProductionSort();
         }
 
         private void MaybeAutoSortBeforeExport()
@@ -1207,15 +1216,14 @@ namespace SolidWorksBodyExporter.AddIn.Ui
         {
             try
             {
-                if (Rows.Count == 0)
+                if (_allRows.Count == 0)
                 {
                     ShowToast("No bodies to sort.", ToastKind.Info);
                     return;
                 }
 
                 var service = BodySortRulesService.LoadFromUserSettings();
-                var snapshot = Rows.ToList();
-                var analysis = service.Analyze(snapshot);
+                var analysis = service.Analyze(_allRows);
                 if (!ApplyProductionSort())
                 {
                     ShowToast("BOM order already matches keyword rules.", ToastKind.Success);
@@ -1245,36 +1253,113 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             }
         }
 
+        private IList<BodyExportRow> GetRowsForExport()
+        {
+            return _allRows;
+        }
+
+        private void BodySearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            _bodySearchQuery = BodySearchBox?.Text ?? string.Empty;
+            ApplyBodySearchFilter();
+        }
+
+        private void ApplyBodySearchFilter()
+        {
+            var q = NormalizeSearchText(_bodySearchQuery);
+            Rows.Clear();
+            foreach (var row in _allRows)
+            {
+                if (string.IsNullOrEmpty(q) || RowMatchesSearch(row, q))
+                {
+                    Rows.Add(row);
+                }
+            }
+        }
+
+        private static bool RowMatchesSearch(BodyExportRow row, string normalizedQuery)
+        {
+            if (row == null || string.IsNullOrEmpty(normalizedQuery))
+            {
+                return true;
+            }
+
+            var hay = NormalizeSearchText((row.DisplayName ?? string.Empty) + " " + (row.SolidWorksBodyName ?? string.Empty));
+            return hay.IndexOf(normalizedQuery, StringComparison.Ordinal) >= 0;
+        }
+
+        private static string NormalizeSearchText(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return string.Empty;
+            }
+
+            var lower = value.Trim().ToLowerInvariant();
+            var formD = lower.Normalize(NormalizationForm.FormD);
+            var sb = new StringBuilder(formD.Length);
+            foreach (var ch in formD)
+            {
+                if (CharUnicodeInfo.GetUnicodeCategory(ch) != UnicodeCategory.NonSpacingMark)
+                {
+                    sb.Append(ch);
+                }
+            }
+
+            return sb.ToString().Normalize(NormalizationForm.FormC);
+        }
+
         private void MoveRowUp_Click(object sender, RoutedEventArgs e)
         {
-            if (!(sender is FrameworkElement fe) || !(fe.DataContext is BodyExportRow row))
+            var row = ResolveContextRow(sender);
+            if (row == null)
             {
                 return;
             }
 
-            var i = Rows.IndexOf(row);
+            var i = _allRows.IndexOf(row);
             if (i <= 0)
             {
                 return;
             }
 
-            Rows.Move(i, i - 1);
+            _allRows.RemoveAt(i);
+            _allRows.Insert(i - 1, row);
+            ApplyBodySearchFilter();
         }
 
         private void MoveRowDown_Click(object sender, RoutedEventArgs e)
         {
-            if (!(sender is FrameworkElement fe) || !(fe.DataContext is BodyExportRow row))
+            var row = ResolveContextRow(sender);
+            if (row == null)
             {
                 return;
             }
 
-            var i = Rows.IndexOf(row);
-            if (i < 0 || i >= Rows.Count - 1)
+            var i = _allRows.IndexOf(row);
+            if (i < 0 || i >= _allRows.Count - 1)
             {
                 return;
             }
 
-            Rows.Move(i, i + 1);
+            _allRows.RemoveAt(i);
+            _allRows.Insert(i + 1, row);
+            ApplyBodySearchFilter();
+        }
+
+        private BodyExportRow ResolveContextRow(object sender)
+        {
+            if (sender is FrameworkElement fe && fe.DataContext is BodyExportRow rowFromSender)
+            {
+                return rowFromSender;
+            }
+
+            if (BodiesGrid?.SelectedItem is BodyExportRow selected)
+            {
+                return selected;
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -1402,14 +1487,13 @@ namespace SolidWorksBodyExporter.AddIn.Ui
 
         private void RefreshRows()
         {
-            Rows.Clear();
-            foreach (var row in _scanner.Scan(_model))
-            {
-                Rows.Add(row);
-            }
+            _allRows.Clear();
+            _allRows.AddRange(_scanner.Scan(_model));
+            MaybeApplyAutoProductionSort();
+            ApplyBodySearchFilter();
         }
 
-        private static string BuildTabSeparatedText(ObservableCollection<BodyExportRow> rows, IReadOnlyList<ExportColumn> order, bool includeHeader)
+        private static string BuildTabSeparatedText(IList<BodyExportRow> rows, IReadOnlyList<ExportColumn> order, bool includeHeader)
         {
             var builder = new StringBuilder();
 

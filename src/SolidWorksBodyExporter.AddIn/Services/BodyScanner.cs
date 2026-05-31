@@ -108,10 +108,7 @@ namespace SolidWorksBodyExporter.AddIn.Services
                 });
             }
 
-            return GroupIdenticalRows(rows)
-                .OrderBy(row => row.Status == BodyRowStatus.Deleted)
-                .ThenBy(row => row.DisplayName, StringComparer.CurrentCultureIgnoreCase)
-                .ToList();
+            return GroupIdenticalRows(rows).ToList();
         }
 
         /// <summary>
@@ -325,12 +322,20 @@ namespace SolidWorksBodyExporter.AddIn.Services
         private static StoredBodySize ReadBodySizeMillimeters(Body2 body)
         {
             var box = (double[])body.GetBodyBox();
-            return new StoredBodySize
+            var x = ToMillimeters(Math.Abs(box[3] - box[0]));
+            var y = ToMillimeters(Math.Abs(box[4] - box[1]));
+            var z = ToMillimeters(Math.Abs(box[5] - box[2]));
+
+            var wall = BodyProfileThicknessReader.TryReadWallThicknessMillimeters(body);
+            if (wall.HasValue)
             {
-                X = ToMillimeters(Math.Abs(box[3] - box[0])),
-                Y = ToMillimeters(Math.Abs(box[4] - box[1])),
-                Z = ToMillimeters(Math.Abs(box[5] - box[2]))
-            };
+                var adjusted = BodyProfileThicknessReader.AdjustBoundingSizeForCurvedProfile(x, y, z, wall.Value);
+                x = adjusted.X;
+                y = adjusted.Y;
+                z = adjusted.Z;
+            }
+
+            return new StoredBodySize { X = x, Y = y, Z = z };
         }
 
         private static double ToMillimeters(double meters)

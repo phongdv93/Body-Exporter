@@ -299,3 +299,9 @@ Change `ADMIN_PASSWORD` in production; default is created on first boot from `.e
 Upload `BodyExporter-vX.zip` → **direct URL** (Google Drive `uc?export=download&id=...`, GitHub Release, R2) → paste in **Admin → URL file ZIP**.
 
 Then run `Publish-UpdateManifest.ps1` for in-app update checks.
+
+
+
+## build bản zip
+dotnet tool restore
+.\tools\Build-ClientPackage.ps1 -Version "0.8.1" -CreateZip

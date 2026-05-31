@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Text;
 using System.Windows;
 using Newtonsoft.Json;
+using SolidWorksBodyExporter.AddIn.Services;
 
 namespace SolidWorksBodyExporter.AddIn.Services.Api
 {
@@ -157,16 +158,8 @@ namespace SolidWorksBodyExporter.AddIn.Services.Api
                 return;
             }
 
-            var manifestUrl = config.UpdateManifestUrl;
-            if (string.IsNullOrWhiteSpace(manifestUrl)
-                && !string.IsNullOrWhiteSpace(config.LatestVersion)
-                && string.IsNullOrWhiteSpace(config.DownloadPageUrl))
-            {
-                return;
-            }
-
             if (!TryFindNewerVersion(
-                    manifestUrl,
+                    config.UpdateManifestUrl,
                     config.LatestVersion,
                     out var remote,
                     out var notes))
@@ -174,17 +167,66 @@ namespace SolidWorksBodyExporter.AddIn.Services.Api
                 return;
             }
 
-            var current = Assembly.GetExecutingAssembly().GetName().Version;
-            var msg = "A newer version is available: " + remote + " (you have " + current + ")." + Environment.NewLine + Environment.NewLine
-                      + (string.IsNullOrWhiteSpace(notes) ? "Open the download page on bodyexporter.com?" : notes);
-
-            if (MessageBox.Show(owner, msg, "Body Exporter - Update", MessageBoxButton.YesNo, MessageBoxImage.Information)
-                != MessageBoxResult.Yes)
+            var settings = AppSettings.LoadOrCreate();
+            var remoteLabel = remote.ToString();
+            if (!string.IsNullOrWhiteSpace(settings.DismissedUpdateOfferVersion)
+                && string.Equals(settings.DismissedUpdateOfferVersion.Trim(), remoteLabel, StringComparison.OrdinalIgnoreCase))
             {
                 return;
             }
 
-            OpenDownloadPage(config);
+            var current = Assembly.GetExecutingAssembly().GetName().Version;
+            var msg = "Phiên bản mới: " + remote + " (bạn đang dùng " + current + ")." + Environment.NewLine + Environment.NewLine
+                      + (string.IsNullOrWhiteSpace(notes)
+                          ? "Mở trang tải bodyexporter.com/download?"
+                          : notes);
+
+            var result = MessageBox.Show(
+                owner,
+                msg,
+                "Body Exporter — Cập nhật",
+                MessageBoxButton.YesNoCancel,
+                MessageBoxImage.Information);
+
+            if (result == MessageBoxResult.Cancel)
+            {
+                settings.DismissedUpdateOfferVersion = remoteLabel;
+                settings.LastUpdateCheckUtc = DateTime.UtcNow;
+                settings.Save();
+                return;
+            }
+
+            settings.LastUpdateCheckUtc = DateTime.UtcNow;
+            settings.Save();
+
+            if (result == MessageBoxResult.Yes)
+            {
+                OpenDownloadPage(config);
+            }
+        }
+
+        /// <summary>Background-friendly check (ConnectToSW / window open). Uses cached config unless stale.</summary>
+        public static void CheckForUpdatesIfStale(Window owner, bool forceRefresh = false)
+        {
+            try
+            {
+                var settings = AppSettings.LoadOrCreate();
+                if (!forceRefresh
+                    && settings.LastUpdateCheckUtc.HasValue
+                    && (DateTime.UtcNow - settings.LastUpdateCheckUtc.Value).TotalHours < 6)
+                {
+                    return;
+                }
+
+                var cfg = ClientConfigClient.Load(LicenseManager.DefaultApiBaseUrl, forceRefresh: forceRefresh);
+                settings.LastUpdateCheckUtc = DateTime.UtcNow;
+                settings.Save();
+                PromptIfNewerAvailable(owner, cfg);
+            }
+            catch (Exception ex)
+            {
+                DiagnosticLog.Warn("UpdateChecker.CheckForUpdatesIfStale: " + ex.Message);
+            }
         }
 
         private static string HttpGet(string url)

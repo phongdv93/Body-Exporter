@@ -561,8 +561,7 @@ namespace SolidWorksBodyExporter.AddIn
             _updatePromptedThisSession = true;
             try
             {
-                var cfg = ClientConfigClient.Load(LicenseManager.DefaultApiBaseUrl, forceRefresh: false);
-                UpdateChecker.PromptIfNewerAvailable(owner, cfg);
+                UpdateChecker.CheckForUpdatesIfStale(owner, forceRefresh: true);
             }
             catch (Exception ex)
             {

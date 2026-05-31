@@ -106,6 +106,12 @@ namespace SolidWorksBodyExporter.AddIn.Services.Api
         /// <summary>Policy version accepted (default 1).</summary>
         public int? TelemetryConsentVersion { get; set; }
 
+        /// <summary>When user dismissed an update offer for this version, do not prompt again.</summary>
+        public string DismissedUpdateOfferVersion { get; set; }
+
+        /// <summary>Last UTC time we checked client-config for updates.</summary>
+        public DateTime? LastUpdateCheckUtc { get; set; }
+
         /// <summary>Last successful POST /api/v1/client/ping (UTC).</summary>
         public DateTime? LastTelemetryPingUtc { get; set; }
 
