@@ -13,8 +13,8 @@ namespace SolidWorksBodyExporter.AddIn.Services
     internal static class BodyProfileWidthReader
     {
         private const int SliceCount = 28;
-        private const double MinMiddleToThicknessRatio = 2.0;
-        private const double MinLengthToThicknessRatio = 5.0;
+        private const double MinMiddleToThicknessRatio = 2.5;
+        private const double MinLengthToMiddleRatio = 4.0;
 
         public static double? TryMeasureMaxCrossSectionWidthMillimeters(Body2 body, double xMm, double yMm, double zMm)
         {
@@ -33,7 +33,7 @@ namespace SolidWorksBodyExporter.AddIn.Services
                 return null;
             }
 
-            if (middle / thickness < MinMiddleToThicknessRatio || length / thickness < MinLengthToThicknessRatio)
+            if (middle / thickness < MinMiddleToThicknessRatio || length / middle < MinLengthToMiddleRatio)
             {
                 return null;
             }

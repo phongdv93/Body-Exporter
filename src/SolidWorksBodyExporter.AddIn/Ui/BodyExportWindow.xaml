@@ -842,7 +842,6 @@
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <Border Grid.Column="0"
                             Height="32"
@@ -869,45 +868,26 @@
                                        Visibility="{Binding Text, ElementName=BodySearchBox, Converter={StaticResource StringEmptyToVisibilityConverter}, ConverterParameter=HideWhenEmpty}" />
                         </Grid>
                     </Border>
-                    <Button Grid.Column="1"
-                            Content="Keywords…"
-                            ToolTip="Edit BOM sort keyword tiers"
-                            Width="88" Height="32"
-                            Margin="0,0,6,0"
-                            Click="EditSortRules_Click"
-                            FontWeight="SemiBold" FontSize="12"
-                            Foreground="#FF334155"
-                            Background="#FFE8EDF5"
-                            Template="{StaticResource GradientButtonTemplate}" />
-                    <Button Grid.Column="2"
+                    <Button x:Name="BomOrderButton"
+                            Grid.Column="1"
                             Content="BOM order"
-                            ToolTip="Reorder rows using your keyword tiers"
+                            ToolTip="Click to toggle auto BOM sort (gradient = on). Sorts immediately when turned on."
                             Width="96" Height="32"
-                            Margin="0,0,6,0"
-                            Click="SuggestSort_Click"
+                            Margin="0,0,10,0"
+                            Click="BomOrderButton_Click"
                             FontWeight="SemiBold" FontSize="12"
                             Foreground="#FF334155"
                             Background="#FFE8EDF5"
                             Template="{StaticResource GradientButtonTemplate}" />
-                    <CheckBox x:Name="AutoSortBeforeExportCheck"
-                              Grid.Column="3"
-                              Style="{StaticResource ThemedCheckBox}"
-                              Content="Auto BOM"
-                              IsChecked="True"
-                              ToolTip="Auto-sort on refresh and before export"
-                              Checked="AutoSortBeforeExportCheck_Changed"
-                              Unchecked="AutoSortBeforeExportCheck_Changed"
-                              VerticalAlignment="Center"
-                              Margin="0,0,10,0" />
                     <CheckBox x:Name="IncludeHeaderCheck"
-                              Grid.Column="4"
+                              Grid.Column="2"
                               Style="{StaticResource ThemedCheckBox}"
                               Content="Header"
                               IsChecked="True"
                               VerticalAlignment="Center"
                               Margin="0,0,8,0" />
                     <CheckBox x:Name="IncludePreviewImagesCheck"
-                              Grid.Column="5"
+                              Grid.Column="3"
                               Style="{StaticResource ThemedCheckBox}"
                               Content="Preview"
                               IsChecked="True"
@@ -994,7 +974,7 @@
                     <TextBlock Foreground="#FF94A3B8"
                                FontSize="11"
                                TextWrapping="Wrap"
-                               Text="Edit a row with the Edit button or right-click → Move up/down. Search filters the grid; export and copy use the full list. Auto BOM uses your keyword tiers, not A–Z." />
+                               Text="Edit a row with the Edit button or right-click → Move up/down. Search filters the grid; export and copy use the full list. BOM order (gradient) = auto sort on refresh and export." />
                 </DockPanel>
             </Border>
 
@@ -1054,7 +1034,8 @@
                                             Focusable="False"
                                             MouseEnter="PreviewThumbnail_MouseEnter"
                                             MouseLeave="PreviewThumbnail_MouseLeave"
-                                            ToolTip="Hover for large preview (grayscale technical preview)">
+                                            Click="PreviewThumbnail_Click"
+                                            ToolTip="Click to isolate in SolidWorks · Hover for large preview">
                                         <Button.Template>
                                             <ControlTemplate TargetType="Button">
                                                 <Border BorderBrush="#FF2D3748" BorderThickness="1"

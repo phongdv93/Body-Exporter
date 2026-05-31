@@ -14,6 +14,8 @@ namespace SolidWorksBodyExporter.AddIn.Services
         private const double AxisParallelTolerance = 0.02;
         private const double MinWallMillimeters = 3;
         private const double MaxWallMillimeters = 120;
+        /// <summary>Ignore hole / fillet cylinders below this radius when inferring sheet wall.</summary>
+        private const double MinProfileCylinderRadiusMillimeters = 30;
 
         public static double? TryReadWallThicknessMillimeters(Body2 body)
         {
@@ -81,7 +83,9 @@ namespace SolidWorksBodyExporter.AddIn.Services
                         }
 
                         var gap = Math.Abs(cylinders[i].RadiusMm - cylinders[j].RadiusMm);
-                        if (gap >= MinWallMillimeters && gap <= MaxWallMillimeters && gap < bestGap)
+                        if (gap >= MinWallMillimeters && gap <= MaxWallMillimeters && gap < bestGap
+                            && (cylinders[i].RadiusMm >= MinProfileCylinderRadiusMillimeters
+                                || cylinders[j].RadiusMm >= MinProfileCylinderRadiusMillimeters))
                         {
                             bestGap = gap;
                         }
@@ -123,14 +127,10 @@ namespace SolidWorksBodyExporter.AddIn.Services
                 return (x, y, z);
             }
 
-            // Smallest bbox axis ≈ extrusion direction — snap to measured wall.
-            if (Math.Abs(min - wallMm) <= Math.Max(8, wallMm * 0.35))
-            {
-                min = wallMm;
-            }
-
-            // Middle axis often holds outer radius (~250) while true stock width is wall (~50).
-            if (mid >= wallMm * 2 && mid <= wallMm * 12 && mid > wallMm * 1.5)
+            // Only correct an inflated middle axis on curved / swept profiles (not prismatic stock).
+            var midToMinRatio = min > 0 ? mid / min : 0;
+            var maxToMidRatio = mid > 0 ? max / mid : 0;
+            if (mid >= wallMm * 4 && midToMinRatio >= 2.2 && maxToMidRatio >= 1.5)
             {
                 mid = wallMm;
             }

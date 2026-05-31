@@ -66,6 +66,7 @@ namespace SolidWorksBodyExporter.AddIn.Ui
 
         private readonly List<BodyExportRow> _allRows = new List<BodyExportRow>();
         private string _bodySearchQuery = string.Empty;
+        private bool _autoBomEnabled;
 
         private Popup _previewPopup;
         private Image _previewPopupImage;
@@ -181,7 +182,8 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             // Open empty: user picks a part from the Active part dropdown or opens a file later.
             RefreshExcelTemplateBar();
             var settings = AppSettings.LoadOrCreate();
-            AutoSortBeforeExportCheck.IsChecked = settings.AutoSortBeforeExport;
+            _autoBomEnabled = settings.AutoSortBeforeExport;
+            UpdateBomOrderButtonVisual();
             UpdateChecker.CheckForUpdatesIfStale(this, forceRefresh: true);
         }
 
@@ -615,6 +617,81 @@ namespace SolidWorksBodyExporter.AddIn.Ui
         private void PreviewThumbnail_MouseLeave(object sender, MouseEventArgs e)
         {
             _previewCloseTimer?.Start();
+        }
+
+        private void PreviewThumbnail_Click(object sender, RoutedEventArgs e)
+        {
+            _previewCloseTimer?.Stop();
+            if (_previewPopup != null)
+            {
+                _previewPopup.IsOpen = false;
+            }
+
+            if (!(sender is FrameworkElement fe) || !(fe.DataContext is BodyExportRow row))
+            {
+                return;
+            }
+
+            if (_model == null)
+            {
+                ShowToast("Open a part first.", ToastKind.Info);
+                return;
+            }
+
+            var bodyName = row.SolidWorksBodyName;
+            if (string.IsNullOrWhiteSpace(bodyName))
+            {
+                return;
+            }
+
+            try
+            {
+                if (BodyIsolateService.TryIsolateBody(_solidWorks, _model, bodyName))
+                {
+                    ShowToast("Isolated \"" + (row.DisplayName ?? bodyName) + "\" in SolidWorks.", ToastKind.Success);
+                }
+                else
+                {
+                    ShowToast("Could not isolate body in SolidWorks.", ToastKind.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                DiagnosticLog.Error("PreviewThumbnail_Click isolate failed", ex);
+                ShowToast("Isolate failed: " + ex.Message, ToastKind.Error);
+            }
+        }
+
+        private void UpdateBomOrderButtonVisual()
+        {
+            if (BomOrderButton == null)
+            {
+                return;
+            }
+
+            if (_autoBomEnabled)
+            {
+                BomOrderButton.Background = (Brush)FindResource("AccentGradient");
+                BomOrderButton.Foreground = Brushes.White;
+            }
+            else
+            {
+                BomOrderButton.Background = new SolidColorBrush(Color.FromRgb(0xE8, 0xED, 0xF5));
+                BomOrderButton.Foreground = new SolidColorBrush(Color.FromRgb(0x33, 0x41, 0x55));
+            }
+        }
+
+        private void SetAutoBomEnabled(bool enabled, bool saveSettings)
+        {
+            _autoBomEnabled = enabled;
+            if (saveSettings)
+            {
+                var settings = AppSettings.LoadOrCreate();
+                settings.AutoSortBeforeExport = enabled;
+                settings.Save();
+            }
+
+            UpdateBomOrderButtonVisual();
         }
 
         private void Save_Click(object sender, RoutedEventArgs e)
@@ -1164,16 +1241,54 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             }
         }
 
-        private void AutoSortBeforeExportCheck_Changed(object sender, RoutedEventArgs e)
+        private void BomOrderButton_Click(object sender, RoutedEventArgs e)
         {
-            if (AutoSortBeforeExportCheck == null)
+            try
             {
-                return;
-            }
+                var turningOn = !_autoBomEnabled;
+                SetAutoBomEnabled(turningOn, saveSettings: true);
 
-            var settings = AppSettings.LoadOrCreate();
-            settings.AutoSortBeforeExport = AutoSortBeforeExportCheck.IsChecked == true;
-            settings.Save();
+                if (!turningOn)
+                {
+                    ShowToast("Auto BOM sort off.", ToastKind.Info);
+                    return;
+                }
+
+                if (_allRows.Count == 0)
+                {
+                    ShowToast("Auto BOM on — no bodies to sort yet.", ToastKind.Info);
+                    return;
+                }
+
+                var service = BodySortRulesService.LoadFromUserSettings();
+                var analysis = service.Analyze(_allRows);
+                if (!ApplyProductionSort())
+                {
+                    ShowToast("Auto BOM on — order already matches keywords.", ToastKind.Success);
+                    return;
+                }
+
+                if (analysis.HasIssues)
+                {
+                    var preview = string.Join("; ", analysis.OutOfOrder.Take(2));
+                    if (analysis.OutOfOrder.Count > 2)
+                    {
+                        preview += " …";
+                    }
+
+                    ShowToast(
+                        "Auto BOM on — sorted " + analysis.OutOfOrder.Count + " row(s): " + preview,
+                        ToastKind.Info);
+                }
+                else
+                {
+                    ShowToast("Auto BOM on — sorted for production.", ToastKind.Success);
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowToast("BOM order failed: " + ex.Message, ToastKind.Error);
+            }
         }
 
         /// <summary>Reorder grid rows by user-defined BOM keyword tiers.</summary>
@@ -1204,7 +1319,7 @@ namespace SolidWorksBodyExporter.AddIn.Ui
 
         private void MaybeApplyAutoProductionSort()
         {
-            if (AutoSortBeforeExportCheck?.IsChecked != true)
+            if (!_autoBomEnabled)
             {
                 return;
             }
@@ -1214,7 +1329,7 @@ namespace SolidWorksBodyExporter.AddIn.Ui
 
         private void MaybeAutoSortBeforeExport()
         {
-            if (AutoSortBeforeExportCheck?.IsChecked != true)
+            if (!_autoBomEnabled)
             {
                 return;
             }
@@ -1227,43 +1342,7 @@ namespace SolidWorksBodyExporter.AddIn.Ui
 
         private void SuggestSort_Click(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                if (_allRows.Count == 0)
-                {
-                    ShowToast("No bodies to sort.", ToastKind.Info);
-                    return;
-                }
-
-                var service = BodySortRulesService.LoadFromUserSettings();
-                var analysis = service.Analyze(_allRows);
-                if (!ApplyProductionSort())
-                {
-                    ShowToast("BOM order already matches keyword rules.", ToastKind.Success);
-                    return;
-                }
-
-                if (analysis.HasIssues)
-                {
-                    var preview = string.Join("; ", analysis.OutOfOrder.Take(2));
-                    if (analysis.OutOfOrder.Count > 2)
-                    {
-                        preview += " …";
-                    }
-
-                    ShowToast(
-                        "Sorted for production BOM. " + analysis.OutOfOrder.Count + " row(s) moved: " + preview,
-                        ToastKind.Info);
-                }
-                else
-                {
-                    ShowToast("Sorted for production BOM.", ToastKind.Success);
-                }
-            }
-            catch (Exception ex)
-            {
-                ShowToast("BOM order failed: " + ex.Message, ToastKind.Error);
-            }
+            BomOrderButton_Click(sender, e);
         }
 
         private IList<BodyExportRow> GetRowsForExport()
