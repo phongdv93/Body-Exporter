@@ -1,0 +1,65 @@
+# Auto-deploy bodyexporter.com → VPS (same pattern as nesting.click)
+# Repo secrets: VPS_HOST, VPS_USER, VPS_SSH_KEY; optional VPS_SSH_PORT (default 22)
+name: Deploy VPS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "website/**"
+      - "deploy/deploy-bodyexporter.sh"
+      - ".github/workflows/deploy-vps.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-vps-bodyexporter
+  cancel-in-progress: true
+
+jobs:
+  bodyexporter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rsync + run deploy-bodyexporter.sh
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_SSH_PORT: ${{ secrets.VPS_SSH_PORT }}
+        run: |
+          set -euo pipefail
+          if [ -z "${VPS_HOST}" ] || [ -z "${VPS_USER}" ] || [ -z "${VPS_SSH_KEY}" ]; then
+            echo "Missing GitHub secrets: VPS_HOST, VPS_USER, VPS_SSH_KEY"
+            exit 1
+          fi
+          PORT="${VPS_SSH_PORT:-22}"
+          APP_DIR="/var/www/bodyexporter.com/website"
+          DEPLOY_DIR="/var/www/bodyexporter.com/deploy"
+
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "$PORT" -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+          RSYNC_SSH="ssh -i ~/.ssh/deploy_key -p ${PORT} -o StrictHostKeyChecking=yes"
+          rsync -az --delete \
+            --exclude '.venv/' \
+            --exclude '__pycache__/' \
+            --exclude '*.pyc' \
+            --exclude '.env' \
+            --exclude 'data/' \
+            --exclude 'uploads/' \
+            --exclude '.pytest_cache/' \
+            -e "$RSYNC_SSH" \
+            website/ \
+            "${VPS_USER}@${VPS_HOST}:${APP_DIR}/"
+
+          ssh -i ~/.ssh/deploy_key -p "$PORT" -o StrictHostKeyChecking=yes \
+            "${VPS_USER}@${VPS_HOST}" "mkdir -p ${DEPLOY_DIR}"
+          rsync -az -e "$RSYNC_SSH" \
+            deploy/deploy-bodyexporter.sh \
+            "${VPS_USER}@${VPS_HOST}:${DEPLOY_DIR}/deploy-bodyexporter.sh"
+
+          ssh -i ~/.ssh/deploy_key -p "$PORT" -o StrictHostKeyChecking=yes \
+            "${VPS_USER}@${VPS_HOST}" "chmod +x ${DEPLOY_DIR}/deploy-bodyexporter.sh && ${DEPLOY_DIR}/deploy-bodyexporter.sh"

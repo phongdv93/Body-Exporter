@@ -237,11 +237,11 @@ Gắn domain: Fly dashboard → **Certificates** → add `bodyexporter.com`. Tr�
 
 ### Auto deploy VPS (bodyexporter.com — giống nesting.click)
 
-Push `main` khi có thay đổi `website/**` → GitHub Actions rsync → VPS → restart `bodyexporter` (port **8002**).
+Push `main` khi có thay đổi `website/**` → GitHub Actions rsync → chạy `deploy/deploy-bodyexporter.sh` → restart `bodyexporter` (port **8002**).
 
-- Workflow: [`.github/workflows/deploy-bodyexporter.yml`](../.github/workflows/deploy-bodyexporter.yml)
-- Hướng dẫn secrets + sudo: [`docs/DEPLOY-VPS-AUTO.md`](../docs/DEPLOY-VPS-AUTO.md)
-- App dir: `/var/www/bodyexporter.com/website` — dùng chung secrets `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY` nếu cùng VPS với nesting.click
+- Workflow: [`.github/workflows/deploy-vps.yml`](../.github/workflows/deploy-vps.yml)
+- Script: [`deploy/deploy-bodyexporter.sh`](../deploy/deploy-bodyexporter.sh)
+- Secrets: `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY` — xem [`docs/DEPLOY-VPS-AUTO.md`](../docs/DEPLOY-VPS-AUTO.md)
 
 ### PostgreSQL (giống flow nesting.click: code trên GitHub, DB managed)
 
