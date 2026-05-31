@@ -248,6 +248,10 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             }
         }
 
+        /// <summary>Footer badge — same build as <see cref="WindowTitle"/>.</summary>
+        public string PluginVersionLabel =>
+            "v" + (Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "?");
+
         /// <summary>
         /// Re-binds <see cref="_model"/> to a different open Part document and reloads the
         /// bodies grid against it. The dropdown SelectedItem setter routes here. Save and
@@ -843,6 +847,11 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             }
         }
 
+        private void EditSortRules_Click(object sender, RoutedEventArgs e)
+        {
+            BodySortRulesService.OpenForEditing(this);
+        }
+
         /// <summary>Template bar stays collapsed on open; user expands via Export menu or after linking a template.</summary>
         private bool _excelTemplateBarExpanded;
 
@@ -1163,7 +1172,7 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             settings.Save();
         }
 
-        /// <summary>Reorder grid rows by production BOM keyword tiers (sort-rules.json).</summary>
+        /// <summary>Reorder grid rows by user-defined BOM keyword tiers.</summary>
         private bool ApplyProductionSort(bool showToastWhenUnchanged = false)
         {
             if (_allRows.Count == 0)

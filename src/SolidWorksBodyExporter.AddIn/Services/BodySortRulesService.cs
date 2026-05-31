@@ -1,18 +1,20 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Windows;
 using Newtonsoft.Json;
 using SolidWorksBodyExporter.AddIn.Models;
 
 namespace SolidWorksBodyExporter.AddIn.Services
 {
     /// <summary>
-    /// Rule-based row ordering (no AI): match display/body names against priority keyword tiers
-    /// for production BOM (main panels first, trim/edge band last).
+    /// Rule-based row ordering: match display/body names against user-defined keyword tiers.
+    /// Each user edits their own <c>sort-rules.json</c> (created on first use, not shown in the main UI).
     /// </summary>
     public sealed class BodySortRulesService
     {
@@ -20,40 +22,73 @@ namespace SolidWorksBodyExporter.AddIn.Services
 
         public BodySortRulesService(BodySortRulesFile rules = null)
         {
-            _rules = rules ?? BodySortRulesFile.CreateDefault();
+            _rules = rules ?? BodySortRulesFile.CreateUserTemplate();
         }
 
         public static string GetUserRulesPath()
         {
-            return Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "SolidWorksBodyExporter",
-                "sort-rules.json");
+            return Path.Combine(GetUserRulesDirectory(), "sort-rules.json");
         }
 
-        /// <summary>Writes default <c>sort-rules.json</c> on first run so users can edit tiers.</summary>
+        public static string GetUserRulesDirectory()
+        {
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "SolidWorksBodyExporter");
+        }
+
+        /// <summary>Creates an empty keyword template on first run so each user can define their own tiers.</summary>
         public static void EnsureUserRulesFile()
         {
             try
             {
                 var path = GetUserRulesPath();
-                if (File.Exists(path))
-                {
-                    return;
-                }
-
-                var dir = Path.GetDirectoryName(path);
-                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                var dir = GetUserRulesDirectory();
+                if (!Directory.Exists(dir))
                 {
                     Directory.CreateDirectory(dir);
                 }
 
-                var json = JsonConvert.SerializeObject(BodySortRulesFile.CreateDefault(), Formatting.Indented);
-                File.WriteAllText(path, json, Encoding.UTF8);
+                if (!File.Exists(path))
+                {
+                    var json = JsonConvert.SerializeObject(BodySortRulesFile.CreateUserTemplate(), Formatting.Indented);
+                    File.WriteAllText(path, json, Encoding.UTF8);
+                }
+
+                var readmePath = Path.Combine(dir, "sort-rules.README.txt");
+                if (!File.Exists(readmePath))
+                {
+                    File.WriteAllText(readmePath, BuildReadmeText(), Encoding.UTF8);
+                }
             }
             catch
             {
-                // Non-fatal — built-in defaults still apply.
+                // Non-fatal — empty template still applies in memory.
+            }
+        }
+
+        /// <summary>Opens the user's keyword file in Notepad (Export menu — not shown on the main toolbar).</summary>
+        public static void OpenForEditing(Window owner)
+        {
+            EnsureUserRulesFile();
+            var path = GetUserRulesPath();
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "notepad.exe",
+                    Arguments = "\"" + path + "\"",
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    owner,
+                    "Could not open keyword editor: " + ex.Message,
+                    "Body Exporter",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
             }
         }
 
@@ -152,7 +187,7 @@ namespace SolidWorksBodyExporter.AddIn.Services
             var best = 5000;
             foreach (var tier in _rules.Tiers.OrderBy(t => t.Priority))
             {
-                if (tier.Keywords == null)
+                if (tier.Keywords == null || tier.Keywords.Count == 0)
                 {
                     continue;
                 }
@@ -221,90 +256,45 @@ namespace SolidWorksBodyExporter.AddIn.Services
 
             return sb.ToString().Normalize(NormalizationForm.FormC);
         }
+
+        private static string BuildReadmeText()
+        {
+            return @"SolidWorks Body Exporter — BOM sort keywords
+================================================
+
+File sort-rules.json: each user defines their own keyword tiers.
+Open it from Body Exporter → Export ▾ → ""BOM sort keywords…""
+
+Structure:
+  Priority  — lower number = earlier in BOM (10 before 20)
+  Label     — display name for the tier (any text)
+  Keywords  — words matched against body / display names (no accents needed)
+
+Examples:
+  ""mat ban"", ""chan tu"", ""cua"", ""hong"", ""bo goc""
+
+Add or remove Tiers blocks to match your shop naming.
+Save the file, then click ""BOM order"" or enable ""Auto BOM"".
+";
+        }
     }
 
     public sealed class BodySortRulesFile
     {
         public List<BodySortTier> Tiers { get; set; } = new List<BodySortTier>();
 
-        public static BodySortRulesFile CreateDefault()
+        /// <summary>Blank tiers — user fills Keywords to match their naming conventions.</summary>
+        public static BodySortRulesFile CreateUserTemplate()
         {
             return new BodySortRulesFile
             {
                 Tiers = new List<BodySortTier>
                 {
-                    new BodySortTier
-                    {
-                        Priority = 10,
-                        Label = "Mặt / nóc",
-                        Keywords = new List<string>
-                        {
-                            "mat ban", "mat tren", "mat duoi", "mat chinh", "mat go",
-                            "mặt bàn", "mặt trên", "mặt dưới", "mặt chính",
-                            "noc", "nóc", "nap", "nắp", "top", "table top", "desktop", "countertop"
-                        }
-                    },
-                    new BodySortTier
-                    {
-                        Priority = 20,
-                        Label = "Chân / khung",
-                        Keywords = new List<string>
-                        {
-                            "chan ban", "chan tu", "chan go",
-                            "chân bàn", "chân tủ",
-                            "khung", "frame", "than chinh", "than doc", "than ngang", "leg", "foot", "base"
-                        }
-                    },
-                    new BodySortTier
-                    {
-                        Priority = 30,
-                        Label = "Cửa / cánh",
-                        Keywords = new List<string>
-                        {
-                            "cua tu", "cua kinh", "canh cua", "canh kinh", "canh trai", "canh phai",
-                            "cua", "cửa", "door", "flap", "canh", "cánh", "wing", "draw front"
-                        }
-                    },
-                    new BodySortTier
-                    {
-                        Priority = 40,
-                        Label = "Hông / vách / hồi",
-                        Keywords = new List<string>
-                        {
-                            "hong tu", "hong trai", "hong phai", "hong",
-                            "hông", "side", "vach", "vách", "hoi", "hồi", "panel", "back", "partition"
-                        }
-                    },
-                    new BodySortTier
-                    {
-                        Priority = 50,
-                        Label = "Ngăn / kệ / hộc",
-                        Keywords = new List<string>
-                        {
-                            "ngan keo", "ngan tu", "ngan", "ngăn kéo", "ngăn",
-                            "ke", "kệ", "shelf", "drawer", "hop", "hộc", "tray"
-                        }
-                    },
-                    new BodySortTier
-                    {
-                        Priority = 60,
-                        Label = "Chi tiết phụ",
-                        Keywords = new List<string>
-                        {
-                            "tam lot", "tấm lót", "de", "đế", "vach lot", "divider", "support", "bracket", "hook"
-                        }
-                    },
-                    new BodySortTier
-                    {
-                        Priority = 80,
-                        Label = "Bọ / nẹp / viền",
-                        Keywords = new List<string>
-                        {
-                            "bo goc", "bo canh", "bo nep", "bo treo",
-                            "bọ góc", "bọ cạnh", "bọ treo", "bọ",
-                            "nep", "nẹp", "trim", "edging", "cap", "vien", "viền", "lip", "edge band"
-                        }
-                    }
+                    new BodySortTier { Priority = 10, Label = "Nhóm ưu tiên 1", Keywords = new List<string>() },
+                    new BodySortTier { Priority = 20, Label = "Nhóm ưu tiên 2", Keywords = new List<string>() },
+                    new BodySortTier { Priority = 30, Label = "Nhóm ưu tiên 3", Keywords = new List<string>() },
+                    new BodySortTier { Priority = 40, Label = "Nhóm ưu tiên 4", Keywords = new List<string>() },
+                    new BodySortTier { Priority = 50, Label = "Nhóm ưu tiên 5", Keywords = new List<string>() }
                 }
             };
         }

@@ -823,6 +823,9 @@
                                               Click="OpenLastExcelOutput_Click"
                                               Visibility="Collapsed" />
                                     <Separator />
+                                    <MenuItem Header="BOM sort keywords…"
+                                              Click="EditSortRules_Click"
+                                              ToolTip="Edit keyword tiers used by BOM order (saved per user on this PC)." />
                                     <MenuItem Header="Send to ERP server…" IsEnabled="False"
                                               ToolTip="Reserved for a future release." />
                                 </ContextMenu>
@@ -857,7 +860,7 @@
                     </TextBox>
                     <Button Grid.Column="1"
                             Content="BOM order"
-                            ToolTip="Sắp theo tier sản xuất (mặt → chân → cửa → hông → ngăn → bọ). Sửa sort-rules.json trong AppData."
+                            ToolTip="Sắp lại thứ tự theo keywords bạn đã cấu hình (Export → BOM sort keywords…)"
                             Width="96" Height="32"
                             Margin="0,0,6,0"
                             Click="SuggestSort_Click"
@@ -959,10 +962,19 @@
                     BorderBrush="#FFE2E8F0"
                     BorderThickness="0,1,0,0"
                     Padding="16,9">
-                <TextBlock Foreground="#FF94A3B8"
-                           FontSize="11"
-                           TextWrapping="Wrap"
-                           Text="Click Edit on a row (right-click → Move up/down). Drag column headers to reorder. Search filters the grid; export/copy use full list. Auto BOM sorts by production tier, not A–Z.&#x0A;" />
+                <DockPanel LastChildFill="True">
+                    <TextBlock DockPanel.Dock="Right"
+                               Foreground="#FF64748B"
+                               FontSize="11"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center"
+                               Margin="12,0,0,0"
+                               Text="{Binding PluginVersionLabel}" />
+                    <TextBlock Foreground="#FF94A3B8"
+                               FontSize="11"
+                               TextWrapping="Wrap"
+                               Text="Edit row: nút Edit hoặc chuột phải → Move up/down. Search chỉ lọc grid; export/copy dùng full list. Auto BOM dùng keywords của bạn, không sort A–Z." />
+                </DockPanel>
             </Border>
 
             <!-- ───────────────────────────────────────────────────────

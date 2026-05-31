@@ -2,61 +2,38 @@
   "Tiers": [
     {
       "Priority": 10,
-      "Label": "Mặt / nóc",
+      "Label": "Nhóm ưu tiên 1",
       "Keywords": [
-        "mat ban", "mat tren", "mat duoi", "mat chinh", "mat go", "mat",
-        "mặt bàn", "mặt trên", "mặt dưới", "mặt chính", "mặt",
-        "noc", "nóc", "nap", "nắp", "top", "table top", "desktop", "countertop"
+        "mat ban",
+        "mat tren",
+        "noc"
       ]
     },
     {
       "Priority": 20,
-      "Label": "Chân / khung",
+      "Label": "Nhóm ưu tiên 2",
       "Keywords": [
-        "chan ban", "chan tu", "chan go", "chan",
-        "chân bàn", "chân tủ", "chân",
-        "khung", "frame", "than chinh", "than doc", "than ngang", "leg", "foot", "base"
+        "chan ban",
+        "khung"
       ]
     },
     {
       "Priority": 30,
-      "Label": "Cửa / cánh",
+      "Label": "Nhóm ưu tiên 3",
       "Keywords": [
-        "cua tu", "cua kinh", "canh cua", "canh kinh", "canh trai", "canh phai",
-        "cua", "cửa", "door", "flap", "canh", "cánh", "wing", "draw front"
+        "cua",
+        "canh"
       ]
     },
     {
       "Priority": 40,
-      "Label": "Hông / vách / hồi",
-      "Keywords": [
-        "hong tu", "hong trai", "hong phai", "hong",
-        "hông", "side", "vach", "vách", "hoi", "hồi", "panel", "back", "partition"
-      ]
+      "Label": "Nhóm ưu tiên 4",
+      "Keywords": []
     },
     {
       "Priority": 50,
-      "Label": "Ngăn / kệ / hộc",
-      "Keywords": [
-        "ngan keo", "ngan tu", "ngan", "ngăn kéo", "ngăn",
-        "ke", "kệ", "shelf", "drawer", "hop", "hộc", "tray"
-      ]
-    },
-    {
-      "Priority": 60,
-      "Label": "Chi tiết phụ",
-      "Keywords": [
-        "tam lot", "tấm lót", "de", "đế", "vach lot", "divider", "support", "bracket", "treo", "hook"
-      ]
-    },
-    {
-      "Priority": 80,
-      "Label": "Bọ / nẹp / viền",
-      "Keywords": [
-        "bo goc", "bo canh", "bo nep", "bo",
-        "bọ góc", "bọ cạnh", "bọ",
-        "nep", "nẹp", "trim", "edging", "cap", "vien", "viền", "lip", "edge band"
-      ]
+      "Label": "Nhóm ưu tiên 5",
+      "Keywords": []
     }
   ]
 }

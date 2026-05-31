@@ -8,7 +8,7 @@
 #>
 param(
     [string]$ApiBaseUrl = "https://bodyexporter-api.bodyexporter.workers.dev",
-    [string]$Version = "0.8.0",
+    [string]$Version = "0.8.2",
     [switch]$SkipBuild,
     [switch]$CreateZip
 )
