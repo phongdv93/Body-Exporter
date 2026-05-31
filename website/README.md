@@ -235,6 +235,14 @@ Gắn domain: Fly dashboard → **Certificates** → add `bodyexporter.com`. Tr�
 
 **Mình không thể deploy giúp từ đây** — cần tài khoản Fly/Railway/Cloudflare của bạn (`fly auth login`, v.v.). Làm theo các bước trên trên máy bạn.
 
+### Auto deploy VPS (bodyexporter.com — giống nesting.click)
+
+Push `main` khi có thay đổi `website/**` → GitHub Actions rsync → VPS → restart `bodyexporter` (port **8002**).
+
+- Workflow: [`.github/workflows/deploy-bodyexporter.yml`](../.github/workflows/deploy-bodyexporter.yml)
+- Hướng dẫn secrets + sudo: [`docs/DEPLOY-VPS-AUTO.md`](../docs/DEPLOY-VPS-AUTO.md)
+- App dir: `/var/www/bodyexporter.com/website` — dùng chung secrets `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY` nếu cùng VPS với nesting.click
+
 ### PostgreSQL (giống flow nesting.click: code trên GitHub, DB managed)
 
 - **Code** push lên GitHub; **server** (Railway / Fly / Render…) build từ repo hoặc Docker image.

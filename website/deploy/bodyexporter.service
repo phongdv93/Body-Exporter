@@ -1,0 +1,23 @@
+# One-time on VPS (adjust User if needed):
+#   sudo cp /var/www/bodyexporter.com/website/deploy/bodyexporter.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now bodyexporter
+#
+# .env must live at /var/www/bodyexporter.com/website/.env (not in git).
+
+[Unit]
+Description=Body Exporter website (FastAPI)
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/bodyexporter.com/website
+EnvironmentFile=/var/www/bodyexporter.com/website/.env
+ExecStart=/var/www/bodyexporter.com/website/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8002
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
