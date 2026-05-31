@@ -5,8 +5,8 @@ obj/
 .vs/
 /drapf
 
-# Build / release artifacts (use GitHub Releases instead)
-dist/*.zip
+# Client build packages — distribute manually or via Releases, not git
+dist/
 *.SLDPRT
 
 
