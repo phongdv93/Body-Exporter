@@ -56,6 +56,10 @@
     <section class="card admin-licenses-section">
       <h2 class="section-label">Đã cấp ({{ licenses|length }})</h2>
       {% if licenses %}
+      <p style="margin:0 0 0.65rem">
+        <button type="button" id="copy-all-keys" class="btn btn-secondary btn-compact">Copy tất cả key (1 dòng/key)</button>
+        <span class="muted" style="font-size:12px;margin-left:8px">Dán vào plugin → License → Apply keys để cộng dồn ngày.</span>
+      </p>
       <div class="license-grid-head" aria-hidden="true">
         <span>Key</span>
         <span>Email</span>
@@ -68,7 +72,10 @@
       {% for lic in licenses %}
       <form method="post" action="/admin/licenses/edit" class="admin-row-form license-row">
         <input type="hidden" name="license_id" value="{{ lic.id }}">
-        <code class="col-key" title="{{ lic.license_key }}">{{ lic.license_key[:18] }}…</code>
+        <div class="col-key-wrap">
+          <input type="text" class="col-key-full" readonly value="{{ lic.license_key }}" title="Double-click chọn all, Ctrl+C copy">
+          <button type="button" class="btn btn-secondary btn-compact btn-copy-key" data-key="{{ lic.license_key }}">Copy</button>
+        </div>
         <input type="email" name="buyer_email" value="{{ lic.buyer_email }}" class="col-email" required>
         <span class="col-dates muted">
           {% if lic.purchased_at %}{{ lic.purchased_at.strftime('%d/%m/%y') }}{% else %}—{% endif %}
@@ -90,5 +97,51 @@
       {% endif %}
     </section>
   </div>
+  <script>
+    (function () {
+      function flash(btn, ok) {
+        var old = btn.textContent;
+        btn.textContent = ok ? "OK" : "Lỗi";
+        setTimeout(function () { btn.textContent = old; }, 1200);
+      }
+      function copyText(text, btn) {
+        if (!text) return;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(function () { flash(btn, true); }).catch(fallback);
+        } else {
+          fallback();
+        }
+        function fallback() {
+          var ta = document.createElement("textarea");
+          ta.value = text;
+          ta.setAttribute("readonly", "");
+          ta.style.position = "fixed";
+          ta.style.left = "-9999px";
+          document.body.appendChild(ta);
+          ta.select();
+          try {
+            document.execCommand("copy");
+            flash(btn, true);
+          } catch (e) {
+            flash(btn, false);
+          }
+          document.body.removeChild(ta);
+        }
+      }
+      document.querySelectorAll(".btn-copy-key").forEach(function (btn) {
+        btn.addEventListener("click", function () { copyText(btn.getAttribute("data-key"), btn); });
+      });
+      var allBtn = document.getElementById("copy-all-keys");
+      if (allBtn) {
+        allBtn.addEventListener("click", function () {
+          var keys = Array.prototype.map.call(
+            document.querySelectorAll(".col-key-full"),
+            function (el) { return (el.value || "").trim(); }
+          ).filter(Boolean);
+          copyText(keys.join("\n"), allBtn);
+        });
+      }
+    })();
+  </script>
 </body>
 </html>

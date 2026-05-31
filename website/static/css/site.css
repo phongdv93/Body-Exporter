@@ -1054,12 +1054,19 @@ body.paddle-checkout-open .site-footer {
   font-size: 0.82rem;
 }
 .admin-row-form .col-email { flex: 1 1 140px; min-width: 120px; }
-.admin-row-form .col-key {
-  flex: 0 0 110px;
-  font-size: 0.7rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.admin-row-form .col-key-wrap {
+  flex: 1 1 300px;
+  min-width: 220px;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.admin-row-form .col-key-full {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 0.68rem;
+  cursor: text;
 }
 .admin-row-form .col-dates {
   flex: 0 0 130px;
@@ -1082,7 +1089,7 @@ body.paddle-checkout-open .site-footer {
   margin-bottom: 0.35rem;
   padding: 0 0.25rem;
 }
-.license-grid-head span:nth-child(1) { flex: 0 0 110px; }
+.license-grid-head span:nth-child(1) { flex: 1 1 300px; min-width: 220px; }
 .license-grid-head span:nth-child(2) { flex: 1 1 140px; }
 .license-grid-head span:nth-child(3) { flex: 0 0 130px; }
 .license-grid-head span:nth-child(4) { flex: 1 1 100px; }
