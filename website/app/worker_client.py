@@ -42,6 +42,86 @@ _CLIENT_CONFIG_TEXT: dict[str, str] = {
 }
 
 
+def fetch_worker_client_config() -> dict[str, Any]:
+    """GET /v1/client-config (public, no auth)."""
+    base = _worker_base()
+    r = httpx.get(f"{base}/v1/client-config", headers={"Accept": "application/json"}, timeout=20.0)
+    r.raise_for_status()
+    data = r.json()
+    return data if isinstance(data, dict) else {}
+
+
+def fetch_worker_update_manifest() -> dict[str, Any]:
+    """GET /v1/update-manifest (public, no auth)."""
+    base = _worker_base()
+    r = httpx.get(f"{base}/v1/update-manifest", headers={"Accept": "application/json"}, timeout=20.0)
+    r.raise_for_status()
+    data = r.json()
+    return data if isinstance(data, dict) else {}
+
+
+def publish_plugin_update(
+    *,
+    version: str,
+    download_url: str = "",
+    release_notes: str = "",
+) -> dict[str, Any]:
+    """
+    PUT /admin/client-config (latestVersion) + PUT /admin/update-manifest.
+    Plugin compares these against the installed DLL version.
+    """
+    ver = (version or "").strip()
+    if not ver:
+        raise ValueError("Phiên bản không được để trống.")
+
+    base = _worker_base()
+    cfg = fetch_worker_client_config()
+    cfg["latestVersion"] = ver
+    if not (cfg.get("updateManifestUrl") or "").strip():
+        cfg["updateManifestUrl"] = f"{base}/v1/update-manifest"
+    site = config.SITE_URL.rstrip("/")
+    if not (cfg.get("downloadPageUrl") or "").strip():
+        cfg["downloadPageUrl"] = f"{site}/download"
+
+    cfg_body = json.dumps(cfg, ensure_ascii=False)
+    r_cfg = httpx.put(
+        f"{base}/admin/client-config",
+        headers=_worker_admin_headers(),
+        content=cfg_body.encode("utf-8"),
+        timeout=30.0,
+    )
+    if not r_cfg.is_success:
+        log.error("Worker client-config PUT failed %s: %s", r_cfg.status_code, r_cfg.text[:500])
+        r_cfg.raise_for_status()
+
+    notes = (release_notes or "").strip()
+    if not notes:
+        notes = (
+            f"Body Exporter {ver} — tải ZIP tại bodyexporter.com/download, "
+            "giải nén, chạy Install-BodyExporter.cmd (Admin), khởi động lại SolidWorks."
+        )
+
+    manifest: dict[str, Any] = {
+        "version": ver,
+        "downloadUrl": (download_url or "").strip(),
+        "sha256": "",
+        "releaseNotes": notes,
+    }
+    manifest_body = json.dumps(manifest, ensure_ascii=False)
+    r_manifest = httpx.put(
+        f"{base}/admin/update-manifest",
+        headers=_worker_admin_headers(),
+        content=manifest_body.encode("utf-8"),
+        timeout=30.0,
+    )
+    if not r_manifest.is_success:
+        log.error("Worker update-manifest PUT failed %s: %s", r_manifest.status_code, r_manifest.text[:500])
+        r_manifest.raise_for_status()
+
+    log.info("Published plugin update version=%s downloadUrl=%s", ver, manifest["downloadUrl"])
+    return {"client_config": cfg, "manifest": manifest}
+
+
 def sync_client_config_from_site(
     *,
     support_email: str,

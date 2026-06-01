@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cập nhật plugin — Admin</title>
+  <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+  <link rel="shortcut icon" href="/static/favicon.ico" type="image/x-icon">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/site.css">
+</head>
+<body>
+  <div class="admin-wrap">
+    <nav class="admin-nav">
+      <a href="/admin">Dashboard</a>
+      <a href="/admin/content">Chỉnh nội dung &amp; thanh toán</a>
+      <a href="/admin/updates">Cập nhật plugin</a>
+      <a href="/admin/licenses">Danh sách license</a>
+      <a href="/download" target="_blank" rel="noopener">/download ↗</a>
+      <a href="/admin/logout">Đăng xuất</a>
+    </nav>
+
+    <h1>Cập nhật plugin (Worker KV)</h1>
+    <p class="muted" style="max-width:720px">
+      Đẩy <strong>latestVersion</strong> + <strong>update-manifest</strong> lên Cloudflare Worker.
+      Client SolidWorks so sánh với DLL đang cài → popup / nút <em>Check for updates</em>.
+      <strong>Không</strong> chỉ sửa số trên trang web — phải bấm <strong>Publish</strong> tại đây.
+    </p>
+
+    {% if saved %}
+    <p class="flash-ok">Đã publish lên Worker. Client sẽ thấy bản mới khi mở Body Exporter (hoặc License → Check for updates).</p>
+    {% endif %}
+    {% if error %}
+    <p class="flash-err">{{ error }}</p>
+    {% endif %}
+
+    <section class="card" style="margin-bottom:1.25rem;padding:1rem 1.25rem">
+      <h2 style="margin-top:0;font-size:1rem">Trạng thái Worker (live)</h2>
+      {% if not worker.configured %}
+      <p class="flash-err">Chưa cấu hình <code>WORKER_API_BASE_URL</code> / <code>WORKER_ADMIN_TOKEN</code> trong <code>website/.env</code> trên VPS.</p>
+      {% else %}
+      <table style="width:100%;max-width:640px;font-size:14px;border-collapse:collapse">
+        <tr><td class="muted" style="padding:4px 12px 4px 0">API</td><td><code>{{ worker.api_base }}</code></td></tr>
+        <tr><td class="muted" style="padding:4px 12px 4px 0">client-config <code>latestVersion</code></td><td><strong>{{ worker.latest_version or '—' }}</strong></td></tr>
+        <tr><td class="muted" style="padding:4px 12px 4px 0">update-manifest <code>version</code></td><td><strong>{{ worker.manifest_version or '—' }}</strong></td></tr>
+        <tr><td class="muted" style="padding:4px 12px 4px 0">manifest <code>downloadUrl</code></td><td style="word-break:break-all">{{ worker.manifest_download_url or '—' }}</td></tr>
+      </table>
+      {% if worker.error %}
+      <p class="flash-err" style="margin-top:8px;font-size:13px">{{ worker.error }}</p>
+      {% endif %}
+      {% endif %}
+    </section>
+
+    <form method="post" action="/admin/updates" class="admin-form card">
+      <h2 style="margin-top:0">Publish phiên bản mới</h2>
+      <p class="admin-notice" style="font-size:13px">
+        Mặc định lấy từ <a href="/admin/content">Chỉnh nội dung</a> (Phiên bản + URL ZIP). Sửa nếu cần rồi bấm Publish.
+      </p>
+
+      <label>Phiên bản plugin <span class="muted">(vd. 0.8.2)</span></label>
+      <input type="text" name="version" value="{{ content.download_version or '0.8.2' }}" required maxlength="40" placeholder="0.8.2">
+
+      <label>URL ZIP trực tiếp <span class="muted">(tùy chọn — manifest downloadUrl)</span></label>
+      <input type="url" name="download_url" value="{{ content.download_url }}" placeholder="https://…/BodyExporter-v0.8.2-client.zip">
+
+      <label>Ghi chú release <span class="muted">(hiện trong dialog update trên client)</span></label>
+      <textarea name="release_notes" rows="3" placeholder="Để trống = ghi chú mặc định (cài zip + khởi động lại SW)."></textarea>
+
+      <label style="display:flex;align-items:center;gap:8px;margin-top:1rem;font-weight:600">
+        <input type="checkbox" name="sync_download_page" value="1" checked style="width:auto;margin:0">
+        Cập nhật luôn phiên bản + URL trên trang <code>/download</code> (database)
+      </label>
+
+      <p style="margin-top:1.5rem">
+        <button type="submit" class="btn btn-primary">Publish lên Worker</button>
+      </p>
+    </form>
+
+    <section class="card" style="margin-top:1.25rem;padding:1rem 1.25rem">
+      <h2 style="margin-top:0;font-size:1rem">Test trên máy khách</h2>
+      <ol class="muted" style="font-size:13px;line-height:1.6;margin:0;padding-left:1.2rem">
+        <li>Publish version <strong>cao hơn</strong> bản DLL đang cài (vd. client 0.8.1 → publish 0.8.2).</li>
+        <li>Xóa <code>%APPDATA%\SolidWorksBodyExporter\client-config-cache.json</code> (hoặc đợi cache).</li>
+        <li>Mở Body Exporter hoặc License → <strong>Check for updates</strong>.</li>
+      </ol>
+    </section>
+  </div>
+</body>
+</html>

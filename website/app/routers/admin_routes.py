@@ -12,7 +12,12 @@ from app.paddle_billing import paddle_admin_status, paddle_configured
 from app.sepay import pg_checkout_available_for_content
 from app.template_response import html_response
 from app.vn_discount import list_discounts
-from app.worker_client import sync_client_config_from_site
+from app.worker_client import (
+    fetch_worker_client_config,
+    fetch_worker_update_manifest,
+    publish_plugin_update,
+    sync_client_config_from_site,
+)
 
 router = APIRouter(prefix="/admin")
 templates = Jinja2Templates(directory=str(config.TEMPLATES_DIR))
@@ -250,3 +255,105 @@ def save_content(
             ex,
         )
     return RedirectResponse("/admin/content?saved=1", status_code=303)
+
+
+def _worker_update_status() -> dict:
+    """Live Worker version fields for admin UI (best-effort)."""
+    out = {
+        "configured": bool(config.WORKER_API_BASE_URL and config.WORKER_ADMIN_TOKEN),
+        "api_base": (config.WORKER_API_BASE_URL or "").rstrip("/"),
+        "latest_version": "",
+        "manifest_version": "",
+        "manifest_download_url": "",
+        "error": "",
+    }
+    if not out["configured"]:
+        out["error"] = "Chưa cấu hình WORKER_API_BASE_URL / WORKER_ADMIN_TOKEN trong .env VPS."
+        return out
+    try:
+        cfg = fetch_worker_client_config()
+        out["latest_version"] = (cfg.get("latestVersion") or "").strip()
+    except Exception as ex:
+        out["error"] = f"Không đọc được client-config: {ex}"
+        return out
+    try:
+        manifest = fetch_worker_update_manifest()
+        out["manifest_version"] = (manifest.get("version") or "").strip()
+        out["manifest_download_url"] = (manifest.get("downloadUrl") or "").strip()
+    except Exception as ex:
+        if not out["error"]:
+            out["error"] = f"Không đọc được update-manifest: {ex}"
+    return out
+
+
+@router.get("/updates")
+def plugin_updates_page(
+    request: Request,
+    saved: int = 0,
+    err: str = "",
+    db: Session = Depends(get_db),
+    _user=Depends(require_admin),
+):
+    content = get_content(db)
+    worker = _worker_update_status()
+    return html_response(
+        templates,
+        "admin/updates.html",
+        {
+            "request": request,
+            "content": content,
+            "worker": worker,
+            "saved": bool(saved),
+            "error": err.strip(),
+            "site_url": config.SITE_URL.rstrip("/"),
+        },
+    )
+
+
+@router.post("/updates")
+def plugin_updates_publish(
+    request: Request,
+    version: str = Form(""),
+    download_url: str = Form(""),
+    release_notes: str = Form(""),
+    sync_download_page: str = Form(""),
+    db: Session = Depends(get_db),
+    _user=Depends(require_admin),
+):
+    from urllib.parse import quote
+
+    ver = version.strip()
+    if not ver:
+        return RedirectResponse(
+            "/admin/updates?err=" + quote("Nhập phiên bản (vd. 0.8.2).", safe=""),
+            status_code=303,
+        )
+    if not config.WORKER_API_BASE_URL or not config.WORKER_ADMIN_TOKEN:
+        return RedirectResponse(
+            "/admin/updates?err=" + quote("Thiếu WORKER_ADMIN_TOKEN trên server.", safe=""),
+            status_code=303,
+        )
+    try:
+        publish_plugin_update(
+            version=ver,
+            download_url=download_url.strip(),
+            release_notes=release_notes.strip(),
+        )
+    except Exception as ex:
+        import logging
+
+        logging.getLogger("uvicorn.error").exception("publish_plugin_update failed")
+        return RedirectResponse(
+            "/admin/updates?err=" + quote(str(ex), safe=""),
+            status_code=303,
+        )
+
+    if sync_download_page == "1":
+        c = get_content(db)
+        c.download_version = ver
+        url = download_url.strip()
+        if url:
+            c.download_url = url
+        db.commit()
+
+    return RedirectResponse("/admin/updates?saved=1", status_code=303)

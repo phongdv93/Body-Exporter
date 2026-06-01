@@ -289,7 +289,8 @@ IPN for PG should still point to your Worker (configure in my.sepay.vn). Card pa
 ## Admin
 
 - `/admin` — dashboard  
-- `/admin/content` — hero, download ZIP URL, prices, QR base URL  
+- `/admin/content` — hero, download ZIP URL, prices, QR base URL
+- `/admin/updates` — **Publish** `latestVersion` + `update-manifest` lên Worker (client báo update)  
 - `/admin/licenses` — danh sách license (Postgres), tạo tay
 
 Change `ADMIN_PASSWORD` in production; default is created on first boot from `.env`.
