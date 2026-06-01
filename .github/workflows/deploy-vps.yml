@@ -58,8 +58,20 @@ jobs:
           ssh -i ~/.ssh/deploy_key -p "$PORT" -o StrictHostKeyChecking=yes \
             "${VPS_USER}@${VPS_HOST}" "mkdir -p ${DEPLOY_DIR}"
           rsync -az -e "$RSYNC_SSH" \
-            deploy/deploy-bodyexporter.sh \
-            "${VPS_USER}@${VPS_HOST}:${DEPLOY_DIR}/deploy-bodyexporter.sh"
+            deploy/ \
+            "${VPS_USER}@${VPS_HOST}:${DEPLOY_DIR}/"
 
           ssh -i ~/.ssh/deploy_key -p "$PORT" -o StrictHostKeyChecking=yes \
-            "${VPS_USER}@${VPS_HOST}" "chmod +x ${DEPLOY_DIR}/deploy-bodyexporter.sh && ${DEPLOY_DIR}/deploy-bodyexporter.sh"
+            "${VPS_USER}@${VPS_HOST}" "chmod +x ${DEPLOY_DIR}/deploy-bodyexporter.sh ${DEPLOY_DIR}/setup-deploy-sudo.sh"
+
+          echo "Preflight: passwordless sudo for systemctl (required for CI)..."
+          if ! ssh -i ~/.ssh/deploy_key -p "$PORT" -o StrictHostKeyChecking=yes \
+            "${VPS_USER}@${VPS_HOST}" "sudo -n systemctl is-active bodyexporter >/dev/null 2>&1"; then
+            echo "::error::Deploy user '${VPS_USER}' cannot run 'sudo -n systemctl' on VPS."
+            echo "SSH as root once and run:"
+            echo "  sudo bash ${DEPLOY_DIR}/setup-deploy-sudo.sh ${VPS_USER}"
+            exit 1
+          fi
+
+          ssh -i ~/.ssh/deploy_key -p "$PORT" -o StrictHostKeyChecking=yes \
+            "${VPS_USER}@${VPS_HOST}" "${DEPLOY_DIR}/deploy-bodyexporter.sh"

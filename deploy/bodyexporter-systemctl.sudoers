@@ -1,0 +1,13 @@
+# Passwordless systemctl for GitHub Actions deploy user (non-interactive SSH).
+# Install once on VPS as root:
+#   DEPLOY_USER=your_github_actions_ssh_user
+#   sed "s/DEPLOY_USER/$DEPLOY_USER/" /var/www/bodyexporter.com/deploy/bodyexporter-systemctl.sudoers \
+#     > /etc/sudoers.d/bodyexporter-deploy
+#   chmod 440 /etc/sudoers.d/bodyexporter-deploy
+#   visudo -c
+#
+# Or run: sudo bash deploy/setup-deploy-sudo.sh DEPLOY_USER
+
+DEPLOY_USER ALL=(root) NOPASSWD: /bin/systemctl restart bodyexporter
+DEPLOY_USER ALL=(root) NOPASSWD: /bin/systemctl is-active bodyexporter
+DEPLOY_USER ALL=(root) NOPASSWD: /bin/systemctl status bodyexporter

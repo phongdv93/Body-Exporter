@@ -241,7 +241,17 @@ Push `main` khi có thay đổi `website/**` → GitHub Actions rsync → chạy
 
 - Workflow: [`.github/workflows/deploy-vps.yml`](../.github/workflows/deploy-vps.yml)
 - Script: [`deploy/deploy-bodyexporter.sh`](../deploy/deploy-bodyexporter.sh)
-- Secrets: `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY` — xem [`docs/DEPLOY-VPS-AUTO.md`](../docs/DEPLOY-VPS-AUTO.md)
+- Secrets: `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`
+
+**Một lần trên VPS (bắt buộc — tránh lỗi `sudo: a password is required` trên GitHub Actions):**
+
+```bash
+# SSH root, thay deployuser = user trong secret VPS_USER
+sudo bash /var/www/bodyexporter.com/deploy/setup-deploy-sudo.sh deployuser
+sudo -u deployuser sudo -n systemctl is-active bodyexporter   # phải in: active
+```
+
+Sau đó CI luôn dùng `sudo -n` (không hỏi mật khẩu). Workflow có **preflight** — thiếu sudoers thì fail ngay với hướng dẫn, không “lúc được lúc không”.
 
 ### PostgreSQL (giống flow nesting.click: code trên GitHub, DB managed)
 

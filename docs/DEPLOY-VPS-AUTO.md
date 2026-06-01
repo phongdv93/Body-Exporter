@@ -19,12 +19,15 @@ Giống **nesting.click**: push `main` (đổi `website/**`) → rsync VPS → c
 | Port | `8002` |
 | Env | `/var/www/bodyexporter.com/website/.env` |
 
-User SSH cần sudo restart service (giống nesting):
+User SSH (secret `VPS_USER`) cần **passwordless** `systemctl` — **một lần**, SSH root:
 
 ```bash
-echo 'deploy ALL=(ALL) NOPASSWD: /bin/systemctl restart bodyexporter, /bin/systemctl is-active bodyexporter' | sudo tee /etc/sudoers.d/deploy-bodyexporter
-sudo chmod 440 /etc/sudoers.d/deploy-bodyexporter
+# Thay deploy bằng đúng VPS_USER
+sudo bash /var/www/bodyexporter.com/deploy/setup-deploy-sudo.sh deploy
+sudo -u deploy sudo -n systemctl is-active bodyexporter   # → active
 ```
+
+Hoặc copy script từ repo rồi chạy trước khi push lần đầu. Thiếu bước này → GitHub Actions báo `sudo: a password is required` (không có TTY để gõ pass).
 
 Systemd template: [`website/deploy/bodyexporter.service`](../website/deploy/bodyexporter.service).
 
@@ -65,5 +68,5 @@ ssh user@vps 'chmod +x /var/www/bodyexporter.com/deploy/deploy-bodyexporter.sh &
 |-----|--------|
 | Missing VPS_* secrets | Thêm secrets trên GitHub |
 | `.env missing` | Tạo `.env` trên VPS |
-| `sudo: password` | Sudoers như trên |
+| `sudo: a password is required` | Chạy `setup-deploy-sudo.sh` như trên; workflow có preflight |
 | Port 8002 fail | `journalctl -u bodyexporter -n 50` |
