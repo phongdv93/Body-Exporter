@@ -37,12 +37,16 @@ def is_vietnam_request(request: Request) -> bool:
 
 def geo_default_pay_mode(request: Request) -> str:
     """vn = VietQR first; intl = Paddle/card first."""
+    if not config.sepay_public_checkout_enabled():
+        return "intl"
     if is_vietnam_request(request):
         return "vn"
     return "intl"
 
 
 def resolve_pay_mode(request: Request, *, query_override: str | None = None) -> str:
+    if not config.sepay_public_checkout_enabled():
+        return "intl"
     q = (query_override or request.query_params.get("pay") or "").strip().lower()
     if q in ("vn", "intl", "vietqr", "international"):
         return "vn" if q in ("vn", "vietqr") else "intl"

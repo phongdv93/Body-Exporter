@@ -315,7 +315,7 @@ def buy_paddle_page(
         err = result.get("error_code") or result.get("error") or "paddle_create_failed"
         paddle_error = translate(lang, "buy.paddle_create_fail", error=err)
     content = get_content(db)
-    pg_ok = pg_checkout_available_for_content(content)
+    pg_ok = config.sepay_public_checkout_enabled() and pg_checkout_available_for_content(content)
     return html_response(
         templates,
         "paddle_checkout.html",
@@ -344,6 +344,8 @@ def buy_paddle_sepay_fallback(
     email = email.strip()
     if not email or "@" not in email:
         return RedirectResponse("/buy", status_code=303)
+    if not config.sepay_public_checkout_enabled():
+        return RedirectResponse(f"/buy/paddle?email={quote(email)}", status_code=303)
     if not pg_checkout_available_for_content(get_content(db)):
         return RedirectResponse(f"/buy/paddle?email={quote(email)}", status_code=303)
     return _redirect_pg_checkout(request, email, db)
@@ -400,6 +402,8 @@ def buy_discount_check_api(
     db: Session = Depends(get_db),
 ):
     """Validate VietQR discount code (no email required)."""
+    if not config.sepay_public_checkout_enabled():
+        return JSONResponse({"ok": False, "error": "disabled"}, status_code=404)
     content = get_content(db)
     disc = lookup_discount(code, content)
     lang = resolve_lang(request)
@@ -429,6 +433,8 @@ def buy_vietqr_api(
     discount: str = "",
     db: Session = Depends(get_db),
 ):
+    if not config.sepay_public_checkout_enabled():
+        return JSONResponse({"ok": False, "error": "disabled"}, status_code=404)
     content = get_content(db)
     payload = _vietqr_payload(
         content,
@@ -530,6 +536,8 @@ def buy_post(
     db: Session = Depends(get_db),
 ):
     email = email.strip()
+    if not config.sepay_public_checkout_enabled():
+        return _buy_response(request, db, email=email)
     if pay_method == "card" and pg_checkout_available_for_content(get_content(db)) and not paddle_configured():
         return _redirect_pg_checkout(request, email, db)
     return _buy_response(request, db, email=email)
@@ -582,9 +590,10 @@ def _buy_response(request: Request, db: Session, email: str = "", pay_query: str
     term_days = max(1, int(content.license_term_days or config.SEPAY_LICENSE_DAYS))
     price_usd = config.license_price_usd_display(amount)
     geo_default = geo_default_pay_mode(request)
-    vietqr_ok = bool((base or "").strip())
+    sepay_public = config.sepay_public_checkout_enabled()
+    vietqr_ok = sepay_public and bool((base or "").strip())
     paddle_ok = paddle_configured()
-    pg_ok = pg_checkout_available_for_content(content)
+    pg_ok = sepay_public and pg_checkout_available_for_content(content)
     pay_mode = resolve_pay_mode(request, query_override=pay_query)
     if pay_mode == "intl" and not paddle_ok and not pg_ok:
         pay_mode = "vn"

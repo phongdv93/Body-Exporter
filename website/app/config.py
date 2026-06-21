@@ -144,3 +144,15 @@ PADDLE_WEBHOOK_SECRET = os.getenv("PADDLE_WEBHOOK_SECRET", "").strip()
 PADDLE_PRICE_ID = os.getenv("PADDLE_PRICE_ID", "").strip()
 _paddle_env_raw = os.getenv("PADDLE_ENV", "sandbox").strip().lower()
 PADDLE_ENV = _paddle_env_raw if _paddle_env_raw in ("sandbox", "production") else "sandbox"
+
+# Public /buy: VietQR bank transfer + SePay PG card. Set true to re-enable Vietnam checkout.
+SEPAY_PUBLIC_ENABLED = os.getenv("SEPAY_PUBLIC_ENABLED", "false").strip().lower() in (
+    "1",
+    "true",
+    "yes",
+    "on",
+)
+
+
+def sepay_public_checkout_enabled() -> bool:
+    return SEPAY_PUBLIC_ENABLED

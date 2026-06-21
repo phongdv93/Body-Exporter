@@ -78,11 +78,10 @@ Link ba trang policy cũng có ở **footer** mọi trang công khai. Tùy chọ
 
 ### Thanh toán theo quốc gia (`/buy`)
 
-- IP **Việt Nam** (header `CF-IPCountry` hoặc GeoIP): mặc định **VietQR**; công tắc chuyển sang **Quốc tế (Paddle)**.
-- IP **khác**: mặc định **Paddle**; công tắc sang VietQR nếu cần.
-- Cookie `be_pay_mode` = `vn` | `intl` (hoặc `?pay=vn` / `?pay=intl`).
+- **Tạm thời (mặc định):** chỉ **Paddle** trên `/buy`. VietQR / SePay PG ẩn. Bật lại: `SEPAY_PUBLIC_ENABLED=true` trong `.env` (VPS hoặc Render) rồi restart service.
+- Khi `SEPAY_PUBLIC_ENABLED=true`: IP **Việt Nam** mặc định **VietQR**; IP khác mặc định **Paddle**; công tắc `vn` ↔ `intl` (cookie `be_pay_mode` hoặc `?pay=vn` / `?pay=intl`).
 
-**Mã giảm giá VietQR (SePay CK):** không dùng chung Paddle. Tạo trong **Admin → Nội dung** (mỗi dòng `MÃ:phần_trăm`, vd `TESTRUN:99`) hoặc env `VN_DISCOUNT_CODES=TESTRUN:99`. Khách nhập mã trong modal VietQR → QR đổi số tiền; webhook chấp nhận đúng số sau giảm. Tối đa **99%** (100% = 0 VND, không tạo QR).
+**Mã giảm giá VietQR (SePay CK):** chỉ khi Sepay bật. Tạo trong **Admin → Nội dung** (mỗi dòng `MÃ:phần_trăm`, vd `TESTRUN:99`) hoặc env `VN_DISCOUNT_CODES=TESTRUN:99`. Khách nhập mã trong modal VietQR → QR đổi số tiền; webhook chấp nhận đúng số sau giảm. Tối đa **99%** (100% = 0 VND, không tạo QR).
 
 **Paddle (Render env):**
 
