@@ -6,6 +6,12 @@
   <title>{% if post %}Sửa bài{% else %}Bài mới{% endif %} — Admin</title>
   <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
   <link rel="stylesheet" href="/static/css/site.css">
+  <style>
+    .img-help { line-height: 1.5; }
+    .img-help ol { margin: 0.5rem 0 0; padding-left: 1.25rem; }
+    .upload-preview { margin-top: 0.75rem; max-width: 320px; border-radius: 8px; border: 1px solid var(--border); }
+    .insert-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; align-items: center; }
+  </style>
 </head>
 <body>
   <div class="admin-wrap admin-wide">
@@ -19,29 +25,48 @@
     </nav>
     <h1>{% if post %}Sửa: {{ post.title_vi }}{% else %}Bài viết mới{% endif %}</h1>
     {% if error %}<p class="admin-err">{{ error }}</p>{% endif %}
+
+    <div class="card img-help" style="margin-bottom:1rem">
+      <h2 style="margin-top:0;font-size:1rem">Thêm nhiều ảnh từ máy tính</h2>
+      <ol>
+        <li>Lưu bài ít nhất 1 lần (nếu bài mới).</li>
+        <li>Ở khung <strong>Upload ảnh</strong> bên dưới → <strong>Chọn file</strong> từ máy → bấm <strong>Upload</strong>.</li>
+        <li>Sau upload, bấm <strong>Chèn vào HTML (VI)</strong> hoặc <strong>(EN)</strong> — ảnh được gắn vào cuối nội dung.</li>
+        <li>Muốn nhiều ảnh: lặp lại bước 2–3 (mỗi lần 1 file). Có thể kéo khối <code>&lt;figure&gt;…&lt;/figure&gt;</code> trong HTML lên đúng chỗ đoạn văn.</li>
+        <li>Thay khối xanh “Chỗ gắn ảnh” (placeholder): xóa cả thẻ <code>&lt;div class="blog-img-placeholder"&gt;…&lt;/div&gt;</code> rồi chèn ảnh vào đó.</li>
+        <li>Bấm <strong>Lưu bài</strong> → <strong>Xem bài</strong> để kiểm tra.</li>
+      </ol>
+      <p class="muted fine-print" style="margin-bottom:0">Định dạng: PNG / JPG / WEBP / GIF · tối đa 8MB / ảnh · lưu trên server tại <code>/uploads/blog/…</code></p>
+    </div>
+
     {% if uploaded_url %}
-    <p class="admin-ok">Đã upload. URL ảnh (copy vào HTML): <code id="uploadedUrl">{{ uploaded_url }}</code>
-      <button type="button" class="btn btn-ghost" style="margin-left:8px" onclick="navigator.clipboard.writeText(document.getElementById('uploadedUrl').textContent)">Copy</button>
-    </p>
-    <p class="muted fine-print">Gợi ý chèn:
-      <code>&lt;figure class="blog-figure"&gt;&lt;img src="{{ uploaded_url }}" alt=""&gt;&lt;figcaption&gt;…&lt;/figcaption&gt;&lt;/figure&gt;</code>
-      — thay khối <code>blog-img-placeholder</code> trong bài.
-    </p>
+    <div class="card" style="margin-bottom:1rem;border-color:rgba(61,214,198,0.45)">
+      <p class="admin-ok" style="margin-top:0">Đã tải lên từ máy:</p>
+      <p><code id="uploadedUrl">{{ uploaded_url }}</code>
+        <button type="button" class="btn btn-ghost" style="margin-left:8px" onclick="navigator.clipboard.writeText(document.getElementById('uploadedUrl').textContent)">Copy URL</button>
+      </p>
+      <img class="upload-preview" src="{{ uploaded_url }}" alt="Preview upload">
+      <div class="insert-row">
+        <button type="button" class="btn btn-primary" onclick="insertImage('body_html_vi')">Chèn vào HTML (VI)</button>
+        <button type="button" class="btn btn-primary" onclick="insertImage('body_html_en')">Chèn vào HTML (EN)</button>
+        <button type="button" class="btn btn-ghost" onclick="setCover()">Đặt làm ảnh bìa (cover)</button>
+      </div>
+      <p class="muted fine-print">Sau khi chèn, nhớ bấm <strong>Lưu bài</strong> ở form bên dưới.</p>
+    </div>
     {% endif %}
 
     {% if post %}
     <form method="post" action="/admin/blog/{{ post.id }}/upload" enctype="multipart/form-data" class="card admin-form" style="margin-bottom:1rem">
-      <h2 style="margin-top:0;font-size:1rem">Upload ảnh (rồi gắn vào bài)</h2>
-      <p class="muted" style="margin-top:0">Ảnh lưu tại <code>/uploads/blog/…</code>. Lần upload đầu (nếu chưa có cover) sẽ gán cover tự động.</p>
-      <label>Chọn file PNG/JPG/WEBP</label>
+      <h2 style="margin-top:0;font-size:1rem">Upload ảnh từ máy</h2>
+      <label>Chọn ảnh trên máy tính</label>
       <input type="file" name="file" accept="image/png,image/jpeg,image/webp,image/gif" required>
       <p style="margin-top:1rem"><button type="submit" class="btn btn-primary">Upload</button></p>
     </form>
     {% else %}
-    <p class="admin-notice">Lưu bài lần đầu trước, rồi quay lại để upload ảnh.</p>
+    <p class="admin-notice">Bài mới: điền tiêu đề → <strong>Lưu bài</strong> trước, rồi quay lại trang này để upload ảnh từ máy.</p>
     {% endif %}
 
-    <form method="post" action="/admin/blog/save" class="admin-form card">
+    <form method="post" action="/admin/blog/save" class="admin-form card" id="postForm">
       <input type="hidden" name="post_id" value="{{ post.id if post else 0 }}">
       <label>Slug (URL /blog/…)</label>
       <input name="slug" value="{{ post.slug if post else '' }}" placeholder="xuat-bom-tu-solidworks" required>
@@ -53,10 +78,10 @@
       <textarea name="excerpt_vi" rows="3">{{ post.excerpt_vi if post else '' }}</textarea>
       <label>Excerpt (EN)</label>
       <textarea name="excerpt_en" rows="3">{{ post.excerpt_en if post else '' }}</textarea>
-      <label>Nội dung HTML (VI) — chèn &lt;img&gt; / figure tại chỗ placeholder</label>
-      <textarea name="body_html_vi" rows="18" style="font-family:ui-monospace,monospace;font-size:12px">{{ post.body_html_vi if post else '' }}</textarea>
+      <label>Nội dung HTML (VI)</label>
+      <textarea id="body_html_vi" name="body_html_vi" rows="18" style="font-family:ui-monospace,monospace;font-size:12px">{{ post.body_html_vi if post else '' }}</textarea>
       <label>Body HTML (EN)</label>
-      <textarea name="body_html_en" rows="14" style="font-family:ui-monospace,monospace;font-size:12px">{{ post.body_html_en if post else '' }}</textarea>
+      <textarea id="body_html_en" name="body_html_en" rows="14" style="font-family:ui-monospace,monospace;font-size:12px">{{ post.body_html_en if post else '' }}</textarea>
       <label>Meta description (VI)</label>
       <textarea name="meta_description_vi" rows="2">{{ post.meta_description_vi if post else '' }}</textarea>
       <label>Meta description (EN)</label>
@@ -65,8 +90,8 @@
       <input name="meta_keywords_vi" value="{{ post.meta_keywords_vi if post else '' }}">
       <label>Meta keywords (EN)</label>
       <input name="meta_keywords_en" value="{{ post.meta_keywords_en if post else '' }}">
-      <label>Cover image URL</label>
-      <input name="cover_image" value="{{ post.cover_image if post else '' }}" placeholder="/uploads/blog/….png">
+      <label>Cover image URL (ảnh bìa danh sách /blog)</label>
+      <input id="cover_image" name="cover_image" value="{{ post.cover_image if post else '' }}" placeholder="/uploads/blog/….png">
       <label>Tác giả</label>
       <input name="author_name" value="{{ post.author_name if post else 'Body Exporter' }}">
       <label>Sort order (nhỏ hiện trước)</label>
@@ -90,5 +115,40 @@
     </form>
     {% endif %}
   </div>
+  <script>
+    function figureHtml(url) {
+      var caption = prompt('Chú thích ảnh (figcaption), Enter để bỏ trống:', '') || '';
+      var cap = caption
+        ? '<figcaption>' + caption.replace(/</g, '&lt;') + '</figcaption>'
+        : '';
+      return '\n<figure class="blog-figure">\n  <img src="' + url + '" alt="' + (caption.replace(/"/g, '&quot;') || '') + '" loading="lazy">\n  ' + cap + '\n</figure>\n';
+    }
+    function insertImage(fieldId) {
+      var el = document.getElementById('uploadedUrl');
+      if (!el) return;
+      var url = el.textContent.trim();
+      var ta = document.getElementById(fieldId);
+      if (!ta) return;
+      var block = figureHtml(url);
+      var start = ta.selectionStart, end = ta.selectionEnd;
+      if (typeof start === 'number' && start !== end) {
+        ta.value = ta.value.slice(0, start) + block + ta.value.slice(end);
+      } else if (typeof start === 'number') {
+        ta.value = ta.value.slice(0, start) + block + ta.value.slice(start);
+      } else {
+        ta.value = ta.value + block;
+      }
+      ta.focus();
+      alert('Đã chèn ảnh vào ' + fieldId + '. Kéo khối figure trong HTML nếu muốn đổi vị trí, rồi bấm Lưu bài.');
+    }
+    function setCover() {
+      var el = document.getElementById('uploadedUrl');
+      var cover = document.getElementById('cover_image');
+      if (el && cover) {
+        cover.value = el.textContent.trim();
+        alert('Đã điền Cover image URL. Bấm Lưu bài để áp dụng.');
+      }
+    }
+  </script>
 </body>
 </html>
