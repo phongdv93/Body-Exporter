@@ -7,18 +7,93 @@
   <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
   <link rel="stylesheet" href="/static/css/site.css">
   <style>
-    .img-help { line-height: 1.5; }
-    .img-help ol { margin: 0.5rem 0 0; padding-left: 1.25rem; }
-    .upload-preview { margin-top: 0.75rem; max-width: 320px; border-radius: 8px; border: 1px solid var(--border); }
-    .insert-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; align-items: center; }
-    .slot-list { list-style: none; padding: 0; margin: 0.75rem 0 0; }
-    .slot-list li {
-      display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;
-      padding: 0.55rem 0.65rem; margin-bottom: 0.4rem;
-      border: 1px solid var(--border); border-radius: 8px; background: var(--bg-elevated);
+    .flash-ok {
+      margin: 0 0 1rem; padding: 0.75rem 1rem; border-radius: 10px;
+      background: rgba(61, 214, 198, 0.12); border: 1px solid rgba(61, 214, 198, 0.4);
+      color: #b8f5ec;
     }
-    .slot-list code { color: var(--accent); }
-    .slot-hint { font-size: 0.8rem; color: var(--muted); flex: 1 1 180px; }
+    .media-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1rem;
+      margin-top: 0.75rem;
+    }
+    .media-card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--bg-elevated);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .media-card.is-empty { border-style: dashed; }
+    .media-preview {
+      aspect-ratio: 16 / 10;
+      background: #0f1419;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .media-preview img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    .media-empty {
+      text-align: center; padding: 1rem; color: var(--muted); font-size: 0.9rem; line-height: 1.4;
+    }
+    .media-empty strong { display: block; color: var(--text); margin-bottom: 0.35rem; }
+    .media-body { padding: 0.85rem 1rem 1rem; flex: 1; display: flex; flex-direction: column; gap: 0.55rem; }
+    .media-cap { font-size: 0.86rem; color: var(--muted); margin: 0; line-height: 1.35; min-height: 2.4em; }
+    .media-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: auto; }
+    .media-actions .btn { height: 34px; padding: 0 12px; font-size: 0.82rem; }
+    .btn-danger-soft { color: #fca5a5 !important; border-color: rgba(248, 113, 113, 0.35) !important; }
+    .btn-danger-soft:hover { background: rgba(248, 113, 113, 0.12) !important; }
+    .file-btn {
+      position: relative; overflow: hidden; display: inline-flex; align-items: center;
+      cursor: pointer;
+    }
+    .file-btn input[type=file] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .cover-box {
+      display: grid; grid-template-columns: 220px 1fr; gap: 1rem; align-items: start;
+    }
+    @media (max-width: 700px) {
+      .cover-box { grid-template-columns: 1fr; }
+    }
+    .cover-thumb {
+      width: 100%; aspect-ratio: 16/10; border-radius: 10px; border: 1px solid var(--border);
+      background: #0f1419; overflow: hidden; display: flex; align-items: center; justify-content: center;
+    }
+    .cover-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .lib-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.65rem;
+    }
+    .lib-item {
+      border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--bg);
+    }
+    .lib-item img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+    .lib-meta { padding: 0.45rem 0.5rem; font-size: 0.72rem; color: var(--muted); }
+    .lib-meta form { margin-top: 0.35rem; }
+    .section-title { margin: 0 0 0.35rem; font-size: 1.05rem; }
+    .section-hint { margin: 0 0 0.75rem; color: var(--muted); font-size: 0.88rem; line-height: 1.45; }
+    .lang-tabs { display: flex; gap: 0.4rem; margin: 0.5rem 0 0.75rem; }
+    .lang-tabs button {
+      height: 34px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--border);
+      background: transparent; color: var(--text); cursor: pointer; font-weight: 600; font-size: 0.85rem;
+    }
+    .lang-tabs button.active {
+      background: rgba(61, 214, 198, 0.15); border-color: rgba(61, 214, 198, 0.5); color: #9ff0e6;
+    }
+    .editor-pane { display: none; }
+    .editor-pane.active { display: block; }
+    .tox-tinymce { border-radius: 10px !important; border-color: var(--border) !important; }
+    details.seo-box > summary {
+      cursor: pointer; font-weight: 600; color: var(--muted); list-style: none;
+    }
+    details.seo-box > summary::-webkit-details-marker { display: none; }
+    details.seo-box[open] > summary { margin-bottom: 0.75rem; color: var(--text); }
   </style>
 </head>
 <body>
@@ -31,84 +106,173 @@
       <a href="/admin/licenses">Danh sách license</a>
       <a href="/admin/logout">Đăng xuất</a>
     </nav>
-    <h1>{% if post %}Sửa: {{ post.title_vi }}{% else %}Bài viết mới{% endif %}</h1>
+
+    <h1>{% if post %}Sửa bài{% else %}Bài viết mới{% endif %}</h1>
+    {% if post %}<p class="muted" style="margin-top:-0.5rem">{{ post.title_vi }}</p>{% endif %}
+
+    {% if flash %}<p class="flash-ok">{{ flash }}</p>{% endif %}
     {% if error %}<p class="admin-err">{{ error }}</p>{% endif %}
 
-    <div class="card img-help" style="margin-bottom:1rem">
-      <h2 style="margin-top:0;font-size:1rem">Chèn ảnh đúng chỗ đang chừa</h2>
-      <ol>
-        <li><strong>Upload</strong> ảnh từ máy (khung bên dưới).</li>
-        <li>Chọn <strong>chỗ đang chừa</strong> trong danh sách (vd. <code>bom-grid</code>, <code>excel-sheets</code>…).</li>
-        <li>Bấm <strong>Thay chỗ này (VI + EN)</strong> — ảnh thay đúng khối placeholder, giữ vị trí trong bài.</li>
-        <li><strong>Lưu bài</strong> → Xem bài.</li>
-      </ol>
-      <p class="muted fine-print" style="margin-bottom:0">PNG/JPG/WEBP/GIF · tối đa 8MB · có thể upload nhiều lần cho từng chỗ.</p>
-    </div>
-
-    {% if uploaded_url %}
-    <div class="card" style="margin-bottom:1rem;border-color:rgba(61,214,198,0.45)">
-      <p class="admin-ok" style="margin-top:0">Ảnh vừa upload:</p>
-      <p><code id="uploadedUrl">{{ uploaded_url }}</code>
-        <button type="button" class="btn btn-ghost" style="margin-left:8px" onclick="navigator.clipboard.writeText(document.getElementById('uploadedUrl').textContent)">Copy URL</button>
-      </p>
-      <img class="upload-preview" src="{{ uploaded_url }}" alt="Preview upload">
-      <div class="insert-row">
-        <label style="margin:0;font-weight:600">Chỗ đang chừa:</label>
-        <select id="slotSelect" style="min-width:200px;height:32px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);padding:0 8px"></select>
-        <button type="button" class="btn btn-primary" onclick="replaceSelectedSlot()">Thay chỗ này (VI + EN)</button>
-        <button type="button" class="btn btn-ghost" onclick="setCover()">Đặt làm ảnh bìa</button>
-      </div>
-      <ul class="slot-list" id="slotButtons"></ul>
-      <p class="muted fine-print">Nếu không còn chỗ chừa, có thể <button type="button" class="btn btn-ghost" style="height:28px;padding:0 10px" onclick="insertImage('body_html_vi')">chèn thêm vào cuối VI</button>
-        / <button type="button" class="btn btn-ghost" style="height:28px;padding:0 10px" onclick="insertImage('body_html_en')">EN</button>.</p>
-    </div>
+    {% if not post %}
+    <p class="admin-notice">Điền tiêu đề → <strong>Lưu bài</strong> lần đầu → quay lại để gắn ảnh (kéo thả / chọn file).</p>
     {% endif %}
 
     {% if post %}
-    <form method="post" action="/admin/blog/{{ post.id }}/upload" enctype="multipart/form-data" class="card admin-form" style="margin-bottom:1rem">
-      <h2 style="margin-top:0;font-size:1rem">1) Upload ảnh từ máy</h2>
-      <label>Chọn ảnh trên máy tính</label>
-      <input type="file" name="file" accept="image/png,image/jpeg,image/webp,image/gif" required>
-      <p style="margin-top:1rem"><button type="submit" class="btn btn-primary">Upload</button></p>
-    </form>
-    {% else %}
-    <p class="admin-notice">Bài mới: <strong>Lưu bài</strong> trước, rồi quay lại để upload ảnh.</p>
+    {# ——— Ảnh trong bài (slots) ——— #}
+    <section class="card" style="margin-bottom:1rem">
+      <h2 class="section-title">Ảnh trong bài</h2>
+      <p class="section-hint">Mỗi ô là một chỗ ảnh đã chừa sẵn. Chọn ảnh từ máy để gắn / đổi. Gỡ ảnh nếu up nhầm — chỗ trống hiện lại.</p>
+
+      {% if slots %}
+      <div class="media-grid">
+        {% for s in slots %}
+        <article class="media-card {% if s.empty %}is-empty{% endif %}">
+          <div class="media-preview">
+            {% if not s.empty and s.image_url %}
+            <img src="{{ s.image_url }}" alt="{{ s.caption or s.slot }}">
+            {% else %}
+            <div class="media-empty">
+              <strong>Chưa có ảnh</strong>
+              {{ s.caption or s.slot }}
+            </div>
+            {% endif %}
+          </div>
+          <div class="media-body">
+            <p class="media-cap">{{ s.caption or ('Chỗ ảnh: ' ~ s.slot) }}</p>
+            <div class="media-actions">
+              <form method="post" action="/admin/blog/{{ post.id }}/slot/{{ s.slot }}/upload" enctype="multipart/form-data" style="display:contents">
+                <label class="btn btn-primary file-btn">
+                  {% if s.empty %}Chọn ảnh{% else %}Đổi ảnh{% endif %}
+                  <input type="file" name="file" accept="image/png,image/jpeg,image/webp,image/gif" required onchange="this.form.requestSubmit()">
+                </label>
+                {% if not post.cover_image %}
+                <input type="hidden" name="set_cover" value="1">
+                {% endif %}
+              </form>
+              {% if not s.empty %}
+              <form method="post" action="/admin/blog/{{ post.id }}/slot/{{ s.slot }}/clear" onsubmit="return confirm('Gỡ ảnh này khỏi bài?');">
+                <button type="submit" class="btn btn-ghost btn-danger-soft">Gỡ ảnh</button>
+              </form>
+              {% endif %}
+            </div>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="muted">Bài này chưa có chỗ ảnh sẵn. Thêm ảnh bìa bên dưới, hoặc tạo bài từ mẫu có chỗ chừa.</p>
+      {% endif %}
+    </section>
+
+    {# ——— Ảnh bìa ——— #}
+    <section class="card" style="margin-bottom:1rem">
+      <h2 class="section-title">Ảnh bìa (trang /blog)</h2>
+      <p class="section-hint">Hiện trên danh sách bài viết. Có thể dùng ảnh khác với ảnh trong bài.</p>
+      <div class="cover-box">
+        <div class="cover-thumb">
+          {% if post.cover_image %}
+          <img src="{{ post.cover_image }}" alt="Cover">
+          {% else %}
+          <span class="muted" style="padding:1rem;text-align:center;font-size:0.9rem">Chưa có ảnh bìa</span>
+          {% endif %}
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:flex-start">
+          <form method="post" action="/admin/blog/{{ post.id }}/cover" enctype="multipart/form-data">
+            <label class="btn btn-primary file-btn">
+              {% if post.cover_image %}Đổi ảnh bìa{% else %}Chọn ảnh bìa{% endif %}
+              <input type="file" name="file" accept="image/png,image/jpeg,image/webp,image/gif" required onchange="this.form.requestSubmit()">
+            </label>
+          </form>
+          {% if post.cover_image %}
+          <form method="post" action="/admin/blog/{{ post.id }}/cover/clear" onsubmit="return confirm('Gỡ ảnh bìa?');">
+            <button type="submit" class="btn btn-ghost btn-danger-soft">Gỡ ảnh bìa</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+    {# ——— Thư viện file (xóa file sai) ——— #}
+    {% if library %}
+    <section class="card" style="margin-bottom:1rem">
+      <h2 class="section-title">Ảnh đã upload</h2>
+      <p class="section-hint">Xóa file up nhầm khỏi máy chủ. Nếu ảnh đang dùng trong bài, chỗ đó sẽ trở lại trống.</p>
+      <div class="lib-grid">
+        {% for item in library %}
+        <div class="lib-item">
+          <img src="{{ item.url }}" alt="{{ item.name }}">
+          <div class="lib-meta">
+            {{ item.size_kb }} KB
+            <form method="post" action="/admin/blog/delete-file" onsubmit="return confirm('Xóa file này khỏi máy chủ?');">
+              <input type="hidden" name="url" value="{{ item.url }}">
+              <input type="hidden" name="post_id" value="{{ post.id }}">
+              <button type="submit" class="btn btn-ghost btn-danger-soft" style="height:28px;padding:0 8px;font-size:0.75rem">Xóa file</button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
     {% endif %}
 
+    {# ——— Form nội dung ——— #}
     <form method="post" action="/admin/blog/save" class="admin-form card" id="postForm">
       <input type="hidden" name="post_id" value="{{ post.id if post else 0 }}">
-      <label>Slug (URL /blog/…)</label>
+      <input type="hidden" id="cover_image" name="cover_image" value="{{ post.cover_image if post else '' }}">
+
+      <label>Đường dẫn bài (slug)</label>
       <input name="slug" value="{{ post.slug if post else '' }}" placeholder="xuat-bom-tu-solidworks" required>
-      <label>Tiêu đề (VI)</label>
+      <p class="muted fine-print" style="margin:0.25rem 0 0">URL công khai: {{ site_url }}/blog/<em>slug</em></p>
+
+      <label>Tiêu đề (tiếng Việt)</label>
       <input name="title_vi" value="{{ post.title_vi if post else '' }}" required>
-      <label>Title (EN)</label>
+
+      <label>Title (English)</label>
       <input name="title_en" value="{{ post.title_en if post else '' }}">
-      <label>Mô tả ngắn / excerpt (VI)</label>
+
+      <label>Mô tả ngắn (tiếng Việt)</label>
       <textarea name="excerpt_vi" rows="3">{{ post.excerpt_vi if post else '' }}</textarea>
-      <label>Excerpt (EN)</label>
+
+      <label>Short description (English)</label>
       <textarea name="excerpt_en" rows="3">{{ post.excerpt_en if post else '' }}</textarea>
-      <label>Nội dung HTML (VI)</label>
-      <textarea id="body_html_vi" name="body_html_vi" rows="18" style="font-family:ui-monospace,monospace;font-size:12px">{{ post.body_html_vi if post else '' }}</textarea>
-      <label>Body HTML (EN)</label>
-      <textarea id="body_html_en" name="body_html_en" rows="14" style="font-family:ui-monospace,monospace;font-size:12px">{{ post.body_html_en if post else '' }}</textarea>
-      <label>Meta description (VI)</label>
-      <textarea name="meta_description_vi" rows="2">{{ post.meta_description_vi if post else '' }}</textarea>
-      <label>Meta description (EN)</label>
-      <textarea name="meta_description_en" rows="2">{{ post.meta_description_en if post else '' }}</textarea>
-      <label>Meta keywords (VI)</label>
-      <input name="meta_keywords_vi" value="{{ post.meta_keywords_vi if post else '' }}">
-      <label>Meta keywords (EN)</label>
-      <input name="meta_keywords_en" value="{{ post.meta_keywords_en if post else '' }}">
-      <label>Cover image URL (ảnh bìa danh sách /blog)</label>
-      <input id="cover_image" name="cover_image" value="{{ post.cover_image if post else '' }}" placeholder="/uploads/blog/….png">
-      <label>Tác giả</label>
-      <input name="author_name" value="{{ post.author_name if post else 'Body Exporter' }}">
-      <label>Sort order (nhỏ hiện trước)</label>
-      <input type="number" name="sort_order" value="{{ post.sort_order if post else 100 }}">
-      <label style="display:flex;align-items:center;gap:8px;font-weight:600">
+
+      <label style="margin-bottom:0.25rem">Nội dung bài</label>
+      <p class="section-hint">Viết như Word — in đậm, danh sách, link. Không cần biết HTML. Ảnh gắn ở khung phía trên.</p>
+
+      <div class="lang-tabs" role="tablist">
+        <button type="button" class="active" data-pane="vi" onclick="switchLang('vi')">Tiếng Việt</button>
+        <button type="button" data-pane="en" onclick="switchLang('en')">English</button>
+      </div>
+
+      <div class="editor-pane active" id="pane-vi">
+        <textarea id="body_html_vi" name="body_html_vi">{{ post.body_html_vi if post else '' }}</textarea>
+      </div>
+      <div class="editor-pane" id="pane-en">
+        <textarea id="body_html_en" name="body_html_en">{{ post.body_html_en if post else '' }}</textarea>
+      </div>
+
+      <details class="seo-box" style="margin-top:1.25rem">
+        <summary>Tuỳ chọn SEO (không bắt buộc)</summary>
+        <label>Meta description (VI)</label>
+        <textarea name="meta_description_vi" rows="2">{{ post.meta_description_vi if post else '' }}</textarea>
+        <label>Meta description (EN)</label>
+        <textarea name="meta_description_en" rows="2">{{ post.meta_description_en if post else '' }}</textarea>
+        <label>Meta keywords (VI)</label>
+        <input name="meta_keywords_vi" value="{{ post.meta_keywords_vi if post else '' }}">
+        <label>Meta keywords (EN)</label>
+        <input name="meta_keywords_en" value="{{ post.meta_keywords_en if post else '' }}">
+        <label>Tác giả</label>
+        <input name="author_name" value="{{ post.author_name if post else 'Body Exporter' }}">
+        <label>Thứ tự (số nhỏ hiện trước)</label>
+        <input type="number" name="sort_order" value="{{ post.sort_order if post else 100 }}">
+      </details>
+
+      <label style="display:flex;align-items:center;gap:8px;font-weight:600;margin-top:1.25rem">
         <input type="checkbox" name="published" value="1" {% if not post or post.published %}checked{% endif %}>
-        Published (hiện trên /blog + sitemap)
+        Đăng công khai (hiện trên /blog)
       </label>
+
       <p style="margin-top:1.25rem;display:flex;gap:8px;flex-wrap:wrap">
         <button type="submit" class="btn btn-primary">Lưu bài</button>
         <a class="btn btn-ghost" href="/admin/blog">Danh sách</a>
@@ -119,176 +283,65 @@
     </form>
 
     {% if post %}
-    <form method="post" action="/admin/blog/{{ post.id }}/delete" class="card" style="margin-top:1rem" onsubmit="return confirm('Xóa bài này?');">
-      <button type="submit" class="btn btn-ghost" style="color:#f87171">Xóa bài</button>
+    <form method="post" action="/admin/blog/{{ post.id }}/delete" class="card" style="margin-top:1rem" onsubmit="return confirm('Xóa hẳn bài này?');">
+      <button type="submit" class="btn btn-ghost btn-danger-soft">Xóa bài viết</button>
     </form>
     {% endif %}
   </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/tinymce@6.8.4/tinymce.min.js" referrerpolicy="origin"></script>
   <script>
-    function escapeAttr(s) {
-      return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-    }
-
-    /** Find unfinished image slots: figure[data-slot] that still has blog-img-placeholder. */
-    function findOpenSlots(html) {
-      var slots = [];
-      var re = /<figure\b[^>]*\bdata-slot=["']([^"']+)["'][^>]*>[\s\S]*?<\/figure>/gi;
-      var m;
-      while ((m = re.exec(html)) !== null) {
-        if (/blog-img-placeholder/i.test(m[0])) {
-          var hint = '';
-          var hm = m[0].match(/blog-img-placeholder[\s\S]*?<br\s*\/?>\s*([^<]+)/i);
-          if (hm) hint = hm[1].trim();
-          slots.push({ slot: m[1], hint: hint, full: m[0] });
-        }
-      }
-      return slots;
-    }
-
-    function mergeSlots() {
-      var vi = document.getElementById('body_html_vi');
-      var en = document.getElementById('body_html_en');
-      var map = {};
-      findOpenSlots(vi ? vi.value : '').forEach(function (s) {
-        map[s.slot] = map[s.slot] || s;
-        map[s.slot].inVi = true;
+    function switchLang(lang) {
+      document.querySelectorAll('.lang-tabs button').forEach(function (b) {
+        b.classList.toggle('active', b.getAttribute('data-pane') === lang);
       });
-      findOpenSlots(en ? en.value : '').forEach(function (s) {
-        map[s.slot] = map[s.slot] || s;
-        map[s.slot].inEn = true;
-        if (!map[s.slot].hint && s.hint) map[s.slot].hint = s.hint;
+      document.querySelectorAll('.editor-pane').forEach(function (p) {
+        p.classList.toggle('active', p.id === 'pane-' + lang);
       });
-      return Object.keys(map).sort().map(function (k) { return map[k]; });
     }
 
-    function refreshSlotUi() {
-      var select = document.getElementById('slotSelect');
-      var list = document.getElementById('slotButtons');
-      if (!select && !list) return;
-      var slots = mergeSlots();
-      if (select) {
-        select.innerHTML = '';
-        if (!slots.length) {
-          var o = document.createElement('option');
-          o.value = '';
-          o.textContent = '(Không còn chỗ chừa — đã gắn hết ảnh)';
-          select.appendChild(o);
-        } else {
-          slots.forEach(function (s) {
-            var o = document.createElement('option');
-            o.value = s.slot;
-            o.textContent = s.slot + (s.hint ? ' — ' + s.hint.slice(0, 60) : '');
-            select.appendChild(o);
+    var editorCss =
+      'body{font-family:Segoe UI,system-ui,sans-serif;font-size:15px;line-height:1.6;color:#1a1a1a;}' +
+      'figure.blog-figure{margin:1.25em 0;padding:0;}' +
+      'figure.blog-figure img{max-width:100%;height:auto;border-radius:8px;}' +
+      'figcaption{font-size:0.9em;color:#555;margin-top:0.4em;}' +
+      '.blog-img-placeholder{border:2px dashed #94a3b8;border-radius:10px;padding:1.5rem;text-align:center;' +
+      'background:#f1f5f9;color:#64748b;font-size:0.95em;}';
+
+    tinymce.init({
+      selector: '#body_html_vi, #body_html_en',
+      height: 460,
+      menubar: false,
+      branding: false,
+      promotion: false,
+      plugins: 'lists link table autoresize noneditable',
+      toolbar: 'undo redo | styles | bold italic underline | bullist numlist | link | removeformat',
+      style_formats: [
+        { title: 'Đoạn văn', format: 'p' },
+        { title: 'Tiêu đề mục', block: 'h2' },
+        { title: 'Tiêu đề nhỏ', block: 'h3' }
+      ],
+      content_style: editorCss,
+      noneditable_class: 'mceNonEditable',
+      extended_valid_elements:
+        'figure[class|data-slot],figcaption,div[class|contenteditable],img[src|alt|loading|width|height|class]',
+      setup: function (editor) {
+        editor.on('BeforeSetContent', function (e) {
+          if (!e.content) return;
+          // Khóa khối ảnh — nhân viên gõ chữ không làm hỏng chỗ gắn ảnh
+          e.content = e.content.replace(/<figure\b([^>]*)>/gi, function (_, attrs) {
+            if (/mceNonEditable/i.test(attrs)) return '<figure' + attrs + '>';
+            if (/class=/i.test(attrs)) {
+              return '<figure' + attrs.replace(/class=(["'])([^"']*)\1/i, 'class=$1$2 mceNonEditable$1') + '>';
+            }
+            return '<figure class="mceNonEditable"' + attrs + '>';
           });
-        }
-      }
-      if (list) {
-        list.innerHTML = '';
-        if (!slots.length) {
-          list.innerHTML = '<li class="muted">Không còn placeholder. Có thể chèn thêm ở cuối bài.</li>';
-          return;
-        }
-        slots.forEach(function (s) {
-          var li = document.createElement('li');
-          li.innerHTML = '<code>' + escapeAttr(s.slot) + '</code>'
-            + '<span class="slot-hint">' + escapeAttr(s.hint || 'Chỗ gắn ảnh') + '</span>';
-          var btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'btn btn-primary';
-          btn.textContent = 'Thay chỗ này';
-          btn.onclick = function () { replaceSlot(s.slot); };
-          li.appendChild(btn);
-          list.appendChild(li);
         });
       }
-    }
+    });
 
-    function figureHtml(url, slot, caption) {
-      var cap = caption
-        ? '<figcaption>' + escapeAttr(caption).replace(/&quot;/g, '"') + '</figcaption>'
-        : '';
-      // keep figcaption readable (unescape basic)
-      if (caption) {
-        cap = '<figcaption>' + String(caption).replace(/</g, '&lt;') + '</figcaption>';
-      }
-      var slotAttr = slot ? ' data-slot="' + escapeAttr(slot) + '"' : '';
-      return '<figure class="blog-figure"' + slotAttr + '>\n'
-        + '  <img src="' + escapeAttr(url) + '" alt="' + escapeAttr(caption || '') + '" loading="lazy">\n'
-        + (cap ? '  ' + cap + '\n' : '')
-        + '</figure>';
-    }
-
-    function replaceInField(fieldId, slot, url, caption) {
-      var ta = document.getElementById(fieldId);
-      if (!ta) return false;
-      var html = ta.value;
-      var re = new RegExp(
-        '<figure\\b[^>]*\\bdata-slot=["\']' + slot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '["\'][^>]*>[\\s\\S]*?<\\/figure>',
-        'i'
-      );
-      if (!re.test(html)) return false;
-      // Prefer existing figcaption text if user left caption empty
-      var m = html.match(re);
-      var oldCap = '';
-      if (m) {
-        var cm = m[0].match(/<figcaption>([\s\S]*?)<\/figcaption>/i);
-        if (cm) oldCap = cm[1].trim();
-      }
-      var useCap = (caption && caption.trim()) ? caption.trim() : oldCap;
-      ta.value = html.replace(re, figureHtml(url, slot, useCap));
-      return true;
-    }
-
-    function replaceSlot(slot) {
-      var el = document.getElementById('uploadedUrl');
-      if (!el) { alert('Hãy upload ảnh trước.'); return; }
-      if (!slot) { alert('Chọn chỗ đang chừa.'); return; }
-      var url = el.textContent.trim();
-      var caption = prompt('Chú thích ảnh (Enter = giữ chú thích cũ của chỗ chừa):', '') || '';
-      var okVi = replaceInField('body_html_vi', slot, url, caption);
-      var okEn = replaceInField('body_html_en', slot, url, caption);
-      if (!okVi && !okEn) {
-        alert('Không tìm thấy chỗ "' + slot + '" còn placeholder. Có thể đã thay rồi.');
-      } else {
-        refreshSlotUi();
-        alert('Đã thay chỗ "' + slot + '"'
-          + (okVi ? ' (VI)' : '')
-          + (okEn ? ' (EN)' : '')
-          + '. Bấm Lưu bài để áp dụng.');
-      }
-    }
-
-    function replaceSelectedSlot() {
-      var sel = document.getElementById('slotSelect');
-      replaceSlot(sel && sel.value ? sel.value : '');
-    }
-
-    function insertImage(fieldId) {
-      var el = document.getElementById('uploadedUrl');
-      if (!el) return;
-      var url = el.textContent.trim();
-      var ta = document.getElementById(fieldId);
-      if (!ta) return;
-      var caption = prompt('Chú thích ảnh (Enter bỏ trống):', '') || '';
-      var block = '\n' + figureHtml(url, '', caption) + '\n';
-      ta.value = ta.value + block;
-      ta.focus();
-      alert('Đã chèn thêm ở cuối ' + fieldId + '. Bấm Lưu bài.');
-    }
-
-    function setCover() {
-      var el = document.getElementById('uploadedUrl');
-      var cover = document.getElementById('cover_image');
-      if (el && cover) {
-        cover.value = el.textContent.trim();
-        alert('Đã điền Cover. Bấm Lưu bài.');
-      }
-    }
-
-    document.addEventListener('DOMContentLoaded', refreshSlotUi);
-    ['body_html_vi', 'body_html_en'].forEach(function (id) {
-      var ta = document.getElementById(id);
-      if (ta) ta.addEventListener('input', refreshSlotUi);
+    document.getElementById('postForm').addEventListener('submit', function () {
+      if (window.tinymce) tinymce.triggerSave();
     });
   </script>
 </body>

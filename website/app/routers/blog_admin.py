@@ -1,11 +1,11 @@
-"""Admin CMS for blog posts + image uploads."""
+"""Admin CMS for blog posts — visual editor, no HTML required for staff."""
 
 from __future__ import annotations
 
-import re
 import uuid
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import unquote
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import RedirectResponse
@@ -15,7 +15,12 @@ from sqlalchemy.orm import Session
 
 from app import config
 from app.auth import get_db, require_admin
-from app.blog import slugify
+from app.blog import (
+    clear_slot_image,
+    merge_image_slots,
+    replace_slot_image,
+    slugify,
+)
 from app.models import BlogPost
 from app.template_response import html_response
 
@@ -45,6 +50,51 @@ def _save_upload(file: UploadFile) -> str:
     return f"/uploads/blog/{dest_name}"
 
 
+def _safe_upload_path(url: str) -> Path | None:
+    raw = unquote((url or "").strip())
+    if not raw.startswith("/uploads/blog/"):
+        return None
+    name = Path(raw).name
+    if not name or name in (".", "..") or "/" in name or "\\" in name:
+        return None
+    path = _uploads_blog_dir() / name
+    try:
+        path.resolve().relative_to(_uploads_blog_dir().resolve())
+    except Exception:
+        return None
+    return path if path.is_file() else None
+
+
+def _list_library() -> list[dict]:
+    items = []
+    root = _uploads_blog_dir()
+    for p in sorted(root.glob("*"), key=lambda x: x.stat().st_mtime, reverse=True):
+        if p.suffix.lower() in _ALLOWED_EXT and p.is_file():
+            items.append(
+                {
+                    "url": f"/uploads/blog/{p.name}",
+                    "name": p.name,
+                    "size_kb": max(1, p.stat().st_size // 1024),
+                }
+            )
+    return items[:60]
+
+
+def _edit_context(request: Request, post: BlogPost | None, *, flash: str = "", error: str = ""):
+    slots = []
+    if post:
+        slots = merge_image_slots(post.body_html_vi or "", post.body_html_en or "")
+    return {
+        "request": request,
+        "post": post,
+        "site_url": config.SITE_URL.rstrip("/"),
+        "slots": slots,
+        "library": _list_library(),
+        "flash": flash,
+        "error": error,
+    }
+
+
 @router.get("")
 def blog_list(
     request: Request,
@@ -69,41 +119,28 @@ def blog_list(
 
 @router.get("/new")
 def blog_new(request: Request, _user=Depends(require_admin)):
-    return html_response(
-        templates,
-        "admin/blog_edit.html",
-        {
-            "request": request,
-            "post": None,
-            "site_url": config.SITE_URL.rstrip("/"),
-            "uploaded_url": "",
-            "error": None,
-        },
-    )
+    return html_response(templates, "admin/blog_edit.html", _edit_context(request, None))
 
 
 @router.get("/{post_id}")
 def blog_edit(
     post_id: int,
     request: Request,
-    uploaded: str = "",
+    ok: str = "",
     db: Session = Depends(get_db),
     _user=Depends(require_admin),
 ):
     post = db.get(BlogPost, post_id)
     if not post:
         raise HTTPException(status_code=404)
-    return html_response(
-        templates,
-        "admin/blog_edit.html",
-        {
-            "request": request,
-            "post": post,
-            "site_url": config.SITE_URL.rstrip("/"),
-            "uploaded_url": uploaded,
-            "error": None,
-        },
-    )
+    flash = {
+        "saved": "Đã lưu bài viết.",
+        "slot": "Đã cập nhật ảnh trong bài.",
+        "cleared": "Đã gỡ ảnh — chỗ chừa trống lại.",
+        "deleted": "Đã xóa file ảnh trên máy chủ.",
+        "cover": "Đã đặt ảnh bìa.",
+    }.get(ok, "")
+    return html_response(templates, "admin/blog_edit.html", _edit_context(request, post, flash=flash))
 
 
 @router.post("/save")
@@ -145,13 +182,19 @@ def blog_save(
         post = BlogPost()
         db.add(post)
 
+    def _clean_editor_html(html: str) -> str:
+        # Strip TinyMCE helper classes so public pages stay clean.
+        h = html or ""
+        h = h.replace(" mceNonEditable", "").replace("mceNonEditable ", "").replace("mceNonEditable", "")
+        return h
+
     post.slug = s
     post.title_vi = title_vi.strip()
     post.title_en = title_en.strip()
     post.excerpt_vi = excerpt_vi.strip()
     post.excerpt_en = excerpt_en.strip()
-    post.body_html_vi = body_html_vi
-    post.body_html_en = body_html_en
+    post.body_html_vi = _clean_editor_html(body_html_vi)
+    post.body_html_en = _clean_editor_html(body_html_en)
     post.meta_description_vi = meta_description_vi.strip()
     post.meta_description_en = meta_description_en.strip()
     post.meta_keywords_vi = meta_keywords_vi.strip()
@@ -165,13 +208,52 @@ def blog_save(
         post.published_at = datetime.utcnow()
     post.updated_at = datetime.utcnow()
     db.commit()
-    return RedirectResponse(f"/admin/blog/{post.id}?uploaded=", status_code=303)
+    return RedirectResponse(f"/admin/blog/{post.id}?ok=saved", status_code=303)
 
 
-@router.post("/{post_id}/upload")
-async def blog_upload(
+@router.post("/{post_id}/slot/{slot_name}/upload")
+async def blog_slot_upload(
     post_id: int,
-    request: Request,
+    slot_name: str,
+    file: UploadFile = File(...),
+    caption: str = Form(""),
+    set_cover: str = Form(""),
+    db: Session = Depends(get_db),
+    _user=Depends(require_admin),
+):
+    post = db.get(BlogPost, post_id)
+    if not post:
+        raise HTTPException(status_code=404)
+    url = _save_upload(file)
+    post.body_html_vi = replace_slot_image(post.body_html_vi or "", slot_name, url, caption, lang="vi")
+    post.body_html_en = replace_slot_image(post.body_html_en or "", slot_name, url, caption, lang="en")
+    if set_cover in ("1", "on", "true") or not (post.cover_image or "").strip():
+        post.cover_image = url
+    post.updated_at = datetime.utcnow()
+    db.commit()
+    return RedirectResponse(f"/admin/blog/{post_id}?ok=slot", status_code=303)
+
+
+@router.post("/{post_id}/slot/{slot_name}/clear")
+def blog_slot_clear(
+    post_id: int,
+    slot_name: str,
+    db: Session = Depends(get_db),
+    _user=Depends(require_admin),
+):
+    post = db.get(BlogPost, post_id)
+    if not post:
+        raise HTTPException(status_code=404)
+    post.body_html_vi = clear_slot_image(post.body_html_vi or "", slot_name, lang="vi")
+    post.body_html_en = clear_slot_image(post.body_html_en or "", slot_name, lang="en")
+    post.updated_at = datetime.utcnow()
+    db.commit()
+    return RedirectResponse(f"/admin/blog/{post_id}?ok=cleared", status_code=303)
+
+
+@router.post("/{post_id}/cover")
+async def blog_cover_upload(
+    post_id: int,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     _user=Depends(require_admin),
@@ -180,12 +262,66 @@ async def blog_upload(
     if not post:
         raise HTTPException(status_code=404)
     url = _save_upload(file)
-    # If no cover yet, set it automatically (admin can change).
-    if not (post.cover_image or "").strip():
-        post.cover_image = url
-        post.updated_at = datetime.utcnow()
-        db.commit()
-    return RedirectResponse(f"/admin/blog/{post_id}?uploaded={url}", status_code=303)
+    post.cover_image = url
+    post.updated_at = datetime.utcnow()
+    db.commit()
+    return RedirectResponse(f"/admin/blog/{post_id}?ok=cover", status_code=303)
+
+
+@router.post("/{post_id}/cover/clear")
+def blog_cover_clear(
+    post_id: int,
+    db: Session = Depends(get_db),
+    _user=Depends(require_admin),
+):
+    post = db.get(BlogPost, post_id)
+    if not post:
+        raise HTTPException(status_code=404)
+    post.cover_image = ""
+    post.updated_at = datetime.utcnow()
+    db.commit()
+    return RedirectResponse(f"/admin/blog/{post_id}?ok=cleared", status_code=303)
+
+
+@router.post("/delete-file")
+def blog_delete_file(
+    request: Request,
+    url: str = Form(""),
+    post_id: int = Form(0),
+    db: Session = Depends(get_db),
+    _user=Depends(require_admin),
+):
+    path = _safe_upload_path(url)
+    if not path:
+        raise HTTPException(status_code=400, detail="File không hợp lệ")
+
+    # Remove references from this post (and optionally all posts).
+    posts = list(db.scalars(select(BlogPost)).all())
+    for p in posts:
+        changed = False
+        for slot in merge_image_slots(p.body_html_vi or "", p.body_html_en or ""):
+            if slot.get("image_url") == url:
+                p.body_html_vi = clear_slot_image(p.body_html_vi or "", slot["slot"], lang="vi")
+                p.body_html_en = clear_slot_image(p.body_html_en or "", slot["slot"], lang="en")
+                changed = True
+        if (p.cover_image or "").strip() == url:
+            p.cover_image = ""
+            changed = True
+        # Also strip bare <img src="url"> if any
+        if url in (p.body_html_vi or "") or url in (p.body_html_en or ""):
+            p.body_html_vi = (p.body_html_vi or "").replace(url, "")
+            p.body_html_en = (p.body_html_en or "").replace(url, "")
+            changed = True
+        if changed:
+            p.updated_at = datetime.utcnow()
+    try:
+        path.unlink(missing_ok=True)
+    except TypeError:
+        if path.exists():
+            path.unlink()
+    db.commit()
+    dest = f"/admin/blog/{post_id}?ok=deleted" if post_id else "/admin/blog?saved=1"
+    return RedirectResponse(dest, status_code=303)
 
 
 @router.post("/{post_id}/delete")

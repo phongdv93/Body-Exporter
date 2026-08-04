@@ -34,12 +34,11 @@ def slugify(text: str) -> str:
 
 
 def fig(slot: str, caption_vi: str, caption_en: str) -> tuple[str, str]:
-    """Editable image placeholder — admin replaces with <img src=\"/uploads/blog/...\">."""
+    """Visual image placeholder for staff (no HTML editing required in admin UI)."""
     vi = (
         f'<figure class="blog-figure" data-slot="{slot}">'
         f'<div class="blog-img-placeholder" contenteditable="false">'
-        f"<strong>Chỗ gắn ảnh</strong><br>{caption_vi}<br>"
-        f"<span>Admin → Bài viết → Upload ảnh → dán URL vào HTML</span>"
+        f"<strong>Chỗ gắn ảnh</strong><br>{caption_vi}"
         f"</div>"
         f"<figcaption>{caption_vi}</figcaption>"
         f"</figure>"
@@ -47,13 +46,139 @@ def fig(slot: str, caption_vi: str, caption_en: str) -> tuple[str, str]:
     en = (
         f'<figure class="blog-figure" data-slot="{slot}">'
         f'<div class="blog-img-placeholder" contenteditable="false">'
-        f"<strong>Image slot</strong><br>{caption_en}<br>"
-        f"<span>Admin → Articles → Upload image → paste URL into HTML</span>"
+        f"<strong>Image slot</strong><br>{caption_en}"
         f"</div>"
         f"<figcaption>{caption_en}</figcaption>"
         f"</figure>"
     )
     return vi, en
+
+
+_FIGURE_RE = re.compile(
+    r'<figure\b([^>]*)\bdata-slot=["\']([^"\']+)["\']([^>]*)>([\s\S]*?)</figure>',
+    re.IGNORECASE,
+)
+
+
+def list_image_slots(html: str) -> list[dict]:
+    """Parse figure[data-slot] blocks for the visual admin UI."""
+    slots: list[dict] = []
+    seen: set[str] = set()
+    for m in _FIGURE_RE.finditer(html or ""):
+        slot = m.group(2).strip()
+        if not slot or slot in seen:
+            continue
+        seen.add(slot)
+        inner = m.group(4)
+        empty = "blog-img-placeholder" in inner.lower() or not re.search(r"<img\b", inner, re.I)
+        img = ""
+        im = re.search(r'<img\b[^>]*\bsrc=["\']([^"\']+)["\']', inner, re.I)
+        if im:
+            img = im.group(1).strip()
+        caption = ""
+        cm = re.search(r"<figcaption>([\s\S]*?)</figcaption>", inner, re.I)
+        if cm:
+            caption = re.sub(r"<[^>]+>", "", cm.group(1)).strip()
+        if not caption:
+            hm = re.search(r"blog-img-placeholder[\s\S]*?<br\s*/?>\s*([^<]+)", inner, re.I)
+            if hm:
+                caption = hm.group(1).strip()
+        slots.append(
+            {
+                "slot": slot,
+                "empty": empty,
+                "image_url": img,
+                "caption": caption,
+            }
+        )
+    return slots
+
+
+def merge_image_slots(html_vi: str, html_en: str) -> list[dict]:
+    by_slot: dict[str, dict] = {}
+    for s in list_image_slots(html_vi):
+        by_slot[s["slot"]] = {**s, "in_vi": True, "in_en": False}
+    for s in list_image_slots(html_en):
+        if s["slot"] in by_slot:
+            cur = by_slot[s["slot"]]
+            cur["in_en"] = True
+            if cur["empty"] and not s["empty"]:
+                cur["empty"] = False
+                cur["image_url"] = s["image_url"]
+            if not cur["caption"] and s["caption"]:
+                cur["caption"] = s["caption"]
+            if not cur["image_url"] and s["image_url"]:
+                cur["image_url"] = s["image_url"]
+        else:
+            by_slot[s["slot"]] = {**s, "in_vi": False, "in_en": True}
+    return [by_slot[k] for k in sorted(by_slot.keys())]
+
+
+def _placeholder_figure(slot: str, caption: str, *, lang: str) -> str:
+    title = "Image slot" if lang == "en" else "Chỗ gắn ảnh"
+    cap = caption or slot
+    return (
+        f'<figure class="blog-figure" data-slot="{slot}">'
+        f'<div class="blog-img-placeholder" contenteditable="false">'
+        f"<strong>{title}</strong><br>{cap}"
+        f"</div>"
+        f"<figcaption>{cap}</figcaption>"
+        f"</figure>"
+    )
+
+
+def _filled_figure(slot: str, image_url: str, caption: str) -> str:
+    cap_html = f"<figcaption>{caption}</figcaption>" if caption else ""
+    alt = caption.replace('"', "&quot;") if caption else ""
+    return (
+        f'<figure class="blog-figure" data-slot="{slot}">'
+        f'<img src="{image_url}" alt="{alt}" loading="lazy">'
+        f"{cap_html}"
+        f"</figure>"
+    )
+
+
+def replace_slot_image(html: str, slot: str, image_url: str, caption: str | None = None, *, lang: str = "vi") -> str:
+    """Replace a data-slot figure with a filled image (or keep caption)."""
+
+    def repl(m: re.Match) -> str:
+        if m.group(2) != slot:
+            return m.group(0)
+        inner = m.group(4)
+        old_cap = ""
+        cm = re.search(r"<figcaption>([\s\S]*?)</figcaption>", inner, re.I)
+        if cm:
+            old_cap = re.sub(r"<[^>]+>", "", cm.group(1)).strip()
+        use_cap = (caption if caption is not None and caption.strip() != "" else old_cap) or old_cap
+        return _filled_figure(slot, image_url, use_cap)
+
+    new_html, n = _FIGURE_RE.subn(repl, html or "")
+    return new_html if n else html
+
+
+def clear_slot_image(html: str, slot: str, *, lang: str = "vi") -> str:
+    """Revert a filled slot back to placeholder."""
+
+    def repl(m: re.Match) -> str:
+        if m.group(2) != slot:
+            return m.group(0)
+        inner = m.group(4)
+        caption = slot
+        cm = re.search(r"<figcaption>([\s\S]*?)</figcaption>", inner, re.I)
+        if cm:
+            caption = re.sub(r"<[^>]+>", "", cm.group(1)).strip() or slot
+        return _placeholder_figure(slot, caption, lang=lang)
+
+    new_html, n = _FIGURE_RE.subn(repl, html or "")
+    return new_html if n else html
+
+
+def collect_upload_urls(*htmls: str) -> set[str]:
+    urls: set[str] = set()
+    for html in htmls:
+        for m in re.finditer(r'/uploads/blog/[A-Za-z0-9._-]+', html or ""):
+            urls.add(m.group(0))
+    return urls
 
 
 def localized(post: BlogPost, lang: str) -> dict:

@@ -66,7 +66,7 @@ Then log in at `/admin` with `ADMIN_USERNAME` / `ADMIN_PASSWORD` from `.env`.
 ### Blog / bài SEO (CMS)
 
 - Công khai: **`/blog`** + **`/blog/{slug}`** (VI/EN theo cookie ngôn ngữ).
-- Admin: **`/admin/blog`** — sửa tiêu đề, HTML, meta keywords, upload ảnh (`/uploads/blog/…`), gắn URL vào nội dung (thay khối placeholder trong bài).
+- Admin: **`/admin/blog`** — sửa bài bằng editor trực quan (không cần HTML), gắn/đổi/gỡ ảnh theo chỗ chừa, xóa file upload nhầm, meta SEO tùy chọn.
 - Lần chạy DB trống sẽ seed 5 bài theo keyword chính: xuất BOM, xuất body→Excel, xưởng mộc, ERP, cài đặt.
 
 ### Paddle (thanh toán quốc tế)
