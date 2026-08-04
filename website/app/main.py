@@ -63,9 +63,23 @@ async def log_unhandled_exceptions(request: Request, call_next):
 static_dir = Path(__file__).resolve().parents[1] / "static"
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
-config.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-(config.UPLOAD_DIR / "blog").mkdir(parents=True, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=str(config.UPLOAD_DIR)), name="uploads")
+
+def _ensure_uploads_dir() -> Path:
+    """Create uploads/ for blog images; never crash import if permissions lag."""
+    root = config.UPLOAD_DIR
+    try:
+        root.mkdir(parents=True, exist_ok=True)
+        (root / "blog").mkdir(parents=True, exist_ok=True)
+    except OSError as ex:
+        _log.warning("Could not create uploads dir %s: %s", root, ex)
+    return root
+
+
+_uploads = _ensure_uploads_dir()
+if _uploads.is_dir():
+    app.mount("/uploads", StaticFiles(directory=str(_uploads)), name="uploads")
+else:
+    _log.warning("Uploads mount skipped — %s missing or not a directory", _uploads)
 
 app.include_router(public.router)
 app.include_router(blog_public.router)

@@ -11,3 +11,8 @@
 DEPLOY_USER ALL=(root) NOPASSWD: /bin/systemctl restart bodyexporter
 DEPLOY_USER ALL=(root) NOPASSWD: /bin/systemctl is-active bodyexporter
 DEPLOY_USER ALL=(root) NOPASSWD: /bin/systemctl status bodyexporter
+DEPLOY_USER ALL=(root) NOPASSWD: /bin/systemctl status bodyexporter --no-pager
+DEPLOY_USER ALL=(root) NOPASSWD: /bin/systemctl status bodyexporter --no-pager -l
+DEPLOY_USER ALL=(root) NOPASSWD: /usr/bin/journalctl -u bodyexporter -n 80 --no-pager
+DEPLOY_USER ALL=(root) NOPASSWD: /bin/chown -R www-data\:www-data /var/www/bodyexporter.com/website/uploads
+DEPLOY_USER ALL=(root) NOPASSWD: /bin/chmod -R u+rwX\,g+rwX /var/www/bodyexporter.com/website/uploads

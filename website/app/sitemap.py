@@ -1,7 +1,10 @@
 """Public URLs for Google Search Console / sitemap.xml."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from typing import Iterable, Optional
 
 
 @dataclass(frozen=True)
@@ -28,7 +31,7 @@ def sitemap_lastmod() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
 
-def build_sitemap_xml(site_url: str, extra_paths: list[str] | None = None) -> str:
+def build_sitemap_xml(site_url: str, extra_paths: Optional[Iterable[str]] = None) -> str:
     base = site_url.rstrip("/")
     lines = [
         '<?xml version="1.0" encoding="UTF-8"?>',
@@ -48,7 +51,7 @@ def build_sitemap_xml(site_url: str, extra_paths: list[str] | None = None) -> st
         lines.append(f"    <priority>{entry.priority}</priority>")
         lines.append("  </url>")
     for path in extra_paths or []:
-        p = path if path.startswith("/") else f"/{path}"
+        p = path if str(path).startswith("/") else f"/{path}"
         if p in seen:
             continue
         seen.add(p)
