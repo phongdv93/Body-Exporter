@@ -11,6 +11,14 @@
     .img-help ol { margin: 0.5rem 0 0; padding-left: 1.25rem; }
     .upload-preview { margin-top: 0.75rem; max-width: 320px; border-radius: 8px; border: 1px solid var(--border); }
     .insert-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; align-items: center; }
+    .slot-list { list-style: none; padding: 0; margin: 0.75rem 0 0; }
+    .slot-list li {
+      display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;
+      padding: 0.55rem 0.65rem; margin-bottom: 0.4rem;
+      border: 1px solid var(--border); border-radius: 8px; background: var(--bg-elevated);
+    }
+    .slot-list code { color: var(--accent); }
+    .slot-hint { font-size: 0.8rem; color: var(--muted); flex: 1 1 180px; }
   </style>
 </head>
 <body>
@@ -27,43 +35,44 @@
     {% if error %}<p class="admin-err">{{ error }}</p>{% endif %}
 
     <div class="card img-help" style="margin-bottom:1rem">
-      <h2 style="margin-top:0;font-size:1rem">Thêm nhiều ảnh từ máy tính</h2>
+      <h2 style="margin-top:0;font-size:1rem">Chèn ảnh đúng chỗ đang chừa</h2>
       <ol>
-        <li>Lưu bài ít nhất 1 lần (nếu bài mới).</li>
-        <li>Ở khung <strong>Upload ảnh</strong> bên dưới → <strong>Chọn file</strong> từ máy → bấm <strong>Upload</strong>.</li>
-        <li>Sau upload, bấm <strong>Chèn vào HTML (VI)</strong> hoặc <strong>(EN)</strong> — ảnh được gắn vào cuối nội dung.</li>
-        <li>Muốn nhiều ảnh: lặp lại bước 2–3 (mỗi lần 1 file). Có thể kéo khối <code>&lt;figure&gt;…&lt;/figure&gt;</code> trong HTML lên đúng chỗ đoạn văn.</li>
-        <li>Thay khối xanh “Chỗ gắn ảnh” (placeholder): xóa cả thẻ <code>&lt;div class="blog-img-placeholder"&gt;…&lt;/div&gt;</code> rồi chèn ảnh vào đó.</li>
-        <li>Bấm <strong>Lưu bài</strong> → <strong>Xem bài</strong> để kiểm tra.</li>
+        <li><strong>Upload</strong> ảnh từ máy (khung bên dưới).</li>
+        <li>Chọn <strong>chỗ đang chừa</strong> trong danh sách (vd. <code>bom-grid</code>, <code>excel-sheets</code>…).</li>
+        <li>Bấm <strong>Thay chỗ này (VI + EN)</strong> — ảnh thay đúng khối placeholder, giữ vị trí trong bài.</li>
+        <li><strong>Lưu bài</strong> → Xem bài.</li>
       </ol>
-      <p class="muted fine-print" style="margin-bottom:0">Định dạng: PNG / JPG / WEBP / GIF · tối đa 8MB / ảnh · lưu trên server tại <code>/uploads/blog/…</code></p>
+      <p class="muted fine-print" style="margin-bottom:0">PNG/JPG/WEBP/GIF · tối đa 8MB · có thể upload nhiều lần cho từng chỗ.</p>
     </div>
 
     {% if uploaded_url %}
     <div class="card" style="margin-bottom:1rem;border-color:rgba(61,214,198,0.45)">
-      <p class="admin-ok" style="margin-top:0">Đã tải lên từ máy:</p>
+      <p class="admin-ok" style="margin-top:0">Ảnh vừa upload:</p>
       <p><code id="uploadedUrl">{{ uploaded_url }}</code>
         <button type="button" class="btn btn-ghost" style="margin-left:8px" onclick="navigator.clipboard.writeText(document.getElementById('uploadedUrl').textContent)">Copy URL</button>
       </p>
       <img class="upload-preview" src="{{ uploaded_url }}" alt="Preview upload">
       <div class="insert-row">
-        <button type="button" class="btn btn-primary" onclick="insertImage('body_html_vi')">Chèn vào HTML (VI)</button>
-        <button type="button" class="btn btn-primary" onclick="insertImage('body_html_en')">Chèn vào HTML (EN)</button>
-        <button type="button" class="btn btn-ghost" onclick="setCover()">Đặt làm ảnh bìa (cover)</button>
+        <label style="margin:0;font-weight:600">Chỗ đang chừa:</label>
+        <select id="slotSelect" style="min-width:200px;height:32px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);padding:0 8px"></select>
+        <button type="button" class="btn btn-primary" onclick="replaceSelectedSlot()">Thay chỗ này (VI + EN)</button>
+        <button type="button" class="btn btn-ghost" onclick="setCover()">Đặt làm ảnh bìa</button>
       </div>
-      <p class="muted fine-print">Sau khi chèn, nhớ bấm <strong>Lưu bài</strong> ở form bên dưới.</p>
+      <ul class="slot-list" id="slotButtons"></ul>
+      <p class="muted fine-print">Nếu không còn chỗ chừa, có thể <button type="button" class="btn btn-ghost" style="height:28px;padding:0 10px" onclick="insertImage('body_html_vi')">chèn thêm vào cuối VI</button>
+        / <button type="button" class="btn btn-ghost" style="height:28px;padding:0 10px" onclick="insertImage('body_html_en')">EN</button>.</p>
     </div>
     {% endif %}
 
     {% if post %}
     <form method="post" action="/admin/blog/{{ post.id }}/upload" enctype="multipart/form-data" class="card admin-form" style="margin-bottom:1rem">
-      <h2 style="margin-top:0;font-size:1rem">Upload ảnh từ máy</h2>
+      <h2 style="margin-top:0;font-size:1rem">1) Upload ảnh từ máy</h2>
       <label>Chọn ảnh trên máy tính</label>
       <input type="file" name="file" accept="image/png,image/jpeg,image/webp,image/gif" required>
       <p style="margin-top:1rem"><button type="submit" class="btn btn-primary">Upload</button></p>
     </form>
     {% else %}
-    <p class="admin-notice">Bài mới: điền tiêu đề → <strong>Lưu bài</strong> trước, rồi quay lại trang này để upload ảnh từ máy.</p>
+    <p class="admin-notice">Bài mới: <strong>Lưu bài</strong> trước, rồi quay lại để upload ảnh.</p>
     {% endif %}
 
     <form method="post" action="/admin/blog/save" class="admin-form card" id="postForm">
@@ -116,39 +125,171 @@
     {% endif %}
   </div>
   <script>
-    function figureHtml(url) {
-      var caption = prompt('Chú thích ảnh (figcaption), Enter để bỏ trống:', '') || '';
-      var cap = caption
-        ? '<figcaption>' + caption.replace(/</g, '&lt;') + '</figcaption>'
-        : '';
-      return '\n<figure class="blog-figure">\n  <img src="' + url + '" alt="' + (caption.replace(/"/g, '&quot;') || '') + '" loading="lazy">\n  ' + cap + '\n</figure>\n';
+    function escapeAttr(s) {
+      return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
     }
+
+    /** Find unfinished image slots: figure[data-slot] that still has blog-img-placeholder. */
+    function findOpenSlots(html) {
+      var slots = [];
+      var re = /<figure\b[^>]*\bdata-slot=["']([^"']+)["'][^>]*>[\s\S]*?<\/figure>/gi;
+      var m;
+      while ((m = re.exec(html)) !== null) {
+        if (/blog-img-placeholder/i.test(m[0])) {
+          var hint = '';
+          var hm = m[0].match(/blog-img-placeholder[\s\S]*?<br\s*\/?>\s*([^<]+)/i);
+          if (hm) hint = hm[1].trim();
+          slots.push({ slot: m[1], hint: hint, full: m[0] });
+        }
+      }
+      return slots;
+    }
+
+    function mergeSlots() {
+      var vi = document.getElementById('body_html_vi');
+      var en = document.getElementById('body_html_en');
+      var map = {};
+      findOpenSlots(vi ? vi.value : '').forEach(function (s) {
+        map[s.slot] = map[s.slot] || s;
+        map[s.slot].inVi = true;
+      });
+      findOpenSlots(en ? en.value : '').forEach(function (s) {
+        map[s.slot] = map[s.slot] || s;
+        map[s.slot].inEn = true;
+        if (!map[s.slot].hint && s.hint) map[s.slot].hint = s.hint;
+      });
+      return Object.keys(map).sort().map(function (k) { return map[k]; });
+    }
+
+    function refreshSlotUi() {
+      var select = document.getElementById('slotSelect');
+      var list = document.getElementById('slotButtons');
+      if (!select && !list) return;
+      var slots = mergeSlots();
+      if (select) {
+        select.innerHTML = '';
+        if (!slots.length) {
+          var o = document.createElement('option');
+          o.value = '';
+          o.textContent = '(Không còn chỗ chừa — đã gắn hết ảnh)';
+          select.appendChild(o);
+        } else {
+          slots.forEach(function (s) {
+            var o = document.createElement('option');
+            o.value = s.slot;
+            o.textContent = s.slot + (s.hint ? ' — ' + s.hint.slice(0, 60) : '');
+            select.appendChild(o);
+          });
+        }
+      }
+      if (list) {
+        list.innerHTML = '';
+        if (!slots.length) {
+          list.innerHTML = '<li class="muted">Không còn placeholder. Có thể chèn thêm ở cuối bài.</li>';
+          return;
+        }
+        slots.forEach(function (s) {
+          var li = document.createElement('li');
+          li.innerHTML = '<code>' + escapeAttr(s.slot) + '</code>'
+            + '<span class="slot-hint">' + escapeAttr(s.hint || 'Chỗ gắn ảnh') + '</span>';
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'btn btn-primary';
+          btn.textContent = 'Thay chỗ này';
+          btn.onclick = function () { replaceSlot(s.slot); };
+          li.appendChild(btn);
+          list.appendChild(li);
+        });
+      }
+    }
+
+    function figureHtml(url, slot, caption) {
+      var cap = caption
+        ? '<figcaption>' + escapeAttr(caption).replace(/&quot;/g, '"') + '</figcaption>'
+        : '';
+      // keep figcaption readable (unescape basic)
+      if (caption) {
+        cap = '<figcaption>' + String(caption).replace(/</g, '&lt;') + '</figcaption>';
+      }
+      var slotAttr = slot ? ' data-slot="' + escapeAttr(slot) + '"' : '';
+      return '<figure class="blog-figure"' + slotAttr + '>\n'
+        + '  <img src="' + escapeAttr(url) + '" alt="' + escapeAttr(caption || '') + '" loading="lazy">\n'
+        + (cap ? '  ' + cap + '\n' : '')
+        + '</figure>';
+    }
+
+    function replaceInField(fieldId, slot, url, caption) {
+      var ta = document.getElementById(fieldId);
+      if (!ta) return false;
+      var html = ta.value;
+      var re = new RegExp(
+        '<figure\\b[^>]*\\bdata-slot=["\']' + slot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '["\'][^>]*>[\\s\\S]*?<\\/figure>',
+        'i'
+      );
+      if (!re.test(html)) return false;
+      // Prefer existing figcaption text if user left caption empty
+      var m = html.match(re);
+      var oldCap = '';
+      if (m) {
+        var cm = m[0].match(/<figcaption>([\s\S]*?)<\/figcaption>/i);
+        if (cm) oldCap = cm[1].trim();
+      }
+      var useCap = (caption && caption.trim()) ? caption.trim() : oldCap;
+      ta.value = html.replace(re, figureHtml(url, slot, useCap));
+      return true;
+    }
+
+    function replaceSlot(slot) {
+      var el = document.getElementById('uploadedUrl');
+      if (!el) { alert('Hãy upload ảnh trước.'); return; }
+      if (!slot) { alert('Chọn chỗ đang chừa.'); return; }
+      var url = el.textContent.trim();
+      var caption = prompt('Chú thích ảnh (Enter = giữ chú thích cũ của chỗ chừa):', '') || '';
+      var okVi = replaceInField('body_html_vi', slot, url, caption);
+      var okEn = replaceInField('body_html_en', slot, url, caption);
+      if (!okVi && !okEn) {
+        alert('Không tìm thấy chỗ "' + slot + '" còn placeholder. Có thể đã thay rồi.');
+      } else {
+        refreshSlotUi();
+        alert('Đã thay chỗ "' + slot + '"'
+          + (okVi ? ' (VI)' : '')
+          + (okEn ? ' (EN)' : '')
+          + '. Bấm Lưu bài để áp dụng.');
+      }
+    }
+
+    function replaceSelectedSlot() {
+      var sel = document.getElementById('slotSelect');
+      replaceSlot(sel && sel.value ? sel.value : '');
+    }
+
     function insertImage(fieldId) {
       var el = document.getElementById('uploadedUrl');
       if (!el) return;
       var url = el.textContent.trim();
       var ta = document.getElementById(fieldId);
       if (!ta) return;
-      var block = figureHtml(url);
-      var start = ta.selectionStart, end = ta.selectionEnd;
-      if (typeof start === 'number' && start !== end) {
-        ta.value = ta.value.slice(0, start) + block + ta.value.slice(end);
-      } else if (typeof start === 'number') {
-        ta.value = ta.value.slice(0, start) + block + ta.value.slice(start);
-      } else {
-        ta.value = ta.value + block;
-      }
+      var caption = prompt('Chú thích ảnh (Enter bỏ trống):', '') || '';
+      var block = '\n' + figureHtml(url, '', caption) + '\n';
+      ta.value = ta.value + block;
       ta.focus();
-      alert('Đã chèn ảnh vào ' + fieldId + '. Kéo khối figure trong HTML nếu muốn đổi vị trí, rồi bấm Lưu bài.');
+      alert('Đã chèn thêm ở cuối ' + fieldId + '. Bấm Lưu bài.');
     }
+
     function setCover() {
       var el = document.getElementById('uploadedUrl');
       var cover = document.getElementById('cover_image');
       if (el && cover) {
         cover.value = el.textContent.trim();
-        alert('Đã điền Cover image URL. Bấm Lưu bài để áp dụng.');
+        alert('Đã điền Cover. Bấm Lưu bài.');
       }
     }
+
+    document.addEventListener('DOMContentLoaded', refreshSlotUi);
+    ['body_html_vi', 'body_html_en'].forEach(function (id) {
+      var ta = document.getElementById(id);
+      if (ta) ta.addEventListener('input', refreshSlotUi);
+    });
   </script>
 </body>
 </html>
