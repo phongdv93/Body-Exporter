@@ -3,6 +3,7 @@
 MESSAGES = {
     "nav.home": "Giới thiệu",
     "nav.download": "Tải plugin",
+    "nav.blog": "Bài viết",
     "nav.buy": "Mua license",
     "lang.vi": "Vi",
     "lang.en": "En",
@@ -25,6 +26,13 @@ MESSAGES = {
     ),
     "home.cta_download": "Tải plugin",
     "home.cta_buy": "Mua license",
+    "blog.index_title": "Hướng dẫn & kiến thức CAD sản xuất",
+    "blog.index_lead": (
+        "Xuất BOM, xuất body sang Excel, danh sách chi tiết xưởng mộc và tích hợp ERP — "
+        "viết cho người dùng SolidWorks thực tế."
+    ),
+    "blog.read_more": "Đọc bài",
+    "blog.empty": "Chưa có bài viết công khai.",
     "download.title": "Tải plugin",
     "download.version": "Phiên bản",
     "download.policy_title": "Chính sách dữ liệu",

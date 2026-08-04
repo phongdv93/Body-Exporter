@@ -2,16 +2,28 @@ from pathlib import Path
 import logging
 import traceback
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.responses import FileResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy.orm import Session
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 
 from app import config
+from app.auth import get_db
+from app.blog import list_published
 from app.database import init_db
 from app.error_pages import http_exception_handler, server_error_handler
-from app.routers import admin_routes, client_api, licenses_admin, paddle_webhook, public, sepay_webhook
+from app.routers import (
+    admin_routes,
+    blog_admin,
+    blog_public,
+    client_api,
+    licenses_admin,
+    paddle_webhook,
+    public,
+    sepay_webhook,
+)
 from app.sitemap import build_sitemap_xml
 
 _log = logging.getLogger("uvicorn.error")
@@ -51,11 +63,17 @@ async def log_unhandled_exceptions(request: Request, call_next):
 static_dir = Path(__file__).resolve().parents[1] / "static"
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
+config.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+(config.UPLOAD_DIR / "blog").mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(config.UPLOAD_DIR)), name="uploads")
+
 app.include_router(public.router)
+app.include_router(blog_public.router)
 app.include_router(client_api.router)
 app.include_router(sepay_webhook.router)
 app.include_router(paddle_webhook.router)
 app.include_router(admin_routes.router)
+app.include_router(blog_admin.router)
 app.include_router(licenses_admin.router)
 
 
@@ -99,8 +117,9 @@ Sitemap: {base}/sitemap.xml
 
 
 @app.get("/sitemap.xml")
-def sitemap_xml():
-    body = build_sitemap_xml(config.SITE_URL)
+def sitemap_xml(db: Session = Depends(get_db)):
+    blog_paths = [f"/blog/{p.slug}" for p in list_published(db)]
+    body = build_sitemap_xml(config.SITE_URL, extra_paths=blog_paths)
     return Response(
         content=body,
         media_type="application/xml",

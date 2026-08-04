@@ -38,7 +38,8 @@ SEO_KEYWORDS = (
         "SolidWorks, add-in, Body Exporter, body export, BOM export, part export, "
         "xuat body, xuat BOM, xuat BOM tu SolidWorks, xuat danh sach chi tiet tu SolidWorks, "
         "xuất BOM từ SolidWorks, xuất danh sách chi tiết từ SolidWorks, xuất body từ SolidWorks, "
-        "Excel, license, plugin CAD, go, nesting, Viet Nam, SePay",
+        "xuất body SolidWorks Excel, danh sách chi tiết xưởng mộc, SolidWorks ERP BOM, "
+        "cutting list SolidWorks, Excel, license, plugin CAD, go, nesting, Viet Nam",
     )
     .strip()
 )
@@ -55,7 +56,8 @@ SEO_KEYWORDS_EN = (
         "SEO_KEYWORDS_EN",
         "SolidWorks, add-in, Body Exporter, body export, BOM export, export body, export BOM, "
         "export bodies, export part list, export detail list, export BOM from SolidWorks, "
-        "export body from SolidWorks, Excel, license, CAD plugin, woodworking, nesting, "
+        "export body from SolidWorks, SolidWorks Excel export, woodworking cutting list, "
+        "SolidWorks ERP BOM, Excel, license, CAD plugin, woodworking, nesting, "
         "bill of materials",
     )
     .strip()

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+<section class="blog-hero">
+  <p class="eyebrow">{{ t('nav.blog') }}</p>
+  <h1>{{ t('blog.index_title') }}</h1>
+  <p class="lead">{{ t('blog.index_lead') }}</p>
+</section>
+
+{% if blog_posts %}
+<div class="blog-grid">
+  {% for p in blog_posts %}
+  <a class="blog-card card" href="/blog/{{ p.slug }}">
+    {% if p.cover_image %}
+    <div class="blog-card-cover" style="background-image:url('{{ p.cover_image }}')"></div>
+    {% else %}
+    <div class="blog-card-cover blog-card-cover--empty"></div>
+    {% endif %}
+    <div class="blog-card-body">
+      <h2>{{ p.title }}</h2>
+      <p>{{ p.excerpt }}</p>
+      <span class="blog-card-more">{{ t('blog.read_more') }} →</span>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<section class="card">
+  <p class="muted">{{ t('blog.empty') }}</p>
+</section>
+{% endif %}
+{% endblock %}

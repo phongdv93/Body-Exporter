@@ -3,6 +3,7 @@
 MESSAGES = {
     "nav.home": "Overview",
     "nav.download": "Download",
+    "nav.blog": "Blog",
     "nav.buy": "Buy license",
     "lang.vi": "Vi",
     "lang.en": "En",
@@ -25,6 +26,13 @@ MESSAGES = {
     ),
     "home.cta_download": "Download plugin",
     "home.cta_buy": "Buy license",
+    "blog.index_title": "Guides for SolidWorks production workflows",
+    "blog.index_lead": (
+        "BOM export, body-to-Excel, wood-shop cutting lists, and ERP push — "
+        "written for real SolidWorks users."
+    ),
+    "blog.read_more": "Read more",
+    "blog.empty": "No published articles yet.",
     "download.title": "Download plugin",
     "download.version": "Version",
     "download.policy_title": "Data policy",

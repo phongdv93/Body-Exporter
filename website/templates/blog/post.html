@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block head_extra %}
+<script type="application/ld+json">{{ schema_article_json | safe }}</script>
+<meta property="og:type" content="article">
+{% endblock %}
+{% block content %}
+<article class="blog-post">
+  <p class="blog-crumb"><a href="/blog">{{ t('nav.blog') }}</a> /</p>
+  <h1>{{ loc.title }}</h1>
+  {% if post.published_at %}
+  <p class="blog-meta muted">{{ post.published_at.strftime('%Y-%m-%d') }}
+    {% if post.author_name %} · {{ post.author_name }}{% endif %}
+  </p>
+  {% endif %}
+  {% if post.cover_image %}
+  <figure class="blog-cover">
+    <img src="{{ post.cover_image }}" alt="{{ loc.title | e }}" loading="lazy">
+  </figure>
+  {% endif %}
+  <div class="blog-body prose legal-prose">
+    {{ loc.body_html | safe }}
+  </div>
+  <div class="blog-footer-cta">
+    <a class="btn btn-primary" href="/download">{{ t('home.cta_download') }}</a>
+    <a class="btn btn-ghost" href="/buy">{{ t('home.cta_buy') }}</a>
+  </div>
+</article>
+{% endblock %}

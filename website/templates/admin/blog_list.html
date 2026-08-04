@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bài viết — Admin</title>
+  <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="/static/css/site.css">
+</head>
+<body>
+  <div class="admin-wrap admin-wide">
+    <nav class="admin-nav">
+      <a href="/admin">Dashboard</a>
+      <a href="/admin/content">Chỉnh nội dung &amp; thanh toán</a>
+      <a href="/admin/blog" class="active">Bài viết (SEO)</a>
+      <a href="/admin/updates">Cập nhật plugin</a>
+      <a href="/admin/licenses">Danh sách license</a>
+      <a href="/admin/logout">Đăng xuất</a>
+      <a href="/blog" target="_blank" rel="noopener">Xem /blog ↗</a>
+    </nav>
+    <h1>Bài viết SEO</h1>
+    {% if saved %}<p class="admin-ok">Đã cập nhật.</p>{% endif %}
+    <p class="muted">Bài seed sẵn theo keyword (xuất BOM, xuất body, xưởng mộc, ERP…). Sửa HTML để gắn ảnh đúng ngữ cảnh.</p>
+    <p style="margin:1rem 0">
+      <a class="btn btn-primary" href="/admin/blog/new">+ Viết bài mới</a>
+    </p>
+    <table class="admin-table" style="width:100%;border-collapse:collapse">
+      <thead>
+        <tr>
+          <th align="left">Slug</th>
+          <th align="left">Tiêu đề</th>
+          <th>Published</th>
+          <th>Order</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in posts %}
+        <tr>
+          <td><code>{{ p.slug }}</code></td>
+          <td>{{ p.title_vi }}</td>
+          <td align="center">{% if p.published %}✓{% else %}—{% endif %}</td>
+          <td align="center">{{ p.sort_order }}</td>
+          <td>
+            <a href="/admin/blog/{{ p.id }}">Sửa</a>
+            · <a href="/blog/{{ p.slug }}" target="_blank" rel="noopener">Xem</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="muted">Chưa có bài.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>

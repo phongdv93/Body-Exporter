@@ -5,7 +5,7 @@ from sqlalchemy import create_engine, inspect, select, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from app import config
-from app.models import AdminUser, Base, ClientMachine, DownloadEvent, License, SiteContent
+from app.models import AdminUser, Base, BlogPost, ClientMachine, DownloadEvent, License, SiteContent
 
 _BE_LICENSES_REQUIRED_COLUMNS = frozenset(
     {
@@ -317,6 +317,16 @@ def init_db() -> None:
             db.commit()
 
         _scrub_sepay_from_customer_cms(db)
+
+        try:
+            from app.blog import ensure_seed_posts
+
+            n = ensure_seed_posts(db)
+            if n:
+                log.info("Seeded %s blog posts", n)
+        except Exception:
+            log.exception("Blog seed failed")
+            db.rollback()
 
         admin = db.scalar(select(AdminUser).where(AdminUser.username == config.ADMIN_USERNAME.strip()))
         if not admin:

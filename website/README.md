@@ -61,7 +61,13 @@ Then log in at `/admin` with `ADMIN_USERNAME` / `ADMIN_PASSWORD` from `.env`.
 - Every public page: `<title>`, `description`, `keywords`, `canonical`, Open Graph, Twitter card, JSON-LD (`WebSite` + `SoftwareApplication`).
 - Defaults: `SEO_DESCRIPTION` + `SEO_KEYWORDS` in `.env` (optional). Short intro on homepage still feeds meta description.
 - **`/robots.txt`** — allows `/`, blocks `/admin`, `/api/`, webhooks; points to sitemap.
-- **`/sitemap.xml`** — `/`, `/download`, `/buy`, `/terms-and-conditions`, `/privacy`, `/refund`. Không gồm `/buy/success`.
+- **`/sitemap.xml`** — `/`, `/download`, `/buy`, `/blog`, từng bài `/blog/{slug}`, `/terms-and-conditions`, `/privacy`, `/refund`. Không gồm `/buy/success`.
+
+### Blog / bài SEO (CMS)
+
+- Công khai: **`/blog`** + **`/blog/{slug}`** (VI/EN theo cookie ngôn ngữ).
+- Admin: **`/admin/blog`** — sửa tiêu đề, HTML, meta keywords, upload ảnh (`/uploads/blog/…`), gắn URL vào nội dung (thay khối placeholder trong bài).
+- Lần chạy DB trống sẽ seed 5 bài theo keyword chính: xuất BOM, xuất body→Excel, xưởng mộc, ERP, cài đặt.
 
 ### Paddle (thanh toán quốc tế)
 

@@ -119,3 +119,29 @@ class AdminUser(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     username: Mapped[str] = mapped_column(String(80), unique=True)
     password_hash: Mapped[str] = mapped_column(String(200))
+
+
+class BlogPost(Base):
+    """Marketing / SEO article — editable in Admin → Bài viết."""
+
+    __tablename__ = "be_blog_posts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    slug: Mapped[str] = mapped_column(String(160), unique=True, index=True)
+    title_vi: Mapped[str] = mapped_column(String(300), default="")
+    title_en: Mapped[str] = mapped_column(String(300), default="")
+    excerpt_vi: Mapped[str] = mapped_column(Text, default="")
+    excerpt_en: Mapped[str] = mapped_column(Text, default="")
+    body_html_vi: Mapped[str] = mapped_column(Text, default="")
+    body_html_en: Mapped[str] = mapped_column(Text, default="")
+    meta_description_vi: Mapped[str] = mapped_column(Text, default="")
+    meta_description_en: Mapped[str] = mapped_column(Text, default="")
+    meta_keywords_vi: Mapped[str] = mapped_column(Text, default="")
+    meta_keywords_en: Mapped[str] = mapped_column(Text, default="")
+    cover_image: Mapped[str] = mapped_column(String(500), default="")  # /uploads/blog/...
+    published: Mapped[bool] = mapped_column(Boolean, default=False)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=100)
+    author_name: Mapped[str] = mapped_column(String(120), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
