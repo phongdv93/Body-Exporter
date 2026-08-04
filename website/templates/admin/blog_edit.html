@@ -74,8 +74,15 @@
       border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--bg);
     }
     .lib-item img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
-    .lib-meta { padding: 0.45rem 0.5rem; font-size: 0.72rem; color: var(--muted); }
-    .lib-meta form { margin-top: 0.35rem; }
+    .lib-assign { display: flex; flex-direction: column; gap: 0.35rem; margin-top: 0.35rem; }
+    .lib-assign select {
+      width: 100%; height: 30px; border-radius: 6px; border: 1px solid var(--border);
+      background: var(--bg); color: var(--text); font-size: 0.75rem; padding: 0 6px;
+    }
+    .slot-lib-pick {
+      width: 100%; height: 32px; border-radius: 6px; border: 1px solid var(--border);
+      background: var(--bg); color: var(--text); font-size: 0.8rem; padding: 0 8px; margin-top: 0.25rem;
+    }
     .section-title { margin: 0 0 0.35rem; font-size: 1.05rem; }
     .section-hint { margin: 0 0 0.75rem; color: var(--muted); font-size: 0.88rem; line-height: 1.45; }
     .lang-tabs { display: flex; gap: 0.4rem; margin: 0.5rem 0 0.75rem; }
@@ -155,6 +162,19 @@
               </form>
               {% endif %}
             </div>
+            {% if library %}
+            <form method="post" action="/admin/blog/{{ post.id }}/slot/{{ s.slot }}/assign" class="lib-assign">
+              {% if not post.cover_image %}
+              <input type="hidden" name="set_cover" value="1">
+              {% endif %}
+              <select name="url" class="slot-lib-pick" required onchange="if(this.value) this.form.requestSubmit()">
+                <option value="">— Dùng ảnh đã upload —</option>
+                {% for item in library %}
+                <option value="{{ item.url }}">{{ item.name }} ({{ item.size_kb }} KB)</option>
+                {% endfor %}
+              </select>
+            </form>
+            {% endif %}
           </div>
         </article>
         {% endfor %}
@@ -176,37 +196,63 @@
           <span class="muted" style="padding:1rem;text-align:center;font-size:0.9rem">Chưa có ảnh bìa</span>
           {% endif %}
         </div>
-        <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:flex-start">
-          <form method="post" action="/admin/blog/{{ post.id }}/cover" enctype="multipart/form-data">
-            <label class="btn btn-primary file-btn">
-              {% if post.cover_image %}Đổi ảnh bìa{% else %}Chọn ảnh bìa{% endif %}
-              <input type="file" name="file" accept="image/png,image/jpeg,image/webp,image/gif" required onchange="this.form.requestSubmit()">
-            </label>
-          </form>
-          {% if post.cover_image %}
-          <form method="post" action="/admin/blog/{{ post.id }}/cover/clear" onsubmit="return confirm('Gỡ ảnh bìa?');">
-            <button type="submit" class="btn btn-ghost btn-danger-soft">Gỡ ảnh bìa</button>
+        <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:flex-start;flex-direction:column">
+          <div style="display:flex;flex-wrap:wrap;gap:0.5rem">
+            <form method="post" action="/admin/blog/{{ post.id }}/cover" enctype="multipart/form-data">
+              <label class="btn btn-primary file-btn">
+                {% if post.cover_image %}Đổi ảnh bìa{% else %}Chọn ảnh bìa{% endif %}
+                <input type="file" name="file" accept="image/png,image/jpeg,image/webp,image/gif" required onchange="this.form.requestSubmit()">
+              </label>
+            </form>
+            {% if post.cover_image %}
+            <form method="post" action="/admin/blog/{{ post.id }}/cover/clear" onsubmit="return confirm('Gỡ ảnh bìa?');">
+              <button type="submit" class="btn btn-ghost btn-danger-soft">Gỡ ảnh bìa</button>
+            </form>
+            {% endif %}
+          </div>
+          {% if library %}
+          <form method="post" action="/admin/blog/{{ post.id }}/cover/assign" style="width:min(100%,320px)">
+            <select name="url" class="slot-lib-pick" required onchange="if(this.value) this.form.requestSubmit()">
+              <option value="">— Dùng ảnh đã upload làm bìa —</option>
+              {% for item in library %}
+              <option value="{{ item.url }}">{{ item.name }}</option>
+              {% endfor %}
+            </select>
           </form>
           {% endif %}
         </div>
       </div>
     </section>
 
-    {# ——— Thư viện file (xóa file sai) ——— #}
+    {# ——— Thư viện file (tái sử dụng + xóa) ——— #}
     {% if library %}
     <section class="card" style="margin-bottom:1rem">
-      <h2 class="section-title">Ảnh đã upload</h2>
-      <p class="section-hint">Xóa file up nhầm khỏi máy chủ. Nếu ảnh đang dùng trong bài, chỗ đó sẽ trở lại trống.</p>
+      <h2 class="section-title">Ảnh đã upload (dùng chung mọi bài)</h2>
+      <p class="section-hint">Chọn chỗ trống rồi gắn ảnh — không cần upload lại. Xóa file chỉ khi up nhầm.</p>
       <div class="lib-grid">
         {% for item in library %}
         <div class="lib-item">
           <img src="{{ item.url }}" alt="{{ item.name }}">
           <div class="lib-meta">
             {{ item.size_kb }} KB
-            <form method="post" action="/admin/blog/delete-file" onsubmit="return confirm('Xóa file này khỏi máy chủ?');">
+            <form method="post" action="/admin/blog/{{ post.id }}/slot/_pick_/assign" class="lib-assign" onsubmit="return libAssignSlot(this);">
+              <input type="hidden" name="url" value="{{ item.url }}">
+              <select name="slot_name" required>
+                <option value="">Gán vào chỗ…</option>
+                {% for s in slots %}
+                <option value="{{ s.slot }}">{% if s.empty %}○{% else %}●{% endif %} {{ s.slot }}</option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn btn-primary" style="height:28px;padding:0 8px;font-size:0.75rem">Gán vào bài</button>
+            </form>
+            <form method="post" action="/admin/blog/{{ post.id }}/cover/assign" style="margin-top:0.35rem">
+              <input type="hidden" name="url" value="{{ item.url }}">
+              <button type="submit" class="btn btn-ghost" style="height:28px;padding:0 8px;font-size:0.75rem;width:100%">Làm ảnh bìa</button>
+            </form>
+            <form method="post" action="/admin/blog/delete-file" onsubmit="return confirm('Xóa file này khỏi máy chủ?');" style="margin-top:0.35rem">
               <input type="hidden" name="url" value="{{ item.url }}">
               <input type="hidden" name="post_id" value="{{ post.id }}">
-              <button type="submit" class="btn btn-ghost btn-danger-soft" style="height:28px;padding:0 8px;font-size:0.75rem">Xóa file</button>
+              <button type="submit" class="btn btn-ghost btn-danger-soft" style="height:28px;padding:0 8px;font-size:0.75rem;width:100%">Xóa file</button>
             </form>
           </div>
         </div>
@@ -291,6 +337,16 @@
 
   <script src="https://cdn.jsdelivr.net/npm/tinymce@6.8.4/tinymce.min.js" referrerpolicy="origin"></script>
   <script>
+    function libAssignSlot(form) {
+      var sel = form.querySelector('select[name="slot_name"]');
+      if (!sel || !sel.value) {
+        alert('Chọn chỗ ảnh trong bài.');
+        return false;
+      }
+      form.action = '/admin/blog/{{ post.id if post else 0 }}/slot/' + encodeURIComponent(sel.value) + '/assign';
+      return true;
+    }
+
     function switchLang(lang) {
       document.querySelectorAll('.lang-tabs button').forEach(function (b) {
         b.classList.toggle('active', b.getAttribute('data-pane') === lang);

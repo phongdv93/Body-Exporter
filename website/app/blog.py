@@ -150,6 +150,7 @@ def replace_slot_image(html: str, slot: str, image_url: str, caption: str | None
         if cm:
             old_cap = re.sub(r"<[^>]+>", "", cm.group(1)).strip()
         use_cap = (caption if caption is not None and caption.strip() != "" else old_cap) or old_cap
+        use_cap = clean_public_caption(use_cap)
         return _filled_figure(slot, image_url, use_cap)
 
     new_html, n = _FIGURE_RE.subn(repl, html or "")
@@ -181,11 +182,52 @@ def collect_upload_urls(*htmls: str) -> set[str]:
     return urls
 
 
-def localized(post: BlogPost, lang: str) -> dict:
+_HINT_CAP_RE = re.compile(
+    r"^\s*(?:Ảnh\s+gợi\s+ý|Suggested)\s*:\s*",
+    re.IGNORECASE,
+)
+
+
+def clean_public_caption(text: str) -> str:
+    return _HINT_CAP_RE.sub("", text or "").strip()
+
+
+def publicize_body_html(html: str) -> str:
+    """Public pages: hide empty image slots and admin-only caption prefixes."""
+
+    def drop_empty(m: re.Match) -> str:
+        inner = m.group(4)
+        if "blog-img-placeholder" in inner.lower():
+            return ""
+        if not re.search(r"<img\b", inner, re.I):
+            return ""
+        # Keep filled figure; scrub admin hint prefixes from figcaption.
+        def scrub_cap(cm: re.Match) -> str:
+            raw = re.sub(r"<[^>]+>", "", cm.group(1))
+            cleaned = clean_public_caption(raw)
+            return f"<figcaption>{cleaned}</figcaption>" if cleaned else ""
+
+        inner2 = re.sub(r"<figcaption>([\s\S]*?)</figcaption>", scrub_cap, inner, flags=re.I)
+        return f"<figure{m.group(1)}data-slot=\"{m.group(2)}\"{m.group(3)}>{inner2}</figure>"
+
+    out = _FIGURE_RE.sub(drop_empty, html or "")
+    # Also drop any leftover placeholder blocks without data-slot.
+    out = re.sub(
+        r'<figure\b[^>]*>\s*<div\b[^>]*\bblog-img-placeholder\b[\s\S]*?</figure>',
+        "",
+        out,
+        flags=re.I,
+    )
+    return out
+
+
+def localized(post: BlogPost, lang: str, *, public: bool = True) -> dict:
     en = lang == "en"
     title = (post.title_en if en and post.title_en.strip() else post.title_vi) or post.title_vi
     excerpt = (post.excerpt_en if en and post.excerpt_en.strip() else post.excerpt_vi) or post.excerpt_vi
     body = (post.body_html_en if en and post.body_html_en.strip() else post.body_html_vi) or post.body_html_vi
+    if public:
+        body = publicize_body_html(body)
     meta_desc = (
         (post.meta_description_en if en and post.meta_description_en.strip() else post.meta_description_vi)
         or post.meta_description_vi
@@ -225,25 +267,26 @@ def get_by_slug(db: Session, slug: str, *, published_only: bool = True) -> BlogP
 
 
 def _seed_defs() -> list[dict]:
+    # Captions stay admin-facing while slots are empty (stripped on public pages).
     f1_vi, f1_en = fig(
         "bom-grid",
-        "Ảnh gợi ý: cửa sổ Body Exporter — cột Type (Detail/Hardware/Packaging), kích thước L×W×T.",
-        "Suggested: Body Exporter window — Type tags, L×W×T columns.",
+        "Cửa sổ Body Exporter — cột Type, kích thước L×W×T",
+        "Body Exporter window — Type tags, L×W×T columns",
     )
     f2_vi, f2_en = fig(
         "excel-sheets",
-        "Ảnh gợi ý: file Excel xuất ra — sheet theo Type hoặc template công ty đã fill.",
-        "Suggested: exported Excel — sheets by Type or filled company template.",
+        "File Excel xuất ra — sheet theo Type hoặc template công ty",
+        "Exported Excel — sheets by Type or filled company template",
     )
     f3_vi, f3_en = fig(
         "erp-push",
-        "Ảnh gợi ý: dialog Send to ERP / product code trên plugin.",
-        "Suggested: Send to ERP dialog with product code.",
+        "Dialog Send to ERP / product code trên plugin",
+        "Send to ERP dialog with product code",
     )
     f4_vi, f4_en = fig(
         "install",
-        "Ảnh gợi ý: Tools → Add-Ins trong SolidWorks với Body Exporter đã bật.",
-        "Suggested: SolidWorks Tools → Add-Ins with Body Exporter enabled.",
+        "Tools → Add-Ins trong SolidWorks với Body Exporter đã bật",
+        "SolidWorks Tools → Add-Ins with Body Exporter enabled",
     )
 
     return [

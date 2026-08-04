@@ -234,6 +234,31 @@ async def blog_slot_upload(
     return RedirectResponse(f"/admin/blog/{post_id}?ok=slot", status_code=303)
 
 
+@router.post("/{post_id}/slot/{slot_name}/assign")
+def blog_slot_assign(
+    post_id: int,
+    slot_name: str,
+    url: str = Form(""),
+    set_cover: str = Form(""),
+    db: Session = Depends(get_db),
+    _user=Depends(require_admin),
+):
+    """Reuse an already-uploaded /uploads/blog/… image into a slot."""
+    post = db.get(BlogPost, post_id)
+    if not post:
+        raise HTTPException(status_code=404)
+    if not _safe_upload_path(url):
+        raise HTTPException(status_code=400, detail="Ảnh thư viện không hợp lệ")
+    clean = unquote((url or "").strip())
+    post.body_html_vi = replace_slot_image(post.body_html_vi or "", slot_name, clean, lang="vi")
+    post.body_html_en = replace_slot_image(post.body_html_en or "", slot_name, clean, lang="en")
+    if set_cover in ("1", "on", "true") or not (post.cover_image or "").strip():
+        post.cover_image = clean
+    post.updated_at = datetime.utcnow()
+    db.commit()
+    return RedirectResponse(f"/admin/blog/{post_id}?ok=slot", status_code=303)
+
+
 @router.post("/{post_id}/slot/{slot_name}/clear")
 def blog_slot_clear(
     post_id: int,
@@ -263,6 +288,24 @@ async def blog_cover_upload(
         raise HTTPException(status_code=404)
     url = _save_upload(file)
     post.cover_image = url
+    post.updated_at = datetime.utcnow()
+    db.commit()
+    return RedirectResponse(f"/admin/blog/{post_id}?ok=cover", status_code=303)
+
+
+@router.post("/{post_id}/cover/assign")
+def blog_cover_assign(
+    post_id: int,
+    url: str = Form(""),
+    db: Session = Depends(get_db),
+    _user=Depends(require_admin),
+):
+    post = db.get(BlogPost, post_id)
+    if not post:
+        raise HTTPException(status_code=404)
+    if not _safe_upload_path(url):
+        raise HTTPException(status_code=400, detail="Ảnh thư viện không hợp lệ")
+    post.cover_image = unquote((url or "").strip())
     post.updated_at = datetime.utcnow()
     db.commit()
     return RedirectResponse(f"/admin/blog/{post_id}?ok=cover", status_code=303)

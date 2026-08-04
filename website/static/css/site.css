@@ -1521,6 +1521,11 @@ body.paddle-checkout-open .site-footer {
   font-size: 0.82rem;
   color: var(--muted);
 }
+/* Empty image slots are admin-only; public pages also strip them server-side. */
+.blog-body .blog-img-placeholder,
+.blog-body figure:has(.blog-img-placeholder) {
+  display: none !important;
+}
 .blog-img-placeholder {
   padding: 1.5rem 1.1rem;
   border: 1px dashed rgba(61, 214, 198, 0.45);
