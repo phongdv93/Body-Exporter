@@ -128,7 +128,6 @@ MESSAGES = {
     "buy.pricing_product": "Body Exporter — Personal license (one machine)",
     "buy.pricing_amount_label": "Price",
     "buy.pricing_vn_sub": "International checkout: about ${usd} USD",
-    "buy.pricing_intl_sub": "Reference: {vnd} VND for bank transfer in Vietnam",
     "buy.pricing_intl_pending": "Contact us for international pricing",
     "buy.pricing_term": "License term: {days} days from activation",
     "buy.pricing_f1": "Export SolidWorks bodies/parts to Excel & templates",

@@ -44,7 +44,7 @@
     <span class="pricing-label">{{ t('buy.pricing_amount_label') }}</span>
     {% if price_usd %}
     <p class="pricing-amount"><strong>${{ price_usd }} USD</strong></p>
-    <p class="pricing-sub muted">{{ t('buy.pricing_intl_sub', vnd=('{:,}'.format(amount_vnd).replace(',', '.'))) }} · {{ t('buy.pricing_per_year') }}</p>
+    <p class="pricing-sub muted">{{ t('buy.pricing_per_year') }}</p>
     {% else %}
     <p class="pricing-amount muted">{{ t('buy.pricing_intl_pending') }}</p>
     {% endif %}
