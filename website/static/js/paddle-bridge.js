@@ -221,11 +221,22 @@ window.BodyExporterPaddle = (function () {
     if (!initConfig(cfg)) {
       return Promise.reject(new Error("paddle_init_failed"));
     }
+    const email = (opts.email || "").trim();
+    cfg._pending_email = email;
     try {
-      Paddle.Checkout.open({
+      const payload = {
         items: [{ priceId: opts.priceId, quantity: opts.quantity || 1 }],
         settings: overlayCheckoutSettings(),
-      });
+      };
+      if (email) {
+        // Prefill the Paddle email field so the buyer does not retype it, and bind the
+        // license to this exact address via customData. The webhook prefers
+        // customData.buyer_email, so editing the Paddle field cannot split a renewal
+        // onto a second key.
+        payload.customer = { email: email };
+        payload.customData = { buyer_email: email };
+      }
+      Paddle.Checkout.open(payload);
       setPaddleCheckoutOpen(true);
       if (isMobileViewport()) schedulePaddleWidthFix();
       return Promise.resolve();

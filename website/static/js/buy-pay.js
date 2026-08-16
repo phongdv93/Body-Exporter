@@ -444,10 +444,12 @@
     }
     window.BodyExporterPaddle.setConfig(cfg);
     const qty = 1;
+    const prefillEmail = (root.dataset.prefillEmail || "").trim();
     const p = window.BodyExporterPaddle.openWithItems
       ? window.BodyExporterPaddle.openWithItems({
           priceId: cfg.price_id,
           quantity: qty,
+          email: prefillEmail,
         })
       : Promise.reject(new Error("no_items"));
     p.catch(function () {
