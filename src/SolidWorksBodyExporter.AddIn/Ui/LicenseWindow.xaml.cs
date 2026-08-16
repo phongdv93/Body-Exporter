@@ -131,23 +131,25 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             TryOpenUrl(url);
         }
 
+        /// <summary>
+        /// Email this machine's license is issued to, used to prefill the web checkout so a
+        /// renewal lands on the existing key. If nothing is assigned yet (fresh install or a
+        /// trial, which has no email), returns empty so the buyer types their own address.
+        /// The Sepay-memo <see cref="AppSettings.PaymentEmail"/> is deliberately ignored here:
+        /// it can go stale and point at a different person, which would split the renewal.
+        /// </summary>
         private static string ResolveLicenseEmail()
         {
-            var settings = AppSettings.LoadOrCreate();
-            if (!string.IsNullOrWhiteSpace(settings.PaymentEmail) && LooksLikeEmail(settings.PaymentEmail))
-            {
-                return settings.PaymentEmail.Trim();
-            }
-
-            if (LooksLikeEmail(settings.OnlineOwner))
-            {
-                return settings.OnlineOwner.Trim();
-            }
-
-            var owner = LicenseManager.Current.GetStatus().Owner;
+            var owner = LicenseManager.Current.GetStatus()?.Owner;
             if (LooksLikeEmail(owner))
             {
                 return owner.Trim();
+            }
+
+            var settings = AppSettings.LoadOrCreate();
+            if (LooksLikeEmail(settings.OnlineOwner))
+            {
+                return settings.OnlineOwner.Trim();
             }
 
             return string.Empty;
