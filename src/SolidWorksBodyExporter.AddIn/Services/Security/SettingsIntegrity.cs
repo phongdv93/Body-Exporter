@@ -22,6 +22,9 @@ namespace SolidWorksBodyExporter.AddIn.Services.Security
                     "SolidWorksBodyExporter"),
                 "settings.seal");
 
+        /// <summary>Whether this machine holds a seal at all, as opposed to unsealed settings.</summary>
+        public static bool HasSeal => File.Exists(SealPath);
+
         public static void Stamp(AppSettings settings, string machineFingerprint)
         {
             if (settings == null || string.IsNullOrWhiteSpace(machineFingerprint))
@@ -66,7 +69,18 @@ namespace SolidWorksBodyExporter.AddIn.Services.Security
                 return VerifyLegacyHmac(settings, machineFingerprint);
             }
 
-            return true;
+            // No seal and no legacy stamp. Settings that hold nothing sensitive are simply young —
+            // a fresh install, or one that has never signed in — and pass. But a token or an ERP
+            // key with nothing vouching for it did not come from this machine: sealing happens on
+            // every save that writes one, so their presence without a seal means the file was
+            // carried in from elsewhere.
+            return !HoldsSecrets(settings);
+        }
+
+        private static bool HoldsSecrets(AppSettings settings)
+        {
+            return !string.IsNullOrWhiteSpace(settings.CachedToken)
+                   || !string.IsNullOrWhiteSpace(settings.ErpApiKey);
         }
 
         public static void ClearSensitiveFields(AppSettings settings, string defaultApiUrl)
@@ -82,6 +96,7 @@ namespace SolidWorksBodyExporter.AddIn.Services.Security
             settings.TokenBoundMachineHash = null;
             settings.LicenseExpiresUtc = null;
             settings.LastOnlineValidationUtc = null;
+            settings.ErpApiKey = null;
             settings.SettingsHmac = null;
 
             try
@@ -138,6 +153,7 @@ namespace SolidWorksBodyExporter.AddIn.Services.Security
                 settings.LicenseExpiresUtc?.ToString("O", CultureInfo.InvariantCulture) ?? string.Empty,
                 settings.CachedTokenExpiresUtc?.ToString("O", CultureInfo.InvariantCulture) ?? string.Empty,
                 settings.LastOnlineValidationUtc?.ToString("O", CultureInfo.InvariantCulture) ?? string.Empty,
+                settings.ErpApiKey?.Trim() ?? string.Empty,
             });
         }
 

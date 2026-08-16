@@ -421,19 +421,27 @@ namespace SolidWorksBodyExporter.AddIn
                     }
                 }
 
-                // First gate: licensing. We allow the window to surface a license dialog itself for
-                // trial / expired states (which is friendlier than a modal MessageBox during the
-                // SolidWorks command callback), but truly tampered/wrong-machine files are blocked
-                // up here so the heavyweight WPF scan never runs in an unlicensed state.
+                // First gate: licensing. Trial / licensed states proceed. Anything not allowed —
+                // expired, trial exhausted, tampered, wrong machine, error — is blocked here so
+                // the exporter cannot keep running after the badge already says "expired".
                 var license = LicenseManager.Current.GetStatus();
                 DiagnosticLog.Info("License gate: source=" + license.Source + ", allowed=" + license.IsAllowed
-                                   + ", remaining=" + (license.DaysRemaining?.ToString() ?? "-"));
-                if (!license.IsAllowed &&
-                    (license.Source == LicenseSource.Tampered || license.Source == LicenseSource.WrongMachine))
+                                   + ", remaining=" + (license.DaysRemaining?.ToString() ?? "-")
+                                   + ", expires=" + (license.ExpiresUtc.HasValue
+                                       ? license.ExpiresUtc.Value.ToString("o")
+                                       : "-"));
+                if (!license.IsAllowed)
                 {
+                    var detail = string.IsNullOrWhiteSpace(license.Message)
+                        ? "This machine is not entitled to use Body Exporter."
+                        : license.Message;
                     MessageBox.Show(
-                        license.Message + System.Environment.NewLine + System.Environment.NewLine +
-                        "Machine fingerprint: " + (license.MachineFingerprint ?? "(unknown)"),
+                        detail + System.Environment.NewLine + System.Environment.NewLine
+                        + "Machine fingerprint: " + (license.MachineFingerprint ?? "(unknown)")
+                        + System.Environment.NewLine
+                        + (license.ExpiresUtc.HasValue
+                            ? "Expires: " + license.ExpiresUtc.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                            : "Days left: " + (license.DaysRemaining?.ToString() ?? "0")),
                         "Body Exporter - License blocked",
                         MessageBoxButton.OK, MessageBoxImage.Error);
                     return 0;

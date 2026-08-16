@@ -76,6 +76,7 @@ namespace SolidWorksBodyExporter.AddIn.Services
                         },
                         MaterialName = row.MaterialName,
                         ColorName = row.ColorName,
+                        Category = row.TypeId,
                         LastSeenUtc = DateTime.UtcNow
                     })
                     .ToList()

@@ -1,0 +1,212 @@
+<Window x:Class="SolidWorksBodyExporter.AddIn.Ui.BomSettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="BOM Settings"
+        Width="860"
+        Height="620"
+        MinWidth="700"
+        MinHeight="460"
+        WindowStartupLocation="CenterOwner"
+        Background="#EEF1F7"
+        FontFamily="Segoe UI, Tahoma, Arial"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True">
+
+    <Window.Resources>
+        <LinearGradientBrush x:Key="AccentGradient" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#FF58B7FF" Offset="0" />
+            <GradientStop Color="#FFBA56FF" Offset="1" />
+        </LinearGradientBrush>
+        <Style TargetType="TextBox" x:Key="FieldBox">
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="BorderBrush" Value="#FFD0D8E8" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Background" Value="White" />
+        </Style>
+        <Style TargetType="Button" x:Key="PrimaryButton">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Background" Value="{StaticResource AccentGradient}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="b" CornerRadius="6" Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="b" Property="Opacity" Value="0.86" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="Button" x:Key="SecondaryButton">
+            <Setter Property="Foreground" Value="#FF334155" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Background" Value="#FFF0F2F5" />
+            <Setter Property="BorderBrush" Value="#FFD1D9E6" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border CornerRadius="6" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="TabItem">
+            <Setter Property="Padding" Value="12,8" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+    </Window.Resources>
+
+    <DockPanel Margin="16">
+        <DockPanel DockPanel.Dock="Bottom" Margin="0,14,0,0" LastChildFill="False">
+            <Button DockPanel.Dock="Right" Content="Close" Style="{StaticResource SecondaryButton}"
+                    Width="88" IsCancel="True" Click="Close_Click" />
+            <Button DockPanel.Dock="Right" Content="Save all" Style="{StaticResource PrimaryButton}"
+                    Width="100" Margin="0,0,8,0" Click="SaveAll_Click" IsDefault="True" />
+            <TextBlock x:Name="StatusText" VerticalAlignment="Center" Foreground="#FF64748B" FontSize="12" />
+        </DockPanel>
+
+        <TabControl x:Name="SettingsTabs" Background="Transparent" BorderThickness="0">
+            <!-- Excel template -->
+            <TabItem Header="Excel template" Tag="ExcelTemplate">
+                <Border Background="White" CornerRadius="8" BorderBrush="#FFE2E8F0" BorderThickness="1" Padding="16" Margin="0,8,0,0">
+                    <StackPanel>
+                        <TextBlock Text="Default Excel template" FontSize="15" FontWeight="SemiBold" Foreground="#FF1E293B" Margin="0,0,0,6" />
+                        <TextBlock TextWrapping="Wrap" Foreground="#FF64748B" FontSize="12" Margin="0,0,0,14"
+                                   Text="Linked .xlsx used by Fill Excel template. Placeholders: {{Body Name}}, {{Type}}, {{ProductSize}}, …" />
+                        <TextBlock Text="Template file" FontWeight="SemiBold" FontSize="12" Margin="0,0,0,4" />
+                        <DockPanel Margin="0,0,0,12">
+                            <Button DockPanel.Dock="Right" Content="Browse…" Style="{StaticResource SecondaryButton}"
+                                    Width="88" Margin="8,0,0,0" Click="BrowseTemplate_Click" />
+                            <TextBox x:Name="TemplatePathBox" Style="{StaticResource FieldBox}" IsReadOnly="True" />
+                        </DockPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Open template" Style="{StaticResource PrimaryButton}"
+                                    Margin="0,0,8,0" Click="OpenTemplate_Click" />
+                            <Button Content="Clear path" Style="{StaticResource SecondaryButton}" Click="ClearTemplate_Click" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </TabItem>
+
+            <!-- BOM sort -->
+            <TabItem Header="BOM sort" Tag="BomSort">
+                <Border Background="White" CornerRadius="8" BorderBrush="#FFE2E8F0" BorderThickness="1" Padding="12" Margin="0,8,0,0">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Foreground="#FF64748B" FontSize="12" Margin="0,0,0,8"
+                                   Text="Lower priority sorts first. Keywords match body names (commas or new lines)." />
+                        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,10,0,0">
+                            <Button Content="Add tier" Style="{StaticResource SecondaryButton}" Margin="0,0,8,0" Click="AddTier_Click" />
+                            <Button Content="Remove tier" Style="{StaticResource SecondaryButton}" Click="RemoveTier_Click" />
+                        </StackPanel>
+                        <DataGrid x:Name="TiersGrid"
+                                  AutoGenerateColumns="False"
+                                  CanUserAddRows="False"
+                                  CanUserDeleteRows="False"
+                                  HeadersVisibility="Column"
+                                  GridLinesVisibility="Horizontal"
+                                  HorizontalGridLinesBrush="#FFE2E8F0"
+                                  Background="White"
+                                  BorderBrush="#FFD0D8E8"
+                                  BorderThickness="1"
+                                  RowHeight="34"
+                                  ItemsSource="{Binding Tiers}">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Priority" Binding="{Binding Priority, UpdateSourceTrigger=PropertyChanged}" Width="72" />
+                                <DataGridTextColumn Header="Group label" Binding="{Binding Label, UpdateSourceTrigger=PropertyChanged}" Width="140" />
+                                <DataGridTextColumn Header="Keywords" Binding="{Binding KeywordsText, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </DockPanel>
+                </Border>
+            </TabItem>
+
+            <!-- BOM type -->
+            <TabItem Header="BOM type" Tag="BomType">
+                <Border Background="White" CornerRadius="8" BorderBrush="#FFE2E8F0" BorderThickness="1" Padding="12" Margin="0,8,0,0">
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                            <TextBlock TextWrapping="Wrap" Foreground="#FF64748B" FontSize="12" Margin="0,0,0,10"
+                                       Text="Rename types, add custom ones, and set keywords so new body names auto-map to a type. Other is skipped for Excel/ERP unless Excel/ERP is checked." />
+                            <DockPanel>
+                                <TextBlock Text="UI language" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                <ComboBox x:Name="UiLanguageCombo" Width="200" Height="30" HorizontalAlignment="Left"
+                                          SelectionChanged="UiLanguageCombo_SelectionChanged">
+                                    <ComboBoxItem Tag="en" Content="English (default)" IsSelected="True" />
+                                    <ComboBoxItem Tag="vi" Content="Tiếng Việt (full)" />
+                                </ComboBox>
+                            </DockPanel>
+                        </StackPanel>
+                        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,10,0,0">
+                            <Button Content="Add type" Style="{StaticResource SecondaryButton}" Margin="0,0,8,0" Click="AddType_Click" />
+                            <Button Content="Remove type" Style="{StaticResource SecondaryButton}" Click="RemoveType_Click"
+                                    ToolTip="Built-in types (Detail / Hardware / Packaging / Other) cannot be removed." />
+                        </StackPanel>
+                        <DataGrid x:Name="TypesGrid"
+                                  AutoGenerateColumns="False"
+                                  CanUserAddRows="False"
+                                  CanUserDeleteRows="False"
+                                  HeadersVisibility="Column"
+                                  GridLinesVisibility="Horizontal"
+                                  HorizontalGridLinesBrush="#FFE2E8F0"
+                                  Background="White"
+                                  BorderBrush="#FFD0D8E8"
+                                  BorderThickness="1"
+                                  RowHeight="34"
+                                  ItemsSource="{Binding Types}">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Name (EN)" Binding="{Binding NameEn, UpdateSourceTrigger=PropertyChanged}" Width="110" />
+                                <DataGridTextColumn Header="Name (VI)" Binding="{Binding NameVi, UpdateSourceTrigger=PropertyChanged}" Width="110" />
+                                <DataGridTextColumn Header="Keywords (auto-type)" Binding="{Binding KeywordsText, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                                <DataGridTextColumn Header="ERP section" Binding="{Binding ErpSection, UpdateSourceTrigger=PropertyChanged}" Width="100" />
+                                <DataGridCheckBoxColumn Header="Excel" Binding="{Binding IncludeInExcel, UpdateSourceTrigger=PropertyChanged}" Width="56" />
+                                <DataGridCheckBoxColumn Header="ERP" Binding="{Binding IncludeInErp, UpdateSourceTrigger=PropertyChanged}" Width="48" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </DockPanel>
+                </Border>
+            </TabItem>
+
+            <!-- ERP connection -->
+            <TabItem Header="ERP connection" Tag="Erp">
+                <Border Background="White" CornerRadius="8" BorderBrush="#FFE2E8F0" BorderThickness="1" Padding="16" Margin="0,8,0,0">
+                    <StackPanel>
+                        <TextBlock Text="ERP CAD API" FontSize="15" FontWeight="SemiBold" Foreground="#FF1E293B" Margin="0,0,0,6" />
+                        <TextBlock TextWrapping="Wrap" Foreground="#FF64748B" FontSize="12" Margin="0,0,0,14"
+                                   Text="Base URL = site origin. API key from ERP → BOM setup → CAD connection." />
+                        <TextBlock Text="Base URL" FontWeight="SemiBold" FontSize="12" Margin="0,0,0,4" />
+                        <TextBox x:Name="ErpBaseUrlBox" Style="{StaticResource FieldBox}" Margin="0,0,0,10" />
+                        <TextBlock Text="API key" FontWeight="SemiBold" FontSize="12" Margin="0,0,0,4" />
+                        <PasswordBox x:Name="ErpApiKeyBox" Height="32" Padding="8,4" Margin="0,0,0,6"
+                                     VerticalContentAlignment="Center" BorderBrush="#FFD0D8E8" BorderThickness="1" Background="White" />
+                        <CheckBox x:Name="ShowErpKeyCheck" Content="Show API key" FontSize="11" Foreground="#FF64748B"
+                                  Margin="0,0,0,10" Checked="ShowErpKey_Changed" Unchecked="ShowErpKey_Changed" />
+                        <TextBox x:Name="ErpApiKeyPlainBox" Style="{StaticResource FieldBox}" Visibility="Collapsed" Margin="0,0,0,10" />
+                        <Button Content="Test connection" Style="{StaticResource SecondaryButton}"
+                                HorizontalAlignment="Left" Click="TestErp_Click" />
+                        <TextBlock x:Name="ErpStatusText" Margin="0,10,0,0" FontSize="12" Foreground="#FF64748B" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</Window>

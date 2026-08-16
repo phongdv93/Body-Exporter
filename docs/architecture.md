@@ -10,8 +10,34 @@ The SolidWorks add-in is responsible for:
 - Showing the review table.
 - Saving user-edited names and dimension mapping back into the `.SLDPRT`.
 - Exporting rows to Excel or clipboard.
+- Pushing BOM lines to a customer ERP (`POST /api/integrations/v1/bom/lines`) using a CAD API key.
 
 The add-in should not contain payment secrets, database passwords, Stripe/Paddle secrets, private signing keys, or plan-changing logic.
+
+## ERP BOM push
+
+Configure under **Export ▾ → ERP connection…**:
+
+| Setting | Source |
+|---------|--------|
+| Base URL | ERP site origin (e.g. `https://erp.example.com`) |
+| API key | ERP → BOM setup → CAD connection (`hp_live_…`) |
+
+Flow:
+
+1. `GET {base}/api/integrations/v1/me` — connection test (`X-API-Key`)
+2. User enters existing `productCode`
+3. `POST {base}/api/integrations/v1/bom/lines` with:
+   - `replaceSection: true`, `source: "body-exporter"`
+   - `productLengthMm` / `productWidthMm` / `productHeightMm` (overall part box, L≥W≥H mm)
+   - lines: `partCode`, `partName`, `section`, `material`, `qty`, L/W/T, `remark`
+
+**Row Type → ERP `section`:** Chi tiết → `wood` | Vật tư → `hardware` | Bao bì → `packaging`  
+Material goes in field `material` (not `section`). `remark` is appearance + part file name.
+
+**Excel:** new workbook splits sheets by Type (Chi tiết always; Vật tư / Bao bì when present). Templates use `{{Type}}`, `{{ProductLength}}`, `{{ProductWidth}}`, `{{ProductHeight}}`, `{{ProductSize}}`.
+
+Credentials live in `%APPDATA%\SolidWorksBodyExporter\settings.json` (`erpBaseUrl`, `erpApiKey`); the API key is included in the DPAPI settings seal.
 
 ## Body Metadata Persistence
 
@@ -27,7 +53,10 @@ This keeps user-controlled data inside the SolidWorks file:
 - Length/Width/Thickness mapping
 - Last known X/Y/Z size
 - Material and color snapshot
+- BOM category (Chi tiết / Vật tư / Bao bì / Khác)
 - Last seen timestamp
+
+**Type tags:** Chi tiết (green), Vật tư (orange), Bao bì (purple), Khác (gray). Click column header **Type ▾** after multi-select to apply in bulk. **Khác** is omitted from Excel/ERP unless enabled under Export → BOM type settings.
 
 Future improvement: attach metadata with SolidWorks Attribute API directly to each body or owning feature, then keep the custom property as an index and migration backup.
 

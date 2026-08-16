@@ -24,6 +24,9 @@
         <ui:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
         <ui:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter" />
         <ui:StringEmptyToVisibilityConverter x:Key="StringEmptyToVisibilityConverter" />
+        <ui:BomCategoryDisplayConverter x:Key="BomCategoryDisplayConverter" />
+        <ui:BomCategoryBackgroundConverter x:Key="BomCategoryBackgroundConverter" />
+        <ui:BomCategoryForegroundConverter x:Key="BomCategoryForegroundConverter" />
 
         <!-- ═══════════════════════════════════════════════════════════
              ROW ACTION BUTTON  –  rounded template so DataTriggers that
@@ -216,28 +219,45 @@
              ═══════════════════════════════════════════════════════════ -->
         <Style TargetType="DataGridCell" x:Key="SoftCellStyle">
             <Setter Property="VerticalContentAlignment" Value="Center" />
-            <Setter Property="VerticalAlignment"        Value="Center" />
+            <Setter Property="VerticalAlignment"        Value="Stretch" />
+            <Setter Property="HorizontalAlignment"      Value="Stretch" />
             <Setter Property="BorderThickness"          Value="0" />
             <Setter Property="Padding"                  Value="6,0" />
             <Setter Property="Background"               Value="Transparent" />
             <Setter Property="Foreground"               Value="#FF1A202C" />
+            <Setter Property="FocusVisualStyle"         Value="{x:Null}" />
+            <!-- Full cell area is hit-testable (not only the text height in the middle). -->
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridCell">
+                        <Border x:Name="CellBd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
             <Style.Triggers>
                 <DataTrigger Binding="{Binding IsDeleted}" Value="True">
                     <Setter Property="Foreground" Value="#FFB85450" />
                 </DataTrigger>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="Transparent" />
+                    <Setter Property="Background" Value="#33FF8C00" />
+                    <Setter Property="Foreground" Value="#FF0F172A" />
                 </Trigger>
             </Style.Triggers>
         </Style>
 
-        <!-- ═══════════════════════════════════════════════════════════
-             ROW STYLE  –  subtle alternation + hover + selected
-             ═══════════════════════════════════════════════════════════ -->
         <Style TargetType="DataGridRow" x:Key="SoftRowStyle">
             <Setter Property="Background"     Value="White" />
             <Setter Property="BorderBrush"    Value="#FFF0F2F7" />
             <Setter Property="BorderThickness" Value="0,0,0,1" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
             <Style.Triggers>
                 <Trigger Property="AlternationIndex" Value="1">
                     <Setter Property="Background" Value="#FAFBFF" />
@@ -245,17 +265,17 @@
                 <DataTrigger Binding="{Binding IsDeleted}" Value="True">
                     <Setter Property="Foreground" Value="#FFB85450" />
                 </DataTrigger>
-                <!-- hover only when not selected -->
                 <MultiTrigger>
                     <MultiTrigger.Conditions>
                         <Condition Property="IsMouseOver" Value="True" />
                         <Condition Property="IsSelected"  Value="False" />
                     </MultiTrigger.Conditions>
-                    <Setter Property="Background" Value="#F2F6FF" />
+                    <Setter Property="Background" Value="#FFF7F0E8" />
                 </MultiTrigger>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="#E8EFFD" />
-                    <Setter Property="BorderBrush" Value="#BDD0F5" />
+                    <Setter Property="Background" Value="#FFFFE0C2" />
+                    <Setter Property="BorderBrush" Value="#FFF0A060" />
+                    <Setter Property="BorderThickness" Value="3,0,0,1" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -295,6 +315,141 @@
                     <Setter Property="Background" Value="#FFFFEBEE" />
                 </DataTrigger>
             </Style.Triggers>
+        </Style>
+
+        <!-- Type tags: ONE size everywhere (row ComboBox, dropdown list, Type ▾ bulk popup). -->
+        <ControlTemplate x:Key="TypeTagComboToggle" TargetType="ToggleButton">
+            <Border x:Name="TagBd"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="10"
+                    Padding="{TemplateBinding Padding}"
+                    Height="24"
+                    MaxHeight="24"
+                    MinHeight="24"
+                    SnapsToDevicePixels="True"
+                    Cursor="Hand">
+                <DockPanel LastChildFill="True">
+                    <Path DockPanel.Dock="Right"
+                          Data="M 0,0 L 3.5,3.5 L 7,0"
+                          Stroke="{TemplateBinding Foreground}"
+                          StrokeThickness="1.4"
+                          VerticalAlignment="Center"
+                          Margin="4,0,0,0"
+                          IsHitTestVisible="False" />
+                    <ContentPresenter Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      VerticalAlignment="Center"
+                                      HorizontalAlignment="Left"
+                                      IsHitTestVisible="False" />
+                </DockPanel>
+            </Border>
+        </ControlTemplate>
+
+        <Style TargetType="ComboBox" x:Key="TypeTagComboBox">
+            <Setter Property="Height" Value="24" />
+            <Setter Property="MaxHeight" Value="24" />
+            <Setter Property="MinHeight" Value="24" />
+            <Setter Property="MinWidth" Value="100" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Padding" Value="8,0,6,0" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="#22000000" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid Height="24" MaxHeight="24">
+                            <ToggleButton x:Name="ToggleButton"
+                                          Template="{StaticResource TypeTagComboToggle}"
+                                          Background="{TemplateBinding Background}"
+                                          BorderBrush="{TemplateBinding BorderBrush}"
+                                          BorderThickness="{TemplateBinding BorderThickness}"
+                                          Foreground="{TemplateBinding Foreground}"
+                                          Padding="{TemplateBinding Padding}"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                          Focusable="False"
+                                          ClickMode="Press"
+                                          Height="24"
+                                          MaxHeight="24"
+                                          HorizontalAlignment="Stretch"
+                                          VerticalAlignment="Center"
+                                          Content="{TemplateBinding SelectionBoxItem}"
+                                          ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                          ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}" />
+                            <Popup x:Name="PART_Popup"
+                                   Placement="Bottom"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   PopupAnimation="Slide">
+                                <Border Margin="0,3,0,0" Background="White" CornerRadius="8"
+                                        BorderBrush="#FFE2E8F0" BorderThickness="1"
+                                        MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                        Padding="4">
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.16" Color="#FF0F172A" />
+                                    </Border.Effect>
+                                    <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained" />
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ComboBoxItem" x:Key="TypeTagComboItem">
+            <Setter Property="Height" Value="24" />
+            <Setter Property="MaxHeight" Value="24" />
+            <Setter Property="MinHeight" Value="24" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0,1" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Focusable" Value="True" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="OverridesDefaultStyle" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="Bd"
+                                Background="{Binding Converter={StaticResource BomCategoryBackgroundConverter}}"
+                                CornerRadius="10"
+                                Height="24"
+                                MaxHeight="24"
+                                MinHeight="24"
+                                Padding="8,0,6,0"
+                                BorderBrush="#22000000"
+                                BorderThickness="1"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Left"
+                                              VerticalAlignment="Center"
+                                              RecognizesAccessKey="False" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.88" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#44000000" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#66000000" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <!-- ═══════════════════════════════════════════════════════════
@@ -533,6 +688,37 @@
             </Setter>
         </Style>
 
+        <Style x:Key="ThemedExportMenuItemPriority" TargetType="MenuItem" BasedOn="{StaticResource ThemedExportMenuItem}">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="MenuItem">
+                        <Border x:Name="Bd"
+                                Background="#FFFFF3E0"
+                                CornerRadius="4"
+                                Margin="4,2"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter ContentSource="Header"
+                                              RecognizesAccessKey="True"
+                                              VerticalAlignment="Center"
+                                              TextOptions.TextFormattingMode="Display"
+                                              TextOptions.TextRenderingMode="ClearType" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#FFFFE0C2" />
+                                <Setter Property="Foreground" Value="#FF9A3412" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#FFB0B0B0" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Scrollbars — slightly slimmer; keeps default template so scrolling stays reliable -->
         <Style TargetType="ScrollBar">
             <Setter Property="SnapsToDevicePixels" Value="True" />
@@ -755,7 +941,7 @@
                                    Margin="0,0,8,0" />
                         <ComboBox x:Name="ActivePartCombo"
                                   Width="260"
-                                  Margin="0,0,16,0"
+                                  Margin="0,0,12,0"
                                   IsEditable="False"
                                   IsTextSearchEnabled="False"
                                   Style="{StaticResource ThemedComboBox}"
@@ -765,6 +951,27 @@
                                   ToolTip="Pick a part, or use “Open part…” (Ctrl+O) to open a .sldprt file."
                                   DropDownOpened="ActivePartCombo_DropDownOpened"
                                   PreviewMouseLeftButtonDown="ActivePartCombo_PreviewMouseLeftButtonDown" />
+
+                        <TextBlock Text="Overall:"
+                                   VerticalAlignment="Center"
+                                   Foreground="#FF64748B"
+                                   FontWeight="SemiBold"
+                                   FontSize="12"
+                                   Margin="0,0,6,0" />
+                        <TextBlock Text="{Binding PartOverallSizeText}"
+                                   VerticalAlignment="Center"
+                                   Foreground="#FF0F172A"
+                                   FontWeight="Bold"
+                                   FontSize="15"
+                                   MinWidth="110"
+                                   Margin="0,0,4,0"
+                                   ToolTip="Overall part bounding box (mm), Length×Width×Height" />
+                        <TextBlock Text="mm"
+                                   VerticalAlignment="Center"
+                                   Foreground="#FF64748B"
+                                   FontWeight="SemiBold"
+                                   FontSize="12"
+                                   Margin="0,0,16,0" />
 
                         <!-- Primary action buttons -->
                         <Button Content="Refresh"
@@ -817,19 +1024,20 @@
                                             <Setter Property="Background" Value="#FFE2E8F0" />
                                         </Style>
                                     </ContextMenu.Resources>
+                                    <MenuItem Header="Send to ERP server…"
+                                              Click="SendToErp_Click"
+                                              Style="{StaticResource ThemedExportMenuItemPriority}"
+                                              ToolTip="Push BOM lines to an existing ERP product via API key." />
+                                    <Separator />
                                     <MenuItem Header="New Excel workbook…" Click="ExportExcel_Click" />
                                     <MenuItem Header="Fill Excel template…" Click="ExportToTemplate_Click" />
-                                    <MenuItem Header="Excel template panel…" Click="ShowExcelTemplatePanel_Click" />
-                                    <MenuItem x:Name="OpenLastExcelOutputMenuItem"
-                                              Header="Open last filled export"
-                                              Click="OpenLastExcelOutput_Click"
-                                              Visibility="Collapsed" />
+                                    <MenuItem Header="Recent Excel exports…"
+                                              Click="RecentExports_Click"
+                                              ToolTip="Last 8 Excel workbooks (New workbook or Fill template)." />
                                     <Separator />
-                                    <MenuItem Header="BOM sort keywords…"
-                                              Click="EditSortRules_Click"
-                                              ToolTip="Edit keyword tiers used by BOM order (saved per user on this PC)." />
-                                    <MenuItem Header="Send to ERP server…" IsEnabled="False"
-                                              ToolTip="Reserved for a future release." />
+                                    <MenuItem Header="BOM Settings…"
+                                              Click="BomSettings_Click"
+                                              ToolTip="Excel template, BOM sort, types &amp; keywords, language, ERP connection." />
                                 </ContextMenu>
                             </Button.ContextMenu>
                         </Button>
@@ -896,63 +1104,12 @@
                               VerticalAlignment="Center" />
                 </Grid>
 
-                <!-- Excel template bar (Export → Excel template panel…) -->
+                <!-- Excel template bar retired — use Export → BOM Settings → Excel template -->
                 <Border x:Name="ExcelTemplateBar"
-                        Margin="0,8,0,0"
-                        Padding="8,6"
-                        CornerRadius="8"
-                        Background="#FFF8FAFC"
-                        BorderBrush="#FFE2E8F0"
-                        BorderThickness="1"
                         Visibility="Collapsed"
-                        SnapsToDevicePixels="True">
-                    <Grid x:Name="ExcelTemplateReadyPanel">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="100" />
-                            <ColumnDefinition Width="*" MinWidth="120" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0"
-                                   Text="Excel template"
-                                   VerticalAlignment="Center"
-                                   Foreground="#FF64748B"
-                                   FontSize="11"
-                                   FontWeight="SemiBold" />
-                        <TextBlock x:Name="ExcelTemplatePathText"
-                                   Grid.Column="1"
-                                   VerticalAlignment="Center"
-                                   Margin="8,0"
-                                   Foreground="#FF1E293B"
-                                   FontSize="11"
-                                   FontWeight="SemiBold"
-                                   Text="(none)"
-                                   TextTrimming="CharacterEllipsis"
-                                   ToolTip="Full path to your template file" />
-                        <Button x:Name="OpenExcelTemplateButton"
-                                Grid.Column="2"
-                                Content="Open template"
-                                Style="{StaticResource ToolbarChipAccentButton}"
-                                Margin="4,0,0,0"
-                                IsEnabled="False"
-                                Click="OpenExcelTemplate_Click"
-                                ToolTip="Open the linked .xlsx in Excel." />
-                        <Button x:Name="ChooseTemplateButton"
-                                Grid.Column="3"
-                                Content="Add new"
-                                Style="{StaticResource ToolbarChipButton}"
-                                Margin="4,0,0,0"
-                                Click="ChooseDefaultTemplate_Click"
-                                ToolTip="Choose or replace the default Excel template (.xlsx)." />
-                        <Button Grid.Column="4"
-                                Content="Hide"
-                                Style="{StaticResource ToolbarChipButton}"
-                                Margin="8,0,0,0"
-                                Click="HideExcelTemplateBar_Click"
-                                ToolTip="Collapse this panel (saved path is kept)." />
-                    </Grid>
-                </Border>
+                        Height="0"
+                        Margin="0"
+                        Padding="0" />
                 </StackPanel>
             </Border>
 
@@ -1014,6 +1171,12 @@
                           BorderThickness="0"
                           Background="White"
                           IsReadOnly="False">
+                    <DataGrid.Resources>
+                        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#FFFFE0C2" />
+                        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#FF0F172A" />
+                        <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="#FFFFE8D4" />
+                        <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="#FF0F172A" />
+                    </DataGrid.Resources>
                     <DataGrid.ContextMenu>
                         <ContextMenu>
                             <MenuItem Header="Move row up" Click="MoveRowUp_Click" />
@@ -1071,6 +1234,44 @@
                         <DataGridTextColumn Header="Body Name"
                                             Binding="{Binding DisplayName, UpdateSourceTrigger=PropertyChanged}"
                                             Width="180" />
+
+                        <DataGridTemplateColumn Width="128" x:Name="TypeColumn">
+                            <DataGridTemplateColumn.Header>
+                                <Button Content="Type ▾"
+                                        Click="TypeHeader_Click"
+                                        Cursor="Hand"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Foreground="#FF94A3B8"
+                                        FontWeight="SemiBold"
+                                        FontSize="11"
+                                        Padding="0"
+                                        HorizontalAlignment="Left"
+                                        ToolTip="Click: pick a type for all selected rows (Ctrl/Shift multi-select). Per-row tags still work." />
+                            </DataGridTemplateColumn.Header>
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <ComboBox SelectedItem="{Binding TypeId, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
+                                              ItemsSource="{Binding BomTypeIdChoices, RelativeSource={RelativeSource AncestorType=Window}}"
+                                              Style="{StaticResource TypeTagComboBox}"
+                                              ItemContainerStyle="{StaticResource TypeTagComboItem}"
+                                              VerticalAlignment="Center"
+                                              HorizontalAlignment="Left"
+                                              Background="{Binding TypeId, Converter={StaticResource BomCategoryBackgroundConverter}}"
+                                              Foreground="{Binding TypeId, Converter={StaticResource BomCategoryForegroundConverter}}">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Converter={StaticResource BomCategoryDisplayConverter}}"
+                                                           Foreground="{Binding Converter={StaticResource BomCategoryForegroundConverter}}"
+                                                           FontWeight="SemiBold"
+                                                           FontSize="11"
+                                                           VerticalAlignment="Center" />
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
 
                         <!-- DIMENSIONS ──────────────────────────────── -->
                         <DataGridTemplateColumn Header="Length"    Width="120" IsReadOnly="True" CellTemplate="{StaticResource LengthCellTemplate}" />

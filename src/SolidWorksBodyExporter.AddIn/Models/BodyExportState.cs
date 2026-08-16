@@ -28,6 +28,9 @@ namespace SolidWorksBodyExporter.AddIn.Models
 
         public string ColorName { get; set; }
 
+        /// <summary>Detail / Hardware / Packaging (persisted as enum name or int).</summary>
+        public string Category { get; set; }
+
         public DateTime LastSeenUtc { get; set; }
     }
 

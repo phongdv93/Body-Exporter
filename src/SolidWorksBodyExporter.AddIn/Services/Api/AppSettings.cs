@@ -5,6 +5,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
+using SolidWorksBodyExporter.AddIn.Models;
 
 namespace SolidWorksBodyExporter.AddIn.Services.Api
 {
@@ -115,6 +116,37 @@ namespace SolidWorksBodyExporter.AddIn.Services.Api
         /// <summary>Last successful POST /api/v1/client/ping (UTC).</summary>
         public DateTime? LastTelemetryPingUtc { get; set; }
 
+        /// <summary>
+        /// Origin of the customer ERP (e.g. <c>https://erp.example.com</c>). Used for
+        /// <c>GET /api/integrations/v1/me</c> and <c>POST /api/integrations/v1/bom/lines</c>.
+        /// </summary>
+        public string ErpBaseUrl { get; set; }
+
+        /// <summary>
+        /// Legacy slot for the ERP API key, kept only so a link made by an older build can be
+        /// moved into the sealed per-machine store and cleared from here. Live keys are held by
+        /// <c>ErpLinkStore</c>; storing one in this file let the link be copied to another PC.
+        /// </summary>
+        public string ErpApiKey { get; set; }
+
+        /// <summary>Last product code successfully used when pushing BOM lines.</summary>
+        public string ErpLastProductCode { get; set; }
+
+        /// <summary>When true, rows typed as Other are included in Excel export (legacy; prefer bom-types.json).</summary>
+        public bool ExportOtherCategoryToExcel { get; set; }
+
+        /// <summary>When true, rows typed as Other are included when pushing to ERP (legacy; prefer bom-types.json).</summary>
+        public bool ExportOtherCategoryToErp { get; set; }
+
+        /// <summary>UI language: <c>en</c> (default) or <c>vi</c>.</summary>
+        public string UiLanguage { get; set; } = "en";
+
+        /// <summary>Recent Excel export paths (newest first, max 8).</summary>
+        [Newtonsoft.Json.JsonProperty("excelExportHistory")]
+        public List<ExcelExportHistoryItem> ExcelExportHistory { get; set; } = new List<ExcelExportHistoryItem>();
+
+        public const int MaxExcelExportHistory = 8;
+
         public static AppSettings LoadOrCreate()
         {
             try
@@ -139,9 +171,15 @@ namespace SolidWorksBodyExporter.AddIn.Services.Api
                     if (parsed != null)
                     {
                         parsed.NormalizeAppliedLicenseKeys();
+                        parsed.NormalizeExcelExportHistory();
                         parsed.ApiBaseUrl = Security.ApiUrlPolicy.Normalize(
                             parsed.ApiBaseUrl,
                             Security.ApiUrlPolicy.DefaultApiBaseUrl);
+                        if (string.IsNullOrWhiteSpace(parsed.UiLanguage))
+                        {
+                            parsed.UiLanguage = "en";
+                        }
+
                         return parsed;
                     }
                 }
@@ -151,6 +189,86 @@ namespace SolidWorksBodyExporter.AddIn.Services.Api
                 DiagnosticLog.Warn("AppSettings: load failed, using defaults - " + ex.Message);
             }
             return new AppSettings();
+        }
+
+        /// <summary>Record a saved workbook path (New Excel or Fill template). Newest first, max 8.</summary>
+        public static void RememberExcelExport(string filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                return;
+            }
+
+            try
+            {
+                var settings = LoadOrCreate();
+                settings.RememberExcelExportPath(filePath.Trim());
+                settings.Save();
+            }
+            catch (Exception ex)
+            {
+                DiagnosticLog.Warn("AppSettings.RememberExcelExport failed: " + ex.Message);
+            }
+        }
+
+        public void RememberExcelExportPath(string filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                return;
+            }
+
+            ExcelTemplateLastOutputPath = filePath.Trim();
+            if (ExcelExportHistory == null)
+            {
+                ExcelExportHistory = new List<ExcelExportHistoryItem>();
+            }
+
+            ExcelExportHistory.RemoveAll(h =>
+                h == null
+                || string.IsNullOrWhiteSpace(h.Path)
+                || string.Equals(h.Path, filePath, StringComparison.OrdinalIgnoreCase));
+            ExcelExportHistory.Insert(0, new ExcelExportHistoryItem
+            {
+                Path = filePath.Trim(),
+                SavedUtc = DateTime.UtcNow
+            });
+            if (ExcelExportHistory.Count > MaxExcelExportHistory)
+            {
+                ExcelExportHistory = ExcelExportHistory.Take(MaxExcelExportHistory).ToList();
+            }
+        }
+
+        public void NormalizeExcelExportHistory()
+        {
+            if (ExcelExportHistory == null)
+            {
+                ExcelExportHistory = new List<ExcelExportHistoryItem>();
+            }
+
+            ExcelExportHistory = ExcelExportHistory
+                .Where(h => h != null && !string.IsNullOrWhiteSpace(h.Path))
+                .GroupBy(h => h.Path.Trim(), StringComparer.OrdinalIgnoreCase)
+                .Select(g => g.OrderByDescending(x => x.SavedUtc).First())
+                .OrderByDescending(h => h.SavedUtc)
+                .Take(MaxExcelExportHistory)
+                .ToList();
+
+            // Migrate single last-output path into history if missing.
+            if (!string.IsNullOrWhiteSpace(ExcelTemplateLastOutputPath)
+                && !ExcelExportHistory.Any(h =>
+                    string.Equals(h.Path, ExcelTemplateLastOutputPath, StringComparison.OrdinalIgnoreCase)))
+            {
+                ExcelExportHistory.Insert(0, new ExcelExportHistoryItem
+                {
+                    Path = ExcelTemplateLastOutputPath.Trim(),
+                    SavedUtc = DateTime.UtcNow
+                });
+                if (ExcelExportHistory.Count > MaxExcelExportHistory)
+                {
+                    ExcelExportHistory = ExcelExportHistory.Take(MaxExcelExportHistory).ToList();
+                }
+            }
         }
 
         /// <returns>false if the file could not be written.</returns>

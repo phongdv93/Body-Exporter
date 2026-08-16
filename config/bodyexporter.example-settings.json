@@ -4,7 +4,10 @@
     "_path": "%APPDATA%\\SolidWorksBodyExporter\\settings.json",
     "apiBaseUrl": "https://bodyexporter-api.bodyexporter.workers.dev",
     "licenseKey": "paste-uuid-from-purchase-email-here",
-    "excelTemplatePath": ""
+    "excelTemplatePath": "",
+    "erpBaseUrl": "https://your-erp.example.com",
+    "_erpApiKey": "Không đặt ở đây nữa. Key ERP chỉ nhập trong plugin (BOM Settings → Kết nối ERP) và được niêm phong vào %APPDATA%\\SolidWorksBodyExporter\\erp.link, khóa theo từng máy và từng tài khoản Windows. Copy file sang máy khác sẽ không mở được, máy đó phải liên kết lại.",
+    "erpLastProductCode": ""
   },
   "cloudflare_worker_clientConfig_kv": {
     "_how": "PUT /admin/client-config với Bearer ADMIN_TOKEN — xem SETUP-SERVER.md mục 8b",

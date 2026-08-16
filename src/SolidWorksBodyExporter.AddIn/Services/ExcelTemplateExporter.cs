@@ -70,12 +70,38 @@ namespace SolidWorksBodyExporter.AddIn.Services
             }
             Add(ExportColumn.Preview,    "Preview", "Thumbnail", "Image", "Anh", "Hinh");
             Add(ExportColumn.BodyName,   "Body Name", "BodyName", "Name", "Part Name", "Ten chi tiet", "Ten");
+            Add(ExportColumn.Category,   "Type", "Category", "Loai", "Section", "Bom Type");
             Add(ExportColumn.Length,     "Length", "Len", "Dai", "Chieu dai");
             Add(ExportColumn.Width,      "Width", "Rong", "Chieu rong");
             Add(ExportColumn.Thickness,  "Thickness", "Thick", "Day", "Chieu day");
             Add(ExportColumn.Quantity,   "Quantity", "Qty", "Count", "So luong", "SL");
             Add(ExportColumn.Appearance, "Appearance", "Color", "Finish", "Mau sac", "Mau");
             return map;
+        }
+
+        private static readonly Dictionary<string, string> ProductPlaceholderKeys = BuildProductKeys();
+
+        private static Dictionary<string, string> BuildProductKeys()
+        {
+            // value = canonical key used in ResolveProductPlaceholder
+            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            void Add(string canonical, params string[] aliases)
+            {
+                foreach (var a in aliases) map[a] = canonical;
+            }
+            Add("ProductLength", "ProductLength", "Product Length", "KT Dai", "Overall Length");
+            Add("ProductWidth", "ProductWidth", "Product Width", "KT Rong", "Overall Width");
+            Add("ProductHeight", "ProductHeight", "Product Height", "KT Cao", "Overall Height", "Product Thickness");
+            Add("ProductSize", "ProductSize", "Product Size", "KT Tong", "Overall Size", "Overall");
+            return map;
+        }
+
+        private static bool TryResolveProductPlaceholder(string key, out string canonical)
+        {
+            canonical = null;
+            if (string.IsNullOrWhiteSpace(key)) return false;
+            var normalised = Regex.Replace(key.Trim(), @"\s+", " ");
+            return ProductPlaceholderKeys.TryGetValue(normalised, out canonical);
         }
 
         /// <summary>
@@ -99,7 +125,11 @@ namespace SolidWorksBodyExporter.AddIn.Services
         /// placeholders were resolved, and which (if any) the user typed but we did not
         /// recognise so the user can correct their template.
         /// </summary>
-        public TemplateExportResult Export(string templatePath, string outputPath, IEnumerable<BodyExportRow> rows)
+        public TemplateExportResult Export(
+            string templatePath,
+            string outputPath,
+            IEnumerable<BodyExportRow> rows,
+            PartOverallSize overallSize = null)
         {
             if (string.IsNullOrWhiteSpace(templatePath)) throw new ArgumentException("templatePath required", nameof(templatePath));
             if (!File.Exists(templatePath))             throw new FileNotFoundException("Template file not found", templatePath);
@@ -113,6 +143,7 @@ namespace SolidWorksBodyExporter.AddIn.Services
             File.Copy(templatePath, outputPath, overwrite: true);
 
             var result = new TemplateExportResult { RowsWritten = 0, UnknownPlaceholders = new List<string>() };
+            var overall = overallSize ?? new PartOverallSize();
 
             using (var doc = SpreadsheetDocument.Open(outputPath, isEditable: true))
             {
@@ -126,15 +157,18 @@ namespace SolidWorksBodyExporter.AddIn.Services
                 {
                     var sheetData = wsPart.Worksheet.GetFirstChild<SheetData>();
                     if (sheetData == null) continue;
+                    ReplaceProductPlaceholders(sheetData, sharedStringTable, overall);
+                    wsPart.Worksheet.Save();
+                }
+
+                foreach (var wsPart in workbookPart.WorksheetParts)
+                {
+                    var sheetData = wsPart.Worksheet.GetFirstChild<SheetData>();
+                    if (sheetData == null) continue;
 
                     var placeholders = FindPlaceholdersInSheet(sheetData, sharedStringTable, result.UnknownPlaceholders);
                     if (placeholders.Count == 0) continue;
 
-                    // Only handle the first sheet that contains placeholders. A workbook
-                    // with placeholders on multiple sheets is unusual; supporting it would
-                    // also require ambiguous decisions about whether bodies replicate to
-                    // every sheet or split across them. We keep behaviour predictable:
-                    // first hit wins.
                     FillSheet(wsPart, sheetData, placeholders, rowList);
                     ExcelSpreadsheetHelper.InvalidateFormulaCaches(sheetData);
                     result.RowsWritten = rowList.Count;
@@ -170,6 +204,12 @@ namespace SolidWorksBodyExporter.AddIn.Services
                     foreach (Match m in PlaceholderRegex.Matches(text))
                     {
                         var key = m.Groups["key"].Value;
+                        if (TryResolveProductPlaceholder(key, out _))
+                        {
+                            // Product size placeholders are filled separately (once per workbook).
+                            continue;
+                        }
+
                         if (!TryResolvePlaceholder(key, out var column))
                         {
                             if (!unknownPlaceholders.Contains(key, StringComparer.OrdinalIgnoreCase))
@@ -200,6 +240,76 @@ namespace SolidWorksBodyExporter.AddIn.Services
                 .OrderBy(p => p.RowNumber)
                 .ThenBy(p => p.ColumnIndex0)
                 .ToList();
+        }
+
+        /// <summary>
+        /// Replaces {{ProductLength}} / {{ProductWidth}} / {{ProductHeight}} / {{ProductSize}}
+        /// once per cell (not per body row).
+        /// </summary>
+        private static void ReplaceProductPlaceholders(
+            SheetData sheetData,
+            SharedStringTable sharedStringTable,
+            PartOverallSize overall)
+        {
+            if (sheetData == null || overall == null)
+            {
+                return;
+            }
+
+            foreach (var row in sheetData.Elements<Row>())
+            {
+                foreach (var cell in row.Elements<Cell>())
+                {
+                    var text = ReadCellText(cell, sharedStringTable);
+                    if (string.IsNullOrEmpty(text) || text.IndexOf("{{", StringComparison.Ordinal) < 0)
+                    {
+                        continue;
+                    }
+
+                    var replaced = PlaceholderRegex.Replace(text, match =>
+                    {
+                        var key = match.Groups["key"].Value;
+                        if (!TryResolveProductPlaceholder(key, out var canonical))
+                        {
+                            return match.Value;
+                        }
+
+                        switch (canonical)
+                        {
+                            case "ProductLength":
+                                return FormatProductDim(overall.LengthMm);
+                            case "ProductWidth":
+                                return FormatProductDim(overall.WidthMm);
+                            case "ProductHeight":
+                                return FormatProductDim(overall.HeightMm);
+                            case "ProductSize":
+                                return overall.HasValue ? overall.DisplayText : string.Empty;
+                            default:
+                                return match.Value;
+                        }
+                    });
+
+                    if (!string.Equals(replaced, text, StringComparison.Ordinal))
+                    {
+                        ExcelSpreadsheetHelper.WriteTextCellPreservingStyle(cell, replaced);
+                    }
+                }
+            }
+        }
+
+        private static string FormatProductDim(double mm)
+        {
+            if (mm <= 0)
+            {
+                return string.Empty;
+            }
+
+            if (Math.Abs(mm - Math.Round(mm)) < 0.05)
+            {
+                return Math.Round(mm).ToString("0", CultureInfo.InvariantCulture);
+            }
+
+            return mm.ToString("0.###", CultureInfo.InvariantCulture);
         }
 
         /// <summary>

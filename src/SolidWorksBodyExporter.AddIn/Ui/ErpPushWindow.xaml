@@ -1,0 +1,97 @@
+<Window x:Class="SolidWorksBodyExporter.AddIn.Ui.ErpPushWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Send BOM to ERP"
+        Width="440"
+        SizeToContent="Height"
+        MinWidth="380"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="#EEF1F7"
+        FontFamily="Segoe UI, Tahoma, Arial"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True">
+
+    <Window.Resources>
+        <LinearGradientBrush x:Key="AccentGradient" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#FF58B7FF" Offset="0" />
+            <GradientStop Color="#FFBA56FF" Offset="1" />
+        </LinearGradientBrush>
+
+        <Style TargetType="TextBox" x:Key="FieldBox">
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="BorderBrush" Value="#FFD0D8E8" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Background" Value="White" />
+        </Style>
+
+        <Style TargetType="Button" x:Key="PrimaryButton">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Background" Value="{StaticResource AccentGradient}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="b" CornerRadius="6" Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="b" Property="Opacity" Value="0.86" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="Button" x:Key="SecondaryButton">
+            <Setter Property="Foreground" Value="#FF334155" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Background" Value="#FFF0F2F5" />
+            <Setter Property="BorderBrush" Value="#FFD1D9E6" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border CornerRadius="6"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Border Margin="16" Padding="16" Background="White" CornerRadius="8" BorderBrush="#FFE2E8F0" BorderThickness="1">
+        <StackPanel>
+            <TextBlock Text="ERP product code"
+                       FontSize="16" FontWeight="SemiBold" Foreground="#FF1E293B" Margin="0,0,0,6" />
+            <TextBlock x:Name="HintText" TextWrapping="Wrap" Foreground="#FF64748B" FontSize="12" Margin="0,0,0,14"
+                       Text="Enter the existing product code in ERP. BOM lines will replace the CAD section for that product." />
+
+            <TextBox x:Name="ProductCodeBox" Style="{StaticResource FieldBox}" Margin="0,0,0,16" />
+
+            <DockPanel LastChildFill="False">
+                <Button DockPanel.Dock="Right" Content="Send" Style="{StaticResource PrimaryButton}"
+                        Width="88" Margin="8,0,0,0" Click="Send_Click" IsDefault="True" />
+                <Button DockPanel.Dock="Right" Content="Cancel" Style="{StaticResource SecondaryButton}"
+                        Width="88" IsCancel="True" Click="Cancel_Click" />
+            </DockPanel>
+        </StackPanel>
+    </Border>
+</Window>

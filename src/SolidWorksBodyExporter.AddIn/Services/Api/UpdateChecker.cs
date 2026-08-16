@@ -29,6 +29,13 @@ namespace SolidWorksBodyExporter.AddIn.Services.Api
             ClientRemoteConfig config,
             Action<string> onStatusMessage)
         {
+            if (!IsRegisteredMachine())
+            {
+                onStatusMessage?.Invoke(
+                    "Máy này chưa được đăng ký. Kích hoạt license hoặc bản dùng thử trước khi kiểm tra cập nhật.");
+                return;
+            }
+
             var manifestUrl = config?.UpdateManifestUrl;
             if (string.IsNullOrWhiteSpace(manifestUrl))
             {
@@ -153,7 +160,7 @@ namespace SolidWorksBodyExporter.AddIn.Services.Api
         /// <summary>Prompt once per session when a newer build is published on the server.</summary>
         public static void PromptIfNewerAvailable(Window owner, ClientRemoteConfig config)
         {
-            if (config == null)
+            if (config == null || !IsRegisteredMachine())
             {
                 return;
             }
@@ -229,18 +236,57 @@ namespace SolidWorksBodyExporter.AddIn.Services.Api
             }
         }
 
+        /// <summary>
+        /// Whether this machine is one the server already knows — it holds a license bound to this
+        /// fingerprint, or it is inside its trial. An unknown machine does not probe for updates
+        /// at all: the server would refuse it, and asking would only leak that it exists.
+        /// </summary>
+        private static bool IsRegisteredMachine()
+        {
+            try
+            {
+                return LicenseManager.Current.GetStatus()?.IsAllowed == true;
+            }
+            catch (Exception ex)
+            {
+                DiagnosticLog.Warn("UpdateChecker: could not read licence status: " + ex.Message);
+                return false;
+            }
+        }
+
         private static string HttpGet(string url)
         {
             var request = (HttpWebRequest)WebRequest.Create(url);
             request.Method = "GET";
             request.Timeout = 10000;
             request.UserAgent = "SolidWorksBodyExporter/" + typeof(UpdateChecker).Assembly.GetName().Version;
+            ApplyMachineIdentity(request);
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls;
             using (var response = (HttpWebResponse)request.GetResponse())
             using (var stream = response.GetResponseStream())
             using (var reader = new StreamReader(stream ?? Stream.Null, Encoding.UTF8))
             {
                 return reader.ReadToEnd();
+            }
+        }
+
+        /// <summary>
+        /// Identifies the machine asking for the manifest, so the server can serve only the ones
+        /// it has on record.
+        /// </summary>
+        private static void ApplyMachineIdentity(HttpWebRequest request)
+        {
+            try
+            {
+                var fingerprint = LicenseManager.Current.GetMachineFingerprint();
+                if (!string.IsNullOrWhiteSpace(fingerprint))
+                {
+                    request.Headers["X-Machine-Id"] = fingerprint;
+                }
+            }
+            catch (Exception ex)
+            {
+                DiagnosticLog.Warn("UpdateChecker: no machine id for the update request: " + ex.Message);
             }
         }
     }

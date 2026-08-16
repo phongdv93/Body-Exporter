@@ -23,6 +23,7 @@ using SolidWorks.Interop.swconst;
 using SolidWorksBodyExporter.AddIn.Models;
 using SolidWorksBodyExporter.AddIn.Services;
 using SolidWorksBodyExporter.AddIn.Services.Api;
+using SolidWorksBodyExporter.AddIn.Services.Security;
 
 namespace SolidWorksBodyExporter.AddIn.Ui
 {
@@ -67,6 +68,10 @@ namespace SolidWorksBodyExporter.AddIn.Ui
         private readonly List<BodyExportRow> _allRows = new List<BodyExportRow>();
         private string _bodySearchQuery = string.Empty;
         private bool _autoBomEnabled;
+        private PartOverallSize _partOverallSize = new PartOverallSize();
+
+        /// <summary>ComboBox items for the Type column (type ids from bom-types.json).</summary>
+        public ObservableCollection<string> BomTypeIdChoices { get; } = new ObservableCollection<string>();
 
         private Popup _previewPopup;
         private Image _previewPopupImage;
@@ -89,6 +94,7 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             Rows = new ObservableCollection<BodyExportRow>();
             OpenParts = new ObservableCollection<OpenPartItem>();
             DataContext = this;
+            RefreshBomTypeChoices();
 
             ShowInTaskbar = true;
             WindowState = WindowState.Normal;
@@ -232,28 +238,41 @@ namespace SolidWorksBodyExporter.AddIn.Ui
         }
 
         /// <summary>
-        /// Bound to the window title so the user can confirm at a glance:
-        /// (a) which build of the add-in is currently loaded - critical when bouncing between
-        ///     rebuilds during diagnosis, and
-        /// (b) WHICH SolidWorks part file the window is operating on. When the user switches
-        ///     parts via the "Active part" dropdown, this property re-fires so the OS title
-        ///     bar updates in real time - matching the visible row data the user just selected.
+        /// Bound to the window title so the user can see WHICH SolidWorks part file the window is
+        /// operating on. When the user switches parts via the "Active part" dropdown, this property
+        /// re-fires so the OS title bar updates in real time - matching the visible row data the
+        /// user just selected. The build number lives in the footer badge only.
         /// </summary>
         public string WindowTitle
         {
             get
             {
-                var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "?";
                 var partName = SafeGetActivePartFileName(_model);
                 return string.IsNullOrEmpty(partName)
-                    ? "SolidWorks Body Exporter v" + version
-                    : "SolidWorks Body Exporter v" + version + " - " + partName;
+                    ? "SolidWorks Body Exporter"
+                    : "SolidWorks Body Exporter - " + partName;
             }
         }
 
-        /// <summary>Footer badge — same build as <see cref="WindowTitle"/>.</summary>
+        /// <summary>Footer badge — the only place the loaded build number is shown.</summary>
         public string PluginVersionLabel =>
             "v" + (Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "?");
+
+        /// <summary>Overall part size text e.g. 1200×550×1800 (mm).</summary>
+        public string PartOverallSizeText
+        {
+            get
+            {
+                if (_partOverallSize == null || !_partOverallSize.HasValue)
+                {
+                    return "—";
+                }
+
+                return _partOverallSize.DisplayText;
+            }
+        }
+
+        public PartOverallSize PartOverallSize => _partOverallSize ?? new PartOverallSize();
 
         /// <summary>
         /// Re-binds <see cref="_model"/> to a different open Part document and reloads the
@@ -812,6 +831,12 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             var candidates = new List<(int Index, ExportColumn Column)>();
             foreach (var dgColumn in BodiesGrid.Columns)
             {
+                if (ReferenceEquals(dgColumn, TypeColumn))
+                {
+                    candidates.Add((dgColumn.DisplayIndex, ExportColumn.Category));
+                    continue;
+                }
+
                 if (dgColumn.Header is string header && TryMapHeaderToExportColumn(header, out var exportColumn))
                 {
                     candidates.Add((dgColumn.DisplayIndex, exportColumn));
@@ -830,6 +855,7 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             {
                 case "Preview":    column = ExportColumn.Preview;   return true;
                 case "Body Name":  column = ExportColumn.BodyName;  return true;
+                case "Type":       column = ExportColumn.Category;  return true;
                 case "Length":     column = ExportColumn.Length;    return true;
                 case "Width":      column = ExportColumn.Width;     return true;
                 case "Thickness":  column = ExportColumn.Thickness; return true;
@@ -934,6 +960,26 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             storyboard.Begin(ToastBorder, true);
         }
 
+        private void RefreshBomTypeChoices()
+        {
+            BomTypeIdChoices.Clear();
+            foreach (var type in BomTypesService.Load().Types.OrderBy(t => t.SortOrder))
+            {
+                BomTypeIdChoices.Add(BomTypesService.NormalizeId(type.Id));
+            }
+
+            if (BomTypeIdChoices.Count == 0)
+            {
+                BomTypeIdChoices.Add(BomTypeIds.Detail);
+            }
+
+            // Refresh display names on existing rows after language/type rename.
+            foreach (var row in _allRows ?? Enumerable.Empty<BodyExportRow>())
+            {
+                row.NotifyTypeDisplayChanged();
+            }
+        }
+
         private void ExportMenuButton_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button b && b.ContextMenu != null)
@@ -944,120 +990,229 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             }
         }
 
-        private void EditSortRules_Click(object sender, RoutedEventArgs e)
+        private Popup _recentExportsPopup;
+
+        private void RecentExports_Click(object sender, RoutedEventArgs e)
         {
-            if (BomSortRulesWindow.ShowEditor(this))
+            try
             {
-                ShowToast("BOM keywords saved.", ToastKind.Success);
+                if (_recentExportsPopup != null)
+                {
+                    _recentExportsPopup.IsOpen = false;
+                    _recentExportsPopup = null;
+                }
+
+                var settings = AppSettings.LoadOrCreate();
+                var before = settings.ExcelExportHistory?.Count ?? 0;
+                settings.NormalizeExcelExportHistory();
+                // Persist migrated last-output path into history so it survives restarts.
+                if ((settings.ExcelExportHistory?.Count ?? 0) != before
+                    || (!string.IsNullOrWhiteSpace(settings.ExcelTemplateLastOutputPath)
+                        && (settings.ExcelExportHistory?.Count ?? 0) > 0))
+                {
+                    settings.Save();
+                }
+
+                var items = (settings.ExcelExportHistory ?? new List<ExcelExportHistoryItem>())
+                    .Where(h => h != null && !string.IsNullOrWhiteSpace(h.Path))
+                    .Take(AppSettings.MaxExcelExportHistory)
+                    .ToList();
+
+                var panel = new StackPanel { Margin = new Thickness(10, 10, 10, 10), MinWidth = 360 };
+                panel.Children.Add(new TextBlock
+                {
+                    Text = items.Count == 0
+                        ? "No recent Excel exports yet. Use New Excel workbook or Fill Excel template first."
+                        : "Recent Excel exports (" + items.Count + ")",
+                    FontSize = 11,
+                    FontWeight = FontWeights.SemiBold,
+                    Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF64748B")),
+                    Margin = new Thickness(2, 0, 2, 10),
+                    TextWrapping = TextWrapping.Wrap
+                });
+
+                if (items.Count == 0)
+                {
+                    panel.Children.Add(new TextBlock
+                    {
+                        Text = "(empty)",
+                        FontSize = 12,
+                        Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF94A3B8")),
+                        Margin = new Thickness(2, 0, 2, 4)
+                    });
+                }
+                else
+                {
+                    foreach (var item in items)
+                    {
+                        panel.Children.Add(CreateRecentExportRow(item));
+                    }
+                }
+
+                var chrome = new Border
+                {
+                    Background = Brushes.White,
+                    CornerRadius = new CornerRadius(10),
+                    BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFE2E8F0")),
+                    BorderThickness = new Thickness(1),
+                    Child = panel,
+                    Effect = new System.Windows.Media.Effects.DropShadowEffect
+                    {
+                        BlurRadius = 14,
+                        ShadowDepth = 2,
+                        Opacity = 0.2,
+                        Color = (Color)ColorConverter.ConvertFromString("#FF0F172A")
+                    }
+                };
+
+                UIElement placement = FindName("ExportMenuButton") as UIElement
+                                      ?? sender as UIElement
+                                      ?? this;
+
+                _recentExportsPopup = new Popup
+                {
+                    PlacementTarget = placement,
+                    Placement = PlacementMode.Bottom,
+                    AllowsTransparency = true,
+                    StaysOpen = false,
+                    PopupAnimation = PopupAnimation.Fade,
+                    Child = chrome
+                };
+                // Open after the Export ContextMenu closes so the popup is not dismissed immediately.
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (_recentExportsPopup != null)
+                    {
+                        _recentExportsPopup.IsOpen = true;
+                    }
+                }), DispatcherPriority.ApplicationIdle);
+            }
+            catch (Exception ex)
+            {
+                DiagnosticLog.Error("RecentExports_Click failed", ex);
+                ShowToast("Could not open recent exports: " + ex.Message, ToastKind.Error);
             }
         }
 
-        /// <summary>Template bar stays collapsed on open; user expands via Export menu or after linking a template.</summary>
-        private bool _excelTemplateBarExpanded;
-
-        private void ShowExcelTemplatePanel_Click(object sender, RoutedEventArgs e)
+        private UIElement CreateRecentExportRow(ExcelExportHistoryItem item)
         {
-            _excelTemplateBarExpanded = true;
-            RefreshExcelTemplateBar();
+            var path = item.Path;
+            var exists = File.Exists(path);
+            var name = Path.GetFileName(path) ?? path;
+            var when = item.SavedUtc == default
+                ? string.Empty
+                : item.SavedUtc.ToLocalTime().ToString("g", CultureInfo.CurrentCulture);
+
+            var grid = new Grid { Margin = new Thickness(0, 0, 0, 6) };
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            var label = new TextBlock
+            {
+                Text = (exists ? name : name + " (missing)")
+                        + (string.IsNullOrEmpty(when) ? string.Empty : "\n" + when),
+                FontSize = 12,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(2, 0, 10, 0),
+                ToolTip = path,
+                Foreground = exists
+                    ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF1E293B"))
+                    : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF94A3B8"))
+            };
+            Grid.SetColumn(label, 0);
+
+            var open = new Button
+            {
+                Content = "Open",
+                Width = 56,
+                Height = 28,
+                FontSize = 11,
+                FontWeight = FontWeights.SemiBold,
+                Cursor = Cursors.Hand,
+                IsEnabled = exists,
+                Tag = path,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            open.Click += RecentExportOpen_Click;
+            Grid.SetColumn(open, 1);
+
+            grid.Children.Add(label);
+            grid.Children.Add(open);
+            return grid;
         }
 
-        private void ChooseDefaultTemplate_Click(object sender, RoutedEventArgs e)
+        private void RecentExportOpen_Click(object sender, RoutedEventArgs e)
         {
-            var dlg = new OpenFileDialog
+            e.Handled = true;
+            var path = (sender as FrameworkElement)?.Tag as string;
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
             {
-                Filter = "Excel template (*.xlsx)|*.xlsx",
-                Title = "Choose Excel template (.xlsx)"
-            };
-            if (dlg.ShowDialog(this) != true)
-            {
-                RefreshExcelTemplateBar();
+                ShowToast("File not found (moved or deleted).", ToastKind.Error);
                 return;
             }
 
-            var s = AppSettings.LoadOrCreate();
-            s.ExcelTemplatePath = dlg.FileName;
-            s.Save();
-            _excelTemplateBarExpanded = true;
-            RefreshExcelTemplateBar();
-            ShowToast("Template path saved.", ToastKind.Success);
-        }
-
-        private void HideExcelTemplateBar_Click(object sender, RoutedEventArgs e)
-        {
-            _excelTemplateBarExpanded = false;
-            SetExcelTemplateBarVisible(false);
-        }
-
-        private void OpenExcelTemplate_Click(object sender, RoutedEventArgs e)
-        {
-            var path = AppSettings.LoadOrCreate().ExcelTemplatePath;
-            if (!TryOpenExternalFile(path, out var error))
+            try
             {
-                ShowToast(error, ToastKind.Error);
-                RefreshExcelTemplateBar();
+                if (_recentExportsPopup != null)
+                {
+                    _recentExportsPopup.IsOpen = false;
+                }
+
+                Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                DiagnosticLog.Error("RecentExportOpen_Click failed", ex);
+                ShowToast("Could not open file: " + ex.Message, ToastKind.Error);
             }
         }
 
-        private void OpenLastExcelOutput_Click(object sender, RoutedEventArgs e)
+        private void BomSettings_Click(object sender, RoutedEventArgs e)
         {
-            var path = AppSettings.LoadOrCreate().ExcelTemplateLastOutputPath;
-            if (!TryOpenExternalFile(path, out var error))
+            try
             {
-                ShowToast(error, ToastKind.Error);
-                RefreshExcelTemplateBar();
+                if (BomSettingsWindow.Show(this, BomSettingsTab.ExcelTemplate))
+                {
+                    RefreshBomTypeChoices();
+                    ShowToast("BOM settings saved.", ToastKind.Success);
+                }
             }
-        }
-
-        private void SetExcelTemplateBarVisible(bool visible)
-        {
-            if (ExcelTemplateBar != null)
+            catch (Exception ex)
             {
-                ExcelTemplateBar.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+                DiagnosticLog.Error("BomSettings_Click failed", ex);
+                ShowToast("BOM Settings failed: " + ex.Message, ToastKind.Error);
             }
         }
 
         private void RefreshExcelTemplateBar()
         {
-            var settings = AppSettings.LoadOrCreate();
-            var templatePath = settings.ExcelTemplatePath;
-            var hasTemplate = !string.IsNullOrWhiteSpace(templatePath) && File.Exists(templatePath);
-
-            SetExcelTemplateBarVisible(_excelTemplateBarExpanded);
-            UpdateExportMenuTemplateItems(hasTemplate);
-
-            if (ExcelTemplatePathText != null)
+            // Template UI lives in BOM Settings; keep bar hidden.
+            if (ExcelTemplateBar != null)
             {
-                if (hasTemplate)
-                {
-                    ExcelTemplatePathText.Text = Path.GetFileName(templatePath);
-                    ExcelTemplatePathText.ToolTip = templatePath;
-                }
-                else
-                {
-                    ExcelTemplatePathText.Text = "(none)";
-                    ExcelTemplatePathText.ToolTip = "No template linked yet — click Add new.";
-                }
-            }
-
-            if (OpenExcelTemplateButton != null)
-            {
-                OpenExcelTemplateButton.IsEnabled = hasTemplate;
-            }
-
-            if (ChooseTemplateButton != null)
-            {
-                ChooseTemplateButton.Content = hasTemplate ? "Change…" : "Add new";
+                ExcelTemplateBar.Visibility = Visibility.Collapsed;
             }
         }
 
-        private void UpdateExportMenuTemplateItems(bool hasTemplate)
+        private void EditSortRules_Click(object sender, RoutedEventArgs e)
         {
-            var lastPath = AppSettings.LoadOrCreate().ExcelTemplateLastOutputPath;
-            var hasLast = !string.IsNullOrWhiteSpace(lastPath) && File.Exists(lastPath);
-            if (OpenLastExcelOutputMenuItem != null)
+            if (BomSettingsWindow.Show(this, BomSettingsTab.BomSort))
             {
-                OpenLastExcelOutputMenuItem.Visibility = hasLast ? Visibility.Visible : Visibility.Collapsed;
+                ShowToast("BOM settings saved.", ToastKind.Success);
             }
+        }
+
+        private void BomTypeSettings_Click(object sender, RoutedEventArgs e)
+        {
+            if (BomSettingsWindow.Show(this, BomSettingsTab.BomType))
+            {
+                RefreshBomTypeChoices();
+                ShowToast("BOM settings saved.", ToastKind.Success);
+            }
+        }
+
+        private void ErpConnection_Click(object sender, RoutedEventArgs e)
+        {
+            BomSettingsWindow.Show(this, BomSettingsTab.Erp);
         }
 
         private static bool TryOpenExternalFile(string path, out string error)
@@ -1161,7 +1316,12 @@ namespace SolidWorksBodyExporter.AddIn.Ui
                     .Where(c => c != ExportColumn.Preview || includePreview)
                     .ToList();
 
-                _excelExporter.Export(dialog.FileName, GetRowsForExport(), columns);
+                _excelExporter.Export(
+                    dialog.FileName,
+                    GetRowsForExcelExport(),
+                    columns,
+                    PartOverallSize);
+                AppSettings.RememberExcelExport(dialog.FileName);
                 ShowToast("Excel file exported" + (includePreview ? " with previews" : string.Empty), ToastKind.Success);
             }
             catch (Exception ex)
@@ -1227,7 +1387,7 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             {
                 MaybeAutoSortBeforeExport();
                 var exporter = new ExcelTemplateExporter();
-                var result = exporter.Export(templatePath, saveDialog.FileName, GetRowsForExport());
+                var result = exporter.Export(templatePath, saveDialog.FileName, GetRowsForExcelExport(), PartOverallSize);
 
                 var msg = "Template filled with " + result.RowsWritten + " bodies";
                 if (result.UnknownPlaceholders != null && result.UnknownPlaceholders.Count > 0)
@@ -1241,8 +1401,8 @@ namespace SolidWorksBodyExporter.AddIn.Ui
                 }
 
                 settings.ExcelTemplateLastOutputPath = saveDialog.FileName;
+                settings.RememberExcelExportPath(saveDialog.FileName);
                 settings.Save();
-                _excelTemplateBarExpanded = true;
                 RefreshExcelTemplateBar();
             }
             catch (Exception ex)
@@ -1257,6 +1417,198 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             if (sender is Button button && button.DataContext is BodyExportRow row)
             {
                 row.IsEditing = !row.IsEditing;
+            }
+        }
+
+        private Popup _typeBulkPopup;
+
+        private void TypeHeader_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var selected = BodiesGrid.SelectedItems
+                    .OfType<BodyExportRow>()
+                    .Where(r => r != null && !r.IsDeleted)
+                    .ToList();
+                if (selected.Count == 0)
+                {
+                    ShowToast("Select one or more rows first (Ctrl/Shift), then click Type.", ToastKind.Info);
+                    return;
+                }
+
+                if (_typeBulkPopup != null)
+                {
+                    _typeBulkPopup.IsOpen = false;
+                    _typeBulkPopup = null;
+                }
+
+                var panel = new StackPanel { Margin = new Thickness(8, 8, 8, 8) };
+                var hint = new TextBlock
+                {
+                    Text = "Apply to " + selected.Count + " selected row(s)",
+                    FontSize = 11,
+                    Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF64748B")),
+                    Margin = new Thickness(4, 0, 4, 8)
+                };
+                panel.Children.Add(hint);
+
+                foreach (var typeId in BomTypeIdChoices)
+                {
+                    var id = typeId;
+                    var tag = CreateTypeTagChip(id);
+                    tag.MouseLeftButtonUp += (_, __) =>
+                    {
+                        if (_typeBulkPopup != null)
+                        {
+                            _typeBulkPopup.IsOpen = false;
+                        }
+
+                        ApplyTypeToRows(selected, id);
+                    };
+                    panel.Children.Add(tag);
+                }
+
+                var chrome = new Border
+                {
+                    Background = Brushes.White,
+                    CornerRadius = new CornerRadius(10),
+                    BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFE2E8F0")),
+                    BorderThickness = new Thickness(1),
+                    Child = panel,
+                    Effect = new System.Windows.Media.Effects.DropShadowEffect
+                    {
+                        BlurRadius = 14,
+                        ShadowDepth = 2,
+                        Opacity = 0.2,
+                        Color = (Color)ColorConverter.ConvertFromString("#FF0F172A")
+                    }
+                };
+
+                _typeBulkPopup = new Popup
+                {
+                    PlacementTarget = sender as UIElement,
+                    Placement = PlacementMode.Bottom,
+                    AllowsTransparency = true,
+                    StaysOpen = false,
+                    PopupAnimation = PopupAnimation.Fade,
+                    Child = chrome
+                };
+                _typeBulkPopup.IsOpen = true;
+            }
+            catch (Exception ex)
+            {
+                DiagnosticLog.Error("TypeHeader_Click failed", ex);
+                ShowToast("Could not apply Type: " + ex.Message, ToastKind.Error);
+            }
+        }
+
+        /// <summary>Same size/look as Type column ComboBox tags (Height 24, radius 10).</summary>
+        private static Border CreateTypeTagChip(string typeId)
+        {
+            return new Border
+            {
+                Background = BomCategoryInfo.BackgroundBrush(typeId),
+                CornerRadius = new CornerRadius(10),
+                Height = 24,
+                MaxHeight = 24,
+                MinHeight = 24,
+                MinWidth = 100,
+                Padding = new Thickness(8, 0, 6, 0),
+                Margin = new Thickness(0, 0, 0, 2),
+                HorizontalAlignment = HorizontalAlignment.Left,
+                BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#22000000")),
+                BorderThickness = new Thickness(1),
+                Cursor = Cursors.Hand,
+                SnapsToDevicePixels = true,
+                Child = new TextBlock
+                {
+                    Text = BomCategoryInfo.ToDisplayName(typeId),
+                    Foreground = BomCategoryInfo.ForegroundBrush(typeId),
+                    FontWeight = FontWeights.SemiBold,
+                    FontSize = 11,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    HorizontalAlignment = HorizontalAlignment.Left
+                }
+            };
+        }
+
+        private void ApplyTypeToRows(IList<BodyExportRow> rows, string typeId)
+        {
+            if (rows == null || rows.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var row in rows)
+            {
+                row.TypeId = typeId;
+            }
+
+            ShowToast(
+                "Set Type = " + BomCategoryInfo.ToDisplayName(typeId) + " on " + rows.Count + " row(s).",
+                ToastKind.Success);
+        }
+
+        private void SendToErp_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var settings = AppSettings.LoadOrCreate();
+
+                // The link is per machine and per Windows account, so a PC that has not been
+                // linked lands in the settings dialog to link itself first.
+                var client = ErpBomClient.ForThisMachine();
+                if (client == null)
+                {
+                    BomSettingsWindow.Show(this, BomSettingsTab.Erp);
+                    settings = AppSettings.LoadOrCreate();
+                    client = ErpBomClient.ForThisMachine();
+                    if (client == null)
+                    {
+                        ShowToast("ERP is not configured.", ToastKind.Error);
+                        return;
+                    }
+                }
+
+                MaybeAutoSortBeforeExport();
+                var rows = GetRowsForErpExport();
+                if (rows.Count == 0)
+                {
+                    ShowToast("No BOM lines to send (Khác rows are skipped unless enabled in BOM type settings).", ToastKind.Info);
+                    return;
+                }
+
+                var partLabel = SafeGetActivePartFileName(_model);
+                var partFileName = string.IsNullOrWhiteSpace(partLabel)
+                    ? string.Empty
+                    : partLabel + ".SLDPRT";
+
+                var pushDlg = new ErpPushWindow(settings.ErpLastProductCode, rows.Count, partLabel)
+                {
+                    Owner = this
+                };
+                if (pushDlg.ShowDialog() != true || string.IsNullOrWhiteSpace(pushDlg.ProductCode))
+                {
+                    return;
+                }
+
+                var result = client
+                    .PushBomAsync(pushDlg.ProductCode, rows, partFileName, PartOverallSize)
+                    .GetAwaiter()
+                    .GetResult();
+
+                settings.ErpLastProductCode = pushDlg.ProductCode.Trim();
+                SettingsIntegrity.Stamp(settings, Services.LicenseManager.Current.GetMachineFingerprint());
+                settings.Save();
+
+                ShowToast(
+                    "Sent " + result.LineCount + " line(s) to ERP product " + pushDlg.ProductCode.Trim() + ".",
+                    ToastKind.Success);
+            }
+            catch (Exception ex)
+            {
+                DiagnosticLog.Error("SendToErp_Click failed", ex);
+                ShowToast("ERP send failed: " + ex.Message, ToastKind.Error);
             }
         }
 
@@ -1369,6 +1721,26 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             return _allRows;
         }
 
+        private IList<BodyExportRow> GetRowsForExcelExport()
+        {
+            var settings = AppSettings.LoadOrCreate();
+            return _allRows
+                .Where(r => r != null
+                            && r.Status != BodyRowStatus.Deleted
+                            && BomCategoryInfo.IncludeInExcel(r.TypeId, settings))
+                .ToList();
+        }
+
+        private IList<BodyExportRow> GetRowsForErpExport()
+        {
+            var settings = AppSettings.LoadOrCreate();
+            return _allRows
+                .Where(r => r != null
+                            && r.Status != BodyRowStatus.Deleted
+                            && BomCategoryInfo.IncludeInErp(r.TypeId, settings))
+                .ToList();
+        }
+
         private void BodySearchBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             _bodySearchQuery = BodySearchBox?.Text ?? string.Empty;
@@ -1403,7 +1775,8 @@ namespace SolidWorksBodyExporter.AddIn.Ui
                     (row.DisplayName ?? string.Empty) + " "
                     + (row.SolidWorksBodyName ?? string.Empty) + " "
                     + (row.MaterialName ?? string.Empty) + " "
-                    + (row.ColorName ?? string.Empty));
+                    + (row.ColorName ?? string.Empty) + " "
+                    + BomCategoryInfo.ToDisplayName(row.TypeId));
                 if (hay.IndexOf(normalizedQuery, StringComparison.Ordinal) >= 0)
                 {
                     return true;
@@ -1681,6 +2054,9 @@ namespace SolidWorksBodyExporter.AddIn.Ui
         {
             _allRows.Clear();
             _allRows.AddRange(_scanner.Scan(_model));
+            _partOverallSize = BodyScanner.ReadOverallSizeMillimeters(_model);
+            OnPropertyChanged(nameof(PartOverallSizeText));
+            OnPropertyChanged(nameof(PartOverallSize));
             MaybeApplyAutoProductionSort();
             ApplyBodySearchFilter();
         }
@@ -1718,6 +2094,7 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             {
                 case ExportColumn.Preview:    return "Preview";
                 case ExportColumn.BodyName:   return "Body Name";
+                case ExportColumn.Category:   return "Type";
                 case ExportColumn.Length:     return "Length";
                 case ExportColumn.Width:      return "Width";
                 case ExportColumn.Thickness:  return "Thickness";
@@ -1736,6 +2113,7 @@ namespace SolidWorksBodyExporter.AddIn.Ui
                 // return an empty string here so generic callers (CSV, TSV, tooltip) don't NRE.
                 case ExportColumn.Preview:    return string.Empty;
                 case ExportColumn.BodyName:   return row.DisplayName ?? string.Empty;
+                case ExportColumn.Category:   return BomCategoryInfo.ToDisplayName(row.TypeId);
                 case ExportColumn.Length:     return FormatDimension(row.Length);
                 case ExportColumn.Width:      return FormatDimension(row.Width);
                 case ExportColumn.Thickness:  return FormatDimension(row.Thickness);
@@ -1768,6 +2146,7 @@ namespace SolidWorksBodyExporter.AddIn.Ui
     {
         Preview,
         BodyName,
+        Category,
         Length,
         Width,
         Thickness,

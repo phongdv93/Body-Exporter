@@ -153,4 +153,76 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             throw new NotSupportedException();
         }
     }
+
+    [Obfuscation(Feature = "renaming", Exclude = true, ApplyToMembers = true)]
+    public sealed class BomCategoryDisplayConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is Models.BomCategory category)
+            {
+                return Models.BomCategoryInfo.ToDisplayName(category);
+            }
+
+            if (value is string typeId)
+            {
+                return Models.BomCategoryInfo.ToDisplayName(typeId);
+            }
+
+            return value?.ToString() ?? string.Empty;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotSupportedException();
+        }
+    }
+
+    [Obfuscation(Feature = "renaming", Exclude = true, ApplyToMembers = true)]
+    public sealed class BomCategoryBackgroundConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is Models.BomCategory category)
+            {
+                return Models.BomCategoryInfo.BackgroundBrush(category);
+            }
+
+            if (value is string typeId)
+            {
+                return Models.BomCategoryInfo.BackgroundBrush(typeId);
+            }
+
+            return Models.BomCategoryInfo.BackgroundBrush(Models.BomTypeIds.Detail);
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotSupportedException();
+        }
+    }
+
+    [Obfuscation(Feature = "renaming", Exclude = true, ApplyToMembers = true)]
+    public sealed class BomCategoryForegroundConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is Models.BomCategory category)
+            {
+                return Models.BomCategoryInfo.ForegroundBrush(category);
+            }
+
+            if (value is string typeId)
+            {
+                return Models.BomCategoryInfo.ForegroundBrush(typeId);
+            }
+
+            return Models.BomCategoryInfo.ForegroundBrush(Models.BomTypeIds.Detail);
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotSupportedException();
+        }
+    }
 }

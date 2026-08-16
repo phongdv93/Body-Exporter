@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Windows.Media;
+using SolidWorksBodyExporter.AddIn.Services;
 
 namespace SolidWorksBodyExporter.AddIn.Models
 {
@@ -27,6 +28,18 @@ namespace SolidWorksBodyExporter.AddIn.Models
         New,
         Deleted,
         SizeChanged
+    }
+
+    /// <summary>
+    /// Legacy enum kept for metadata migration only. Runtime rows use <see cref="BodyExportRow.TypeId"/>.
+    /// </summary>
+    [Obfuscation(Feature = "renaming", Exclude = true, ApplyToMembers = true)]
+    public enum BomCategory
+    {
+        Detail = 0,
+        Hardware = 1,
+        Packaging = 2,
+        Other = 3
     }
 
     [Obfuscation(Feature = "renaming", Exclude = true, ApplyToMembers = true)]
@@ -54,6 +67,7 @@ namespace SolidWorksBodyExporter.AddIn.Models
         private DimensionAxis _thicknessAxis;
         private bool _isEditing;
         private ImageSource _thumbnail;
+        private string _typeId = BomTypeIds.Detail;
 
         public string PluginBodyId { get; set; }
 
@@ -187,6 +201,58 @@ namespace SolidWorksBodyExporter.AddIn.Models
 
         public string MaterialDisplay => string.IsNullOrWhiteSpace(MaterialName) ? "Default" : MaterialName;
 
+        /// <summary>BOM type id (detail/hardware/packaging/other/custom…).</summary>
+        public string TypeId
+        {
+            get => string.IsNullOrWhiteSpace(_typeId) ? BomTypeIds.Detail : _typeId;
+            set
+            {
+                var next = BomTypesService.NormalizeId(value);
+                if (string.Equals(_typeId, next, StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+
+                _typeId = next;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CategoryDisplay));
+            }
+        }
+
+        public string CategoryDisplay => BomTypesService.DisplayName(TypeId);
+
+        /// <summary>Refresh Type label after language or type rename.</summary>
+        public void NotifyTypeDisplayChanged()
+        {
+            OnPropertyChanged(nameof(CategoryDisplay));
+            OnPropertyChanged(nameof(TypeId));
+        }
+
+        /// <summary>Legacy alias — prefer <see cref="TypeId"/>.</summary>
+        public BomCategory Category
+        {
+            get
+            {
+                switch (TypeId)
+                {
+                    case BomTypeIds.Hardware: return BomCategory.Hardware;
+                    case BomTypeIds.Packaging: return BomCategory.Packaging;
+                    case BomTypeIds.Other: return BomCategory.Other;
+                    default: return BomCategory.Detail;
+                }
+            }
+            set
+            {
+                switch (value)
+                {
+                    case BomCategory.Hardware: TypeId = BomTypeIds.Hardware; break;
+                    case BomCategory.Packaging: TypeId = BomTypeIds.Packaging; break;
+                    case BomCategory.Other: TypeId = BomTypeIds.Other; break;
+                    default: TypeId = BomTypeIds.Detail; break;
+                }
+            }
+        }
+
         public string ColorName { get; set; }
 
         public string TextureName { get; set; }
@@ -214,6 +280,19 @@ namespace SolidWorksBodyExporter.AddIn.Models
         }
 
         public int Quantity { get; set; } = 1;
+
+        /// <summary>
+        /// Solid volume in mm³, read at scan time. Used only to decide which bodies share a BOM
+        /// line; it is never shown or exported, and stays null for a body SolidWorks would not
+        /// measure.
+        /// </summary>
+        public double? VolumeMm3 { get; set; }
+
+        /// <summary>Face count at scan time, for telling equally-sized bodies apart.</summary>
+        public int FaceCount { get; set; }
+
+        /// <summary>Inner-loop count at scan time — the trace a hole or pocket leaves.</summary>
+        public int InnerLoopCount { get; set; }
 
         /// <summary>
         /// Names of every SolidWorks body that this row represents after identical-body grouping.

@@ -46,37 +46,46 @@ namespace SolidWorksBodyExporter.AddIn.Services
                 var body = (Body2)bodyObject;
                 var bodyName = body.Name;
                 seenBodyNames.Add(bodyName);
-                // Remember this name was alive at least once in the current SolidWorks process.
-                // The Deleted-row emission below uses this to suppress historical noise from
-                // bodies that vanished in some prior session (or were renamed away).
                 SessionBodyTracker.MarkAlive(bodyName);
 
-                var size = ReadBodySizeMillimeters(body);
+                // Use new dimension calculator for accurate length/width/thickness
+                var dims = BodyDimensionCalculator.ComputeDimensions(body);
+                var size = new StoredBodySize { X = dims.X, Y = dims.Y, Z = dims.Z };
+
                 var stored = storedByBodyName.TryGetValue(bodyName, out var storedMetadata) ? storedMetadata : null;
-                var mapping = stored?.Mapping ?? BodyDimensionService.CreateDefaultMapping(size.X, size.Y, size.Z);
+                // Use computed axis mapping, or fall back to stored/default
+                var lengthAxis = stored?.Mapping?.LengthAxis ?? dims.LengthAxis;
+                var widthAxis = stored?.Mapping?.WidthAxis ?? dims.WidthAxis;
+                var thicknessAxis = stored?.Mapping?.ThicknessAxis ?? dims.ThicknessAxis;
+
                 var status = stored == null
                     ? BodyRowStatus.New
-                    : BodyDimensionService.IsSizeChanged(stored.LastKnownSize, size.X, size.Y, size.Z)
+                    : BodyDimensionService.IsSizeChanged(stored.LastKnownSize, dims.X, dims.Y, dims.Z)
                         ? BodyRowStatus.SizeChanged
                         : BodyRowStatus.Unchanged;
 
                 var appearance = appearanceReader.Read(body);
+                var shape = BodyShapeSignature.Read(body);
                 rows.Add(new BodyExportRow
                 {
                     PluginBodyId = stored?.PluginBodyId ?? Guid.NewGuid().ToString("N"),
                     SolidWorksBodyName = bodyName,
                     DisplayName = string.IsNullOrWhiteSpace(stored?.DisplayName) ? bodyName : stored.DisplayName,
-                    X = size.X,
-                    Y = size.Y,
-                    Z = size.Z,
-                    LengthAxis = mapping.LengthAxis,
-                    WidthAxis = mapping.WidthAxis,
-                    ThicknessAxis = mapping.ThicknessAxis,
+                    X = dims.X,
+                    Y = dims.Y,
+                    Z = dims.Z,
+                    LengthAxis = lengthAxis,
+                    WidthAxis = widthAxis,
+                    ThicknessAxis = thicknessAxis,
                     MaterialName = ReadBodyMaterial(body, activeConfigName),
                     ColorName = appearance?.ColorName ?? ReadBodyColor(body),
                     TextureName = appearance?.TextureName,
                     ColorHex = appearance?.ColorHex,
+                    TypeId = ResolveTypeId(stored, string.IsNullOrWhiteSpace(stored?.DisplayName) ? bodyName : stored.DisplayName, bodyName),
                     Quantity = 1,
+                    VolumeMm3 = shape.VolumeMm3,
+                    FaceCount = shape.FaceCount,
+                    InnerLoopCount = shape.InnerLoopCount,
                     Status = status,
                     Thumbnail = BodyThumbnailRenderer.Render(body)
                 });
@@ -104,6 +113,7 @@ namespace SolidWorksBodyExporter.AddIn.Services
                     ThicknessAxis = deleted.Mapping?.ThicknessAxis ?? DimensionAxis.Z,
                     MaterialName = deleted.MaterialName,
                     ColorName = deleted.ColorName,
+                    TypeId = ResolveTypeId(deleted, deleted.DisplayName, deleted.SolidWorksBodyName),
                     Quantity = 1,
                     Status = BodyRowStatus.Deleted
                 });
@@ -124,49 +134,245 @@ namespace SolidWorksBodyExporter.AddIn.Services
         /// own rows so the UI can show the user which historical entries are now gone.
         /// </para>
         /// </summary>
+        /// <summary>Bodies whose every dimension agrees this closely are the same stock size.</summary>
+        private const double DimensionToleranceMm = 0.3;
+
+        /// <summary>
+        /// Volume agreement required of one BOM line. Two copies of the same body agree to a
+        /// millionth, while a different mitre angle on the same stock shifts volume by percent, so
+        /// half a percent separates the two cases with room to spare.
+        /// </summary>
+        private const double VolumeTolerance = 0.005;
+
         private static IEnumerable<BodyExportRow> GroupIdenticalRows(List<BodyExportRow> rows)
         {
             var deleted = rows.Where(r => r.Status == BodyRowStatus.Deleted).ToList();
-            var live = rows.Where(r => r.Status != BodyRowStatus.Deleted).ToList();
 
-            var grouped = live
-                .GroupBy(BuildGroupKey)
-                .Select(g =>
+            // Body name order makes the clustering repeatable: the same body always becomes the
+            // representative its siblings are compared against, whatever order SolidWorks hands
+            // the bodies over in.
+            var live = rows
+                .Where(r => r.Status != BodyRowStatus.Deleted)
+                .OrderBy(r => r.SolidWorksBodyName, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var clusters = new List<List<BodyExportRow>>();
+            foreach (var row in live)
+            {
+                var joined = false;
+                foreach (var cluster in clusters)
                 {
-                    // Keep the alphabetically-first body as the representative so the ordering is
-                    // stable across scans even when SolidWorks returns the body list in a slightly
-                    // different order between sessions.
-                    var representative = g.OrderBy(r => r.SolidWorksBodyName, StringComparer.OrdinalIgnoreCase).First();
-                    representative.Quantity = g.Count();
-                    representative.GroupMemberBodyNames = g
-                        .Select(r => r.SolidWorksBodyName)
-                        .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
-                        .ToList();
-                    return representative;
-                });
+                    if (BelongsTogether(cluster[0], row))
+                    {
+                        cluster.Add(row);
+                        joined = true;
+                        break;
+                    }
+                }
+
+                if (!joined)
+                {
+                    clusters.Add(new List<BodyExportRow> { row });
+                }
+            }
+
+            var grouped = clusters.Select(cluster =>
+            {
+                var representative = cluster[0];
+                representative.Quantity = cluster.Count;
+                representative.GroupMemberBodyNames = cluster
+                    .Select(r => r.SolidWorksBodyName)
+                    .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                LogCluster(cluster);
+                return representative;
+            });
 
             return grouped.Concat(deleted);
         }
 
-        private static string BuildGroupKey(BodyExportRow row)
+        /// <summary>
+        /// Whether two bodies belong on one BOM line.
+        ///
+        /// <para>
+        /// Dimensions and volume are compared with a tolerance rather than rounded to a fixed
+        /// number of decimals. Rounding splits on which side of a boundary a value falls, so two
+        /// bodies 0.0002 mm apart could land in different rows while two bodies 0.0099 mm apart
+        /// shared one. A tolerance answers the question actually being asked: how far apart are
+        /// they.
+        /// </para>
+        ///
+        /// <para>
+        /// Volume and the topology counts are what separate bodies cut from the same stock:
+        /// a different mitre angle changes the volume, and a drilled hole — however small — adds
+        /// a face and two inner loops. Both survive rotation and mirroring, so a mirrored pair
+        /// still shares its line.
+        /// </para>
+        /// </summary>
+        private static bool BelongsTogether(BodyExportRow a, BodyExportRow b)
         {
-            // Sort the raw bounding-box dimensions before hashing so that two bodies which are
-            // congruent but rotated (e.g. one with X=Length and another with Y=Length) still hash
-            // to the same group. Round to 2 decimal places (0.01 mm) to absorb tessellation noise
-            // from GetBodyBox.
-            var dims = new[] { row.X, row.Y, row.Z }
-                .Select(v => Math.Round(v, 2))
-                .OrderBy(v => v)
-                .ToArray();
+            if (!string.Equals(Normalize(a.MaterialName), Normalize(b.MaterialName), StringComparison.Ordinal) ||
+                !string.Equals(Normalize(a.TextureName), Normalize(b.TextureName), StringComparison.Ordinal) ||
+                !string.Equals(Normalize(a.ColorHex), Normalize(b.ColorHex), StringComparison.Ordinal) ||
+                !string.Equals(
+                    BomTypesService.NormalizeId(a.TypeId),
+                    BomTypesService.NormalizeId(b.TypeId),
+                    StringComparison.Ordinal))
+            {
+                return false;
+            }
 
-            return string.Join(
-                "|",
-                dims[0].ToString("F2", CultureInfo.InvariantCulture),
-                dims[1].ToString("F2", CultureInfo.InvariantCulture),
-                dims[2].ToString("F2", CultureInfo.InvariantCulture),
-                (row.MaterialName ?? string.Empty).Trim().ToUpperInvariant(),
-                (row.TextureName ?? string.Empty).Trim().ToUpperInvariant(),
-                (row.ColorHex ?? string.Empty).Trim().ToUpperInvariant());
+            if (a.FaceCount != b.FaceCount || a.InnerLoopCount != b.InnerLoopCount)
+            {
+                return false;
+            }
+
+            var left = SortedDimensions(a);
+            var right = SortedDimensions(b);
+            for (var i = 0; i < 3; i++)
+            {
+                if (Math.Abs(left[i] - right[i]) > DimensionToleranceMm)
+                {
+                    return false;
+                }
+            }
+
+            return VolumesAgree(a.VolumeMm3, b.VolumeMm3);
+        }
+
+        /// <summary>
+        /// Dimensions sorted so a body standing on a different axis than its twin still matches.
+        /// </summary>
+        private static double[] SortedDimensions(BodyExportRow row)
+        {
+            var dims = new[] { row.X, row.Y, row.Z };
+            Array.Sort(dims);
+            return dims;
+        }
+
+        private static bool VolumesAgree(double? a, double? b)
+        {
+            // An unmeasured body is grouped on its dimensions alone, as it was before volume was
+            // read at all. Refusing to group it would split rows over a SolidWorks hiccup.
+            if (!a.HasValue || !b.HasValue || a.Value <= 0 || b.Value <= 0)
+            {
+                return true;
+            }
+
+            var reference = Math.Max(a.Value, b.Value);
+            return Math.Abs(a.Value - b.Value) <= reference * VolumeTolerance;
+        }
+
+        private static string Normalize(string value)
+        {
+            return (value ?? string.Empty).Trim().ToUpperInvariant();
+        }
+
+        /// <summary>
+        /// Records what every row was grouped on, so a report of "these two should have merged"
+        /// can be answered by reading which figure differed.
+        /// </summary>
+        private static void LogCluster(List<BodyExportRow> cluster)
+        {
+            foreach (var row in cluster)
+            {
+                var dims = SortedDimensions(row);
+                DiagnosticLog.Info(
+                    "BodyScanner group " + cluster[0].SolidWorksBodyName
+                    + " x" + cluster.Count.ToString(CultureInfo.InvariantCulture)
+                    + ": " + row.SolidWorksBodyName
+                    + " dims=" + Fmt(dims[2]) + "/" + Fmt(dims[1]) + "/" + Fmt(dims[0])
+                    + " volume=" + (row.VolumeMm3.HasValue ? Fmt(row.VolumeMm3.Value) : "-")
+                    + " faces=" + row.FaceCount.ToString(CultureInfo.InvariantCulture)
+                    + " innerLoops=" + row.InnerLoopCount.ToString(CultureInfo.InvariantCulture));
+            }
+        }
+
+        private static string Fmt(double value)
+        {
+            return value.ToString("F2", CultureInfo.InvariantCulture);
+        }
+
+        private static string ResolveTypeId(StoredBodyMetadata stored, string displayName, string bodyName)
+        {
+            if (stored != null && !string.IsNullOrWhiteSpace(stored.Category))
+            {
+                return BomTypesService.NormalizeId(stored.Category);
+            }
+
+            return BomTypesService.MatchTypeId(displayName, bodyName) ?? BomTypeIds.Detail;
+        }
+
+        /// <summary>
+        /// Axis-aligned bounding box of all solid bodies in the part, in mm, ordered
+        /// Length ≥ Width ≥ Height (same convention as default body mapping).
+        /// </summary>
+        public static PartOverallSize ReadOverallSizeMillimeters(ModelDoc2 model)
+        {
+            var empty = new PartOverallSize();
+            if (model == null || model.GetType() != (int)swDocumentTypes_e.swDocPART)
+            {
+                return empty;
+            }
+
+            var part = (PartDoc)model;
+            var bodyObjects = (object[])part.GetBodies2((int)swBodyType_e.swSolidBody, false) ?? Array.Empty<object>();
+            if (bodyObjects.Length == 0)
+            {
+                return empty;
+            }
+
+            double minX = double.MaxValue, minY = double.MaxValue, minZ = double.MaxValue;
+            double maxX = double.MinValue, maxY = double.MinValue, maxZ = double.MinValue;
+            var any = false;
+
+            foreach (var bodyObject in bodyObjects)
+            {
+                if (!(bodyObject is Body2 body))
+                {
+                    continue;
+                }
+
+                double[] box;
+                try
+                {
+                    box = (double[])body.GetBodyBox();
+                }
+                catch
+                {
+                    continue;
+                }
+
+                if (box == null || box.Length < 6)
+                {
+                    continue;
+                }
+
+                any = true;
+                minX = Math.Min(minX, Math.Min(box[0], box[3]));
+                minY = Math.Min(minY, Math.Min(box[1], box[4]));
+                minZ = Math.Min(minZ, Math.Min(box[2], box[5]));
+                maxX = Math.Max(maxX, Math.Max(box[0], box[3]));
+                maxY = Math.Max(maxY, Math.Max(box[1], box[4]));
+                maxZ = Math.Max(maxZ, Math.Max(box[2], box[5]));
+            }
+
+            if (!any)
+            {
+                return empty;
+            }
+
+            var x = ToMillimeters(Math.Abs(maxX - minX));
+            var y = ToMillimeters(Math.Abs(maxY - minY));
+            var z = ToMillimeters(Math.Abs(maxZ - minZ));
+            var ordered = new[] { x, y, z }.OrderByDescending(v => v).ToArray();
+            return new PartOverallSize
+            {
+                LengthMm = ordered[0],
+                WidthMm = ordered[1],
+                HeightMm = ordered[2]
+            };
         }
 
         public void SaveNamesToSolidWorks(ModelDoc2 model, IEnumerable<BodyExportRow> rows)
@@ -322,31 +528,14 @@ namespace SolidWorksBodyExporter.AddIn.Services
 
         private static StoredBodySize ReadBodySizeMillimeters(Body2 body)
         {
-            var box = (double[])body.GetBodyBox();
-            var x = ToMillimeters(Math.Abs(box[3] - box[0]));
-            var y = ToMillimeters(Math.Abs(box[4] - box[1]));
-            var z = ToMillimeters(Math.Abs(box[5] - box[2]));
+            var dims = BodyDimensionCalculator.ComputeDimensions(body);
+            return new StoredBodySize { X = dims.X, Y = dims.Y, Z = dims.Z };
+        }
 
-            var wall = BodyProfileThicknessReader.TryReadWallThicknessMillimeters(body);
-            if (wall.HasValue)
-            {
-                var adjusted = BodyProfileThicknessReader.AdjustBoundingSizeForCurvedProfile(x, y, z, wall.Value);
-                x = adjusted.X;
-                y = adjusted.Y;
-                z = adjusted.Z;
-            }
-
-            var profileWidth = BodyProfileWidthReader.TryMeasureMaxCrossSectionWidthMillimeters(body, x, y, z);
-            if (profileWidth.HasValue)
-            {
-                var widthAxis = BodyProfileWidthReader.MiddleAxisIndex(x, y, z);
-                var replaced = BodyProfileWidthReader.ReplaceAxisMillimeters(x, y, z, widthAxis, profileWidth.Value);
-                x = replaced.X;
-                y = replaced.Y;
-                z = replaced.Z;
-            }
-
-            return new StoredBodySize { X = x, Y = y, Z = z };
+        public static (double X, double Y, double Z, DimensionAxis LengthAxis, DimensionAxis WidthAxis, DimensionAxis ThicknessAxis)
+            ComputeBodyDimensions(Body2 body)
+        {
+            return BodyDimensionCalculator.ComputeDimensions(body);
         }
 
         private static double ToMillimeters(double meters)
