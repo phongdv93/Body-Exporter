@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import math
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -293,7 +294,7 @@ def list_machines_for_admin(db: Session) -> list[dict[str, Any]]:
         expiry_state = "none"
         if expires_at is not None:
             delta = expires_at - now
-            days_left = int(delta.total_seconds() // 86400)
+            days_left = max(0, math.ceil(delta.total_seconds() / 86400))
             if delta.total_seconds() <= 0:
                 expiry_state = "expired"
                 days_left = 0

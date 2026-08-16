@@ -1,5 +1,6 @@
 """Admin CRUD for issued licenses (Postgres)."""
 
+import math
 from datetime import datetime
 from urllib.parse import quote, unquote
 
@@ -50,7 +51,7 @@ def _licenses_ctx(
         expiry_state = "none"
         if lic.expires_at is not None:
             delta = lic.expires_at - now
-            days_left = int(delta.total_seconds() // 86400)
+            days_left = max(0, math.ceil(delta.total_seconds() / 86400))
             if delta.total_seconds() <= 0:
                 expiry_state = "expired"
                 days_left = 0
