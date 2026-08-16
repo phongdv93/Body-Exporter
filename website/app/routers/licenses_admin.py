@@ -1,5 +1,6 @@
 """Admin CRUD for issued licenses (Postgres)."""
 
+from datetime import datetime
 from urllib.parse import quote, unquote
 
 from fastapi import APIRouter, Depends, Form, Request
@@ -42,9 +43,32 @@ def _licenses_ctx(
 ):
     rows = db.scalars(select(License).order_by(License.purchased_at.desc())).all()
     content = get_content(db)
+    now = datetime.utcnow()
+    license_rows = []
+    for lic in rows:
+        days_left = None
+        expiry_state = "none"
+        if lic.expires_at is not None:
+            delta = lic.expires_at - now
+            days_left = int(delta.total_seconds() // 86400)
+            if delta.total_seconds() <= 0:
+                expiry_state = "expired"
+                days_left = 0
+            elif days_left <= 14:
+                expiry_state = "soon"
+            else:
+                expiry_state = "ok"
+        license_rows.append(
+            {
+                "lic": lic,
+                "days_left": days_left,
+                "expiry_state": expiry_state,
+            }
+        )
     return {
         "request": request,
         "licenses": rows,
+        "license_rows": license_rows,
         "content": content,
         "saved": saved,
         "error": error,

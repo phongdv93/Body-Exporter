@@ -109,6 +109,8 @@
         Nguồn: heartbeat plugin + license đã kích hoạt (Worker/Postgres). Mở lại SolidWorks sau khi deploy bản plugin mới để cập nhật IP/tên máy.
         Đang dùng = ping trong {{ telemetry_active_days }} ngày;
         có thể đã gỡ = không ping &gt; {{ telemetry_inactive_days }} ngày.
+        Cột <strong>Hạn CRM</strong> lấy từ license gắn fingerprint trong /admin/licenses — so với badge
+        <code>Licensed • Nd</code> trên plugin để phát hiện máy hết hạn mà vẫn báo còn ngày.
       </p>
       {% if machines %}
       <div class="machines-table-wrap">
@@ -121,8 +123,9 @@
               <th>IP</th>
               <th>Vị trí</th>
               <th>Trạng thái</th>
-              <th>License</th>
-              <th>Đã mua</th>
+              <th>Plugin báo</th>
+              <th>Hạn CRM</th>
+              <th>Email / plan</th>
             </tr>
           </thead>
           <tbody>
@@ -138,8 +141,32 @@
               <td>{{ m.last_ip or '—' }}</td>
               <td>{{ row.location }}</td>
               <td><span class="usage-badge usage-{{ row.usage }}">{{ row.usage_label }}</span></td>
-              <td>{{ row.license_label }}</td>
-              <td>{% if m.has_purchased_license %}<span class="ok">Có</span>{% else %}<span class="muted">Chưa</span>{% endif %}</td>
+              <td>
+                {{ row.license_label }}
+                {% if m.has_purchased_license %}<span class="muted"> · đã mua</span>{% endif %}
+                {% if m.plugin_version %}<br><span class="muted fine-print">v{{ m.plugin_version }}</span>{% endif %}
+              </td>
+              <td>
+                {% if row.crm_expires_at %}
+                <span class="expiry-{{ row.crm_expiry_state }}">
+                  {{ row.crm_expires_at.strftime('%d/%m/%Y') }}
+                  {% if row.crm_days_left is not none %}
+                  <br>
+                  {% if row.crm_expiry_state == 'expired' %}
+                  <strong>Hết hạn</strong>
+                  {% else %}
+                  còn <strong>{{ row.crm_days_left }}</strong> ngày
+                  {% endif %}
+                  {% endif %}
+                </span>
+                {% else %}
+                <span class="muted">—</span>
+                {% endif %}
+              </td>
+              <td class="muted">
+                {% if row.crm_email %}{{ row.crm_email }}{% else %}—{% endif %}
+                {% if row.crm_plan %}<br><span class="fine-print">{{ row.crm_plan }}</span>{% endif %}
+              </td>
             </tr>
             {% endfor %}
           </tbody>

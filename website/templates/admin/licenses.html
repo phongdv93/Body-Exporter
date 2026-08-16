@@ -65,13 +65,14 @@
       <div class="license-grid-head" aria-hidden="true">
         <span>Key</span>
         <span>Email</span>
-        <span>Mua / hết hạn</span>
+        <span>Mua / hết hạn / còn lại</span>
         <span>Fingerprint</span>
         <span>Ghi chú</span>
         <span>TT</span>
         <span></span>
       </div>
-      {% for lic in licenses %}
+      {% for row in license_rows %}
+      {% set lic = row.lic %}
       <form method="post" action="/admin/licenses/edit" class="admin-row-form license-row">
         <input type="hidden" name="license_id" value="{{ lic.id }}">
         <div class="col-key-wrap">
@@ -82,6 +83,12 @@
         <span class="col-dates muted">
           {% if lic.purchased_at %}{{ lic.purchased_at.strftime('%d/%m/%y') }}{% else %}—{% endif %}
           → {% if lic.expires_at %}{{ lic.expires_at.strftime('%d/%m/%y') }}{% else %}—{% endif %}
+          {% if row.days_left is not none %}
+          <br>
+          <span class="expiry-{{ row.expiry_state }}">
+            {% if row.expiry_state == 'expired' %}Hết hạn{% else %}Còn {{ row.days_left }} ngày{% endif %}
+          </span>
+          {% endif %}
           {% if lic.sepay_transaction_id %} · tx{{ lic.sepay_transaction_id }}{% endif %}
         </span>
         <input type="text" name="machine_fingerprint" value="{{ lic.machine_fingerprint or '' }}" placeholder="Fingerprint" class="col-fp">

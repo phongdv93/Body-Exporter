@@ -260,10 +260,48 @@ def sync_known_machines_from_crm(db: Session) -> int:
 def list_machines_for_admin(db: Session) -> list[dict[str, Any]]:
     rows = db.scalars(select(ClientMachine).order_by(ClientMachine.last_seen_at.desc())).all()
     now = datetime.utcnow()
+
+    # Latest non-revoked CRM license per fingerprint — same number the plugin badge should track.
+    licenses = db.scalars(
+        select(License).where(
+            License.machine_fingerprint.is_not(None),
+            License.revoked.is_(False),
+        )
+    ).all()
+    best_by_fp: dict[str, License] = {}
+    for lic in licenses:
+        fp = (lic.machine_fingerprint or "").strip().lower()
+        if not fp:
+            continue
+        prev = best_by_fp.get(fp)
+        if prev is None:
+            best_by_fp[fp] = lic
+            continue
+        prev_exp = prev.expires_at or datetime.min
+        lic_exp = lic.expires_at or datetime.min
+        if lic_exp >= prev_exp:
+            best_by_fp[fp] = lic
+
     out: list[dict[str, Any]] = []
     for m in rows:
         usage = machine_usage_label(m.last_seen_at, now)
         loc_parts = [p for p in (m.city, m.region, m.country_name) if p]
+        fp = (m.machine_id or "").strip().lower()
+        lic = best_by_fp.get(fp)
+        expires_at = lic.expires_at if lic else None
+        days_left: int | None = None
+        expiry_state = "none"
+        if expires_at is not None:
+            delta = expires_at - now
+            days_left = int(delta.total_seconds() // 86400)
+            if delta.total_seconds() <= 0:
+                expiry_state = "expired"
+                days_left = 0
+            elif days_left <= 14:
+                expiry_state = "soon"
+            else:
+                expiry_state = "ok"
+
         out.append(
             {
                 "machine": m,
@@ -277,6 +315,12 @@ def list_machines_for_admin(db: Session) -> list[dict[str, Any]]:
                     "none": "Chưa kích hoạt",
                     "error": "Lỗi",
                 }.get(m.license_status, m.license_status),
+                "crm_email": (lic.buyer_email if lic else "") or "",
+                "crm_plan": (lic.plan if lic else "") or "",
+                "crm_expires_at": expires_at,
+                "crm_days_left": days_left,
+                "crm_expiry_state": expiry_state,
+                "crm_key": (lic.license_key if lic else "") or "",
             }
         )
     return out

@@ -52,9 +52,10 @@ def fetch_worker_client_config() -> dict[str, Any]:
 
 
 def fetch_worker_update_manifest() -> dict[str, Any]:
-    """GET /v1/update-manifest (public, no auth)."""
+    """GET /v1/update-manifest with admin Bearer (endpoint is machine-gated for clients)."""
     base = _worker_base()
-    r = httpx.get(f"{base}/v1/update-manifest", headers={"Accept": "application/json"}, timeout=20.0)
+    headers = {**_worker_admin_headers(), "Accept": "application/json"}
+    r = httpx.get(f"{base}/v1/update-manifest", headers=headers, timeout=20.0)
     r.raise_for_status()
     data = r.json()
     return data if isinstance(data, dict) else {}

@@ -35,6 +35,10 @@
  * - PUT  /admin/client-config -> Bearer ADMIN_TOKEN, body = raw JSON
  *      Replaces the published client config blob (no merge - full body is authoritative).
  *
+ * - GET  /v1/update-manifest -> X-Machine-Id of a registered machine, or Bearer ADMIN_TOKEN
+ *      Version, download URL and release notes. Clients must be a fingerprint the server knows
+ *      from a license binding or a trial start. Site admin tools may read with the admin token.
+ *
  * KV namespace layout
  * -------------------
  * - LICENSE_DB        : key=license-uuid, value=LicenseRecord JSON
@@ -97,7 +101,7 @@ interface LicenseRecord {
 const corsHeaders: Record<string, string> = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Machine-Id",
 };
 
 export default {
@@ -138,7 +142,7 @@ export default {
                 return await handleClientConfigGet(env);
             }
             if (url.pathname === "/v1/update-manifest" && request.method === "GET") {
-                return await handleUpdateManifestGet(env);
+                return await handleUpdateManifestGet(request, env);
             }
             if (url.pathname === "/admin/update-manifest" && request.method === "PUT") {
                 return await requireAdmin(request, env, () => handleUpdateManifestPut(request, env));
@@ -1084,13 +1088,54 @@ function defaultUpdateManifestJson(): string {
     });
 }
 
-async function handleUpdateManifestGet(env: Env): Promise<Response> {
+/**
+ * Serves the manifest only to a machine this server already has on record: one holding a license
+ * bound to its fingerprint, or one that has started its trial. A machine nobody registered is not
+ * a machine we owe an update to.
+ *
+ * The site admin and publish scripts may also read it with Bearer ADMIN_TOKEN. Builds older than
+ * 1.2.1 send no fingerprint and are refused here, but they still learn about a new release from
+ * `latestVersion` in /v1/client-config, so nobody is left stranded on an old build.
+ */
+async function handleUpdateManifestGet(request: Request, env: Env): Promise<Response> {
+    const asAdmin = isAdminBearer(request, env);
+    const machineId = (request.headers.get("X-Machine-Id") ?? "").trim();
+    if (!asAdmin && !(await isKnownMachine(machineId, env))) {
+        return jsonResponse(
+            {
+                error: "machine_not_registered",
+                detail: "Activate a license or a trial on this machine before fetching updates.",
+            },
+            403,
+        );
+    }
+
     const raw = await env.LICENSE_DB.get(UPDATE_MANIFEST_KV_KEY, "text");
     const body = raw && raw.trim().length > 0 ? raw : defaultUpdateManifestJson();
     return new Response(body, {
         status: 200,
         headers: { "Content-Type": "application/json; charset=utf-8", ...corsHeaders },
     });
+}
+
+function isAdminBearer(request: Request, env: Env): boolean {
+    const auth = request.headers.get("Authorization") ?? "";
+    return auth.startsWith("Bearer ") && auth.slice("Bearer ".length) === env.ADMIN_TOKEN;
+}
+
+/** A machine the server has seen before, through a license binding or a trial start. */
+async function isKnownMachine(machineId: string, env: Env): Promise<boolean> {
+    if (machineId.length < 16) {
+        return false;
+    }
+
+    const licensed = await env.LICENSE_BY_MACHINE.get(machineId);
+    if (licensed) {
+        return true;
+    }
+
+    const trial = await env.LICENSE_DB.get<TrialRecord>(TRIAL_KV_PREFIX + machineId, "json");
+    return trial != null;
 }
 
 async function handleUpdateManifestPut(request: Request, env: Env): Promise<Response> {

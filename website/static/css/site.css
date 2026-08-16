@@ -409,7 +409,7 @@ body.paddle-checkout-open .site-footer {
   inset: 0;
   background: rgba(0, 0, 0, 0.72);
 }
-/* Compact â€” QR column is square (width = height) */
+/* Compact - QR column is square (width = height) */
 .pay-modal-panel {
   position: relative;
   width: 100%;
@@ -1131,7 +1131,7 @@ body.paddle-checkout-open .site-footer {
   margin-top: 10px;
 }
 
-/* Download page â€” policy + consent */
+/* Download page - policy + consent */
 .download-card {
   padding: 0;
   overflow: hidden;
@@ -1294,7 +1294,7 @@ body.paddle-checkout-open .site-footer {
 }
 .download-unavailable a { color: var(--accent); }
 
-/* Download page â€” collapsible guides */
+/* Download page - collapsible guides */
 .guide-stack {
   display: flex;
   flex-direction: column;
@@ -1438,10 +1438,14 @@ body.paddle-checkout-open .site-footer {
 .usage-active { background: rgba(61, 214, 198, 0.15); color: var(--accent); }
 .usage-inactive { background: rgba(244, 162, 97, 0.15); color: var(--warn); }
 .usage-likely_removed { background: rgba(139, 155, 180, 0.2); color: var(--muted); }
+.expiry-ok { color: var(--accent); font-weight: 600; }
+.expiry-soon { color: var(--warn); font-weight: 600; }
+.expiry-expired { color: #f3a8a8; font-weight: 700; }
+.expiry-none { color: var(--muted); }
 .env-strip .ok { color: var(--accent); }
 .env-strip .bad { color: #f3a8a8; }
 
-/* —— Blog —— */
+/* Blog */
 .blog-hero { margin-bottom: 1.75rem; }
 .blog-grid {
   display: grid;

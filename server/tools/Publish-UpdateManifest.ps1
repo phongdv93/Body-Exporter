@@ -70,7 +70,7 @@ Invoke-AdminPut "/admin/client-config" $cfgJson
 Write-Host "OK client-config latestVersion = $Version" -ForegroundColor Green
 
 Write-Host ""
-Write-Host "Verify: GET $ApiUrl/v1/update-manifest"
-$check = Invoke-RestMethod -Uri "$ApiUrl/v1/update-manifest"
+Write-Host "Verify: GET $ApiUrl/v1/update-manifest (admin Bearer)"
+$check = Invoke-RestMethod -Uri "$ApiUrl/v1/update-manifest" -Headers $headers
 Write-Host "  version     = $($check.version)"
 Write-Host "  downloadUrl = $($check.downloadUrl)"
