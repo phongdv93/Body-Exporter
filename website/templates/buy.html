@@ -37,7 +37,7 @@
   <div class="pricing-price-row price-vn{% if pay_mode != 'vn' %} is-hidden{% endif %}">
     <span class="pricing-label">{{ t('buy.pricing_amount_label') }}</span>
     <p class="pricing-amount"><strong>{{ '{:,}'.format(amount_vnd).replace(',', '.') }} VND</strong></p>
-    <p class="pricing-sub muted">{% if price_usd %}{{ t('buy.pricing_vn_sub', usd=price_usd) }}{% endif %} · {{ t('buy.pricing_per_year') }}</p>
+    <p class="pricing-sub muted">{{ t('buy.pricing_per_year') }}</p>
   </div>
 
   <div class="pricing-price-row price-intl{% if pay_mode != 'intl' %} is-hidden{% endif %}">

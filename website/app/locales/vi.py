@@ -123,7 +123,6 @@ MESSAGES = {
     "buy.pricing_title": "Bảng giá",
     "buy.pricing_product": "Body Exporter — License cá nhân (1 máy)",
     "buy.pricing_amount_label": "Giá",
-    "buy.pricing_vn_sub": "Thanh toán quốc tế: khoảng ${usd} USD",
     "buy.pricing_intl_pending": "Liên hệ để biết giá quốc tế",
     "buy.pricing_term": "Thời hạn license: {days} ngày kể từ khi kích hoạt",
     "buy.pricing_f1": "Xuất body/part SolidWorks → Excel & template",
