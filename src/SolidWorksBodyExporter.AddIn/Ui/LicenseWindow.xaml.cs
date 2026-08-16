@@ -247,7 +247,7 @@ namespace SolidWorksBodyExporter.AddIn.Ui
                         ? recalcStatus.DaysRemaining.Value.ToString(CultureInfo.InvariantCulture)
                         : "?";
                     ShowResult(
-                        "All keys already applied. Recalculated stack from "
+                        "All keys already applied. Refreshed from the server using "
                         + summary.KeysInStack + " key(s). " + recalcDays + " day(s) remaining.",
                         isError: false);
                 }
@@ -294,7 +294,7 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             var status = LicenseManager.Current.GetStatus();
             var days = status.DaysRemaining.HasValue ? status.DaysRemaining.Value.ToString(CultureInfo.InvariantCulture) : "?";
             ShowResult(
-                "Recalculated from " + keysStacked + " key(s). " + days + " day(s) remaining (expires: "
+                "Refreshed from " + keysStacked + " key(s). " + days + " day(s) remaining (expires: "
                 + (status.ExpiresUtc?.ToLocalTime().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "?") + ").",
                 isError: false);
         }
@@ -363,7 +363,7 @@ namespace SolidWorksBodyExporter.AddIn.Ui
             if (RecalculateStackButton != null)
             {
                 var count = keys.Count();
-                RecalculateStackButton.Visibility = count > 1 ? Visibility.Visible : Visibility.Collapsed;
+                RecalculateStackButton.Visibility = count >= 1 ? Visibility.Visible : Visibility.Collapsed;
             }
         }
 

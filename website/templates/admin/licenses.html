@@ -44,13 +44,18 @@
     </p>
 
     <section class="card admin-licenses-section">
-      <h2 class="section-label">Tạo license thủ công</h2>
+      <h2 class="section-label">Tạo license thủ công (test / tặng)</h2>
+      <p class="muted" style="font-size:13px;margin:0 0 0.75rem">
+        Luồng chính: khách trả tiền trên <a href="/buy" target="_blank" rel="noopener">/buy</a>
+        → webhook tự tạo key mới hoặc <strong>gia hạn cùng key</strong> nếu email đã có license.
+        Form dưới đây chỉ dùng khi bạn muốn cấp/tặng thủ công (luôn tạo key mới).
+      </p>
       <form method="post" action="/admin/licenses" class="admin-row-form">
         <label class="sr-only">Email</label>
         <input type="email" name="buyer_email" required placeholder="Email khách" class="col-email">
         <input type="text" name="plan" value="personal" placeholder="Plan" class="col-sm">
         <input type="number" name="days" value="{{ content.license_term_days or 365 }}" min="1" title="Số ngày" class="col-days">
-        <input type="text" name="notes" placeholder="Ghi chú" class="col-notes">
+        <input type="text" name="notes" placeholder="Ghi chú (test/tặng)" class="col-notes">
         <button type="submit" class="btn btn-primary btn-compact">Tạo + gửi mail</button>
       </form>
     </section>
@@ -60,7 +65,7 @@
       {% if licenses %}
       <p style="margin:0 0 0.65rem">
         <button type="button" id="copy-all-keys" class="btn btn-secondary btn-compact">Copy tất cả key (1 dòng/key)</button>
-        <span class="muted" style="font-size:12px;margin-left:8px">Dán vào plugin → License → Apply keys để cộng dồn ngày.</span>
+        <span class="muted" style="font-size:12px;margin-left:8px">Thanh toán lại cùng email = tự gia hạn key cũ trên Worker + CRM. Plugin bấm Refresh days là thấy số ngày mới, không cần dán key.</span>
       </p>
       <div class="license-grid-head" aria-hidden="true">
         <span>Key</span>

@@ -19,6 +19,11 @@
  *      Squeezy, etc.) to mint a new license key when a customer pays. Returns
  *      {key, expires}. Hand the key to the customer in their receipt email.
  *
+ * - POST /admin/license/extend  -> Bearer ADMIN_TOKEN, body {key?, owner?, days}
+ *      Extends an existing (non-revoked) license: newExpires = max(now, current) + days.
+ *      Prefer `key`; if omitted, picks the longest-running non-revoked key for `owner`.
+ *      Used by the website CRM when a returning buyer pays again (auto-renew).
+ *
  * - GET  /admin/license/list    -> Bearer ADMIN_TOKEN
  *      Returns a JSON array of all issued license keys + their bound machineIds.
  *      Useful for support: "what's my license bound to?".
@@ -121,6 +126,9 @@ export default {
             }
             if (url.pathname === "/admin/license/issue" && request.method === "POST") {
                 return await requireAdmin(request, env, () => handleIssue(request, env));
+            }
+            if (url.pathname === "/admin/license/extend" && request.method === "POST") {
+                return await requireAdmin(request, env, () => handleExtend(request, env));
             }
             if (url.pathname === "/admin/license/list" && request.method === "GET") {
                 return await requireAdmin(request, env, () => handleList(env));
@@ -316,6 +324,80 @@ async function handleIssue(request: Request, env: Env): Promise<Response> {
     }
     const out = await mintLicense(env, body.owner, body.plan, body.days);
     return jsonResponse(out);
+}
+
+function isUuidLicenseKey(name: string): boolean {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(name);
+}
+
+async function listLicenseRecords(env: Env): Promise<LicenseRecord[]> {
+    const list = await env.LICENSE_DB.list();
+    const records: LicenseRecord[] = [];
+    for (const k of list.keys) {
+        if (k.name.startsWith("__") || !isUuidLicenseKey(k.name)) continue;
+        const rec = await env.LICENSE_DB.get<LicenseRecord>(k.name, "json");
+        if (rec && typeof rec.key === "string" && typeof rec.expiresAt === "string") {
+            records.push(rec);
+        }
+    }
+    return records;
+}
+
+/**
+ * Push expiresAt forward by `days` from max(now, currentExpires).
+ * Body: { days, key? } or { days, owner? } (owner = email on the record).
+ */
+async function handleExtend(request: Request, env: Env): Promise<Response> {
+    const body = await request.json<{ key?: string; owner?: string; days?: number }>();
+    const days = Math.floor(Number(body.days));
+    if (!Number.isFinite(days) || days < 1) {
+        return jsonResponse({ error: "missing_fields", detail: "days must be >= 1" }, 400);
+    }
+
+    let key = (body.key || "").trim();
+    let record: LicenseRecord | null = null;
+
+    if (key) {
+        record = await env.LICENSE_DB.get<LicenseRecord>(key, "json");
+        if (!record) {
+            return jsonResponse({ error: "license_not_found" }, 404);
+        }
+    } else {
+        const owner = (body.owner || "").trim().toLowerCase();
+        if (!owner) {
+            return jsonResponse({ error: "missing_fields", detail: "key or owner required" }, 400);
+        }
+        const candidates = (await listLicenseRecords(env))
+            .filter((r) => !r.revoked && (r.owner || "").trim().toLowerCase() === owner)
+            .sort((a, b) => Date.parse(b.expiresAt) - Date.parse(a.expiresAt));
+        record = candidates[0] ?? null;
+        if (!record) {
+            return jsonResponse({ error: "license_not_found", detail: "no active license for owner" }, 404);
+        }
+        key = record.key;
+    }
+
+    if (record.revoked) {
+        return jsonResponse({ error: "license_revoked" }, 403);
+    }
+
+    const now = Date.now();
+    const currentMs = Date.parse(record.expiresAt);
+    const baseMs = Number.isFinite(currentMs) && currentMs > now ? currentMs : now;
+    const previousExpiresAt = record.expiresAt;
+    record.expiresAt = new Date(baseMs + days * 24 * 60 * 60 * 1000).toISOString();
+    await env.LICENSE_DB.put(key, JSON.stringify(record));
+
+    return jsonResponse({
+        key,
+        owner: record.owner,
+        plan: record.plan,
+        expiresAt: record.expiresAt,
+        previousExpiresAt,
+        extended: true,
+        daysAdded: days,
+        boundMachineId: record.boundMachineId,
+    });
 }
 
 /** Lemon Squeezy → mint KV license (same key format as POST /admin/license/issue). */
@@ -522,6 +604,40 @@ async function fulfillSepayTransfer(env: Env, payload: SepayWebhookPayload): Pro
 
     const days = Math.max(1, parseInt(env.SEPAY_LICENSE_DAYS ?? "365", 10) || 365);
     const plan: LicenseRecord["plan"] = "personal";
+
+    // Returning buyer: extend the longest-running non-revoked key for this email.
+    const ownerKeys = (await listLicenseRecords(env))
+        .filter((r) => !r.revoked && (r.owner || "").trim().toLowerCase() === buyerEmail.toLowerCase())
+        .sort((a, b) => Date.parse(b.expiresAt) - Date.parse(a.expiresAt));
+    if (ownerKeys.length > 0) {
+        const existing = ownerKeys[0]!;
+        const now = Date.now();
+        const currentMs = Date.parse(existing.expiresAt);
+        const baseMs = Number.isFinite(currentMs) && currentMs > now ? currentMs : now;
+        existing.expiresAt = new Date(baseMs + days * 24 * 60 * 60 * 1000).toISOString();
+        await env.LICENSE_DB.put(existing.key, JSON.stringify(existing));
+        await env.LICENSE_DB.put(
+            idemKey,
+            JSON.stringify({ at: new Date().toISOString(), key: existing.key, email: buyerEmail, renewed: true }),
+            { expirationTtl: 86400 * 400 },
+        );
+        const resendOut = await sendLicenseEmailResend(env, {
+            to: buyerEmail,
+            licenseKey: existing.key,
+            orderId: `sepay-${txId}`,
+        });
+        logSepayResendResult("renew", txId, buyerEmail, resendOut);
+        return {
+            ok: true,
+            action: "minted",
+            transactionId: txId,
+            email: buyerEmail,
+            licenseKey: existing.key,
+            reason: "renewed",
+            resendEmail: resendOut,
+        };
+    }
+
     const out = await mintLicense(env, buyerEmail, plan, days);
     await env.LICENSE_DB.put(idemKey, JSON.stringify({ at: new Date().toISOString(), key: out.key, email: buyerEmail }), {
         expirationTtl: 86400 * 400,
@@ -914,13 +1030,7 @@ async function verifyLemonHmacHex(secret: string, rawBody: string, headerSig: st
 }
 
 async function handleList(env: Env): Promise<Response> {
-    const list = await env.LICENSE_DB.list();
-    const records: LicenseRecord[] = [];
-    for (const k of list.keys) {
-        if (k.name.startsWith("__")) continue;
-        const rec = await env.LICENSE_DB.get<LicenseRecord>(k.name, "json");
-        if (rec) records.push(rec);
-    }
+    const records = await listLicenseRecords(env);
     return jsonResponse({ records });
 }
 

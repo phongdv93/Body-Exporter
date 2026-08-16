@@ -169,6 +169,42 @@ def sync_client_config_from_site(
     log.info("Worker client-config synced: supportEmail=%s supportUrl=%s", cfg["supportEmail"], site)
 
 
+def extend_license_via_worker(
+    *,
+    key: str | None = None,
+    owner: str | None = None,
+    days: int,
+) -> dict[str, Any]:
+    """POST /admin/license/extend — returns Worker JSON (key, expiresAt, previousExpiresAt, …)."""
+    base = config.WORKER_API_BASE_URL
+    token = config.WORKER_ADMIN_TOKEN.strip()
+    if not base or not token:
+        raise RuntimeError("WORKER_API_BASE_URL / WORKER_ADMIN_TOKEN not set — cannot extend license")
+
+    body: dict[str, Any] = {"days": int(days)}
+    if key and key.strip():
+        body["key"] = key.strip()
+    elif owner and owner.strip():
+        body["owner"] = owner.strip()
+    else:
+        raise ValueError("key or owner required to extend license")
+
+    url = f"{base}/admin/license/extend"
+    r = httpx.post(
+        url,
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        json=body,
+        timeout=45.0,
+    )
+    if not r.is_success:
+        log.error("Worker extend failed %s: %s", r.status_code, r.text[:500])
+        r.raise_for_status()
+    data = r.json()
+    if not isinstance(data, dict) or not (data.get("key") or "").strip():
+        raise ValueError("Worker extend response missing key")
+    return data
+
+
 def mint_license_via_worker(*, owner: str, plan: str, days: int) -> tuple[str, datetime]:
     """Return (license_key, expires_at_utc_naive). Falls back to local UUID if Worker not configured."""
     base = config.WORKER_API_BASE_URL

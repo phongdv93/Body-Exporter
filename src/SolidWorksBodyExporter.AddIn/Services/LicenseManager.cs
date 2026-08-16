@@ -420,9 +420,29 @@ namespace SolidWorksBodyExporter.AddIn.Services
                     return active;
                 }
 
-                if (TryRefreshOnlineLicense(settings, fingerprint, api))
+                try
                 {
-                    return BuildOnlineLicensedStatus(AppSettings.LoadOrCreate(), fingerprint);
+                    if (TryRefreshOnlineLicense(settings, fingerprint, api))
+                    {
+                        return BuildOnlineLicensedStatus(AppSettings.LoadOrCreate(), fingerprint);
+                    }
+                }
+                catch (LicenseApiException ex)
+                {
+                    // The local stacked end can outlive the Worker's expiresAt. When the server
+                    // says the key is finished, drop the local end so the badge matches CRM.
+                    if (IsServerExpiryRejection(ex.Message))
+                    {
+                        ClearExpiredOnlineEntitlement(settings, fingerprint);
+                        return Fail(LicenseSource.Expired, ex.Message);
+                    }
+
+                    if (IsWithinOfflineGrace(settings) && HasValidCachedJwt(settings, fingerprint))
+                    {
+                        return active;
+                    }
+
+                    return Fail(LicenseSource.Error, ex.Message);
                 }
 
                 if (IsWithinOfflineGrace(settings) && HasValidCachedJwt(settings, fingerprint))
@@ -445,6 +465,12 @@ namespace SolidWorksBodyExporter.AddIn.Services
             }
             catch (LicenseApiException ex)
             {
+                if (IsServerExpiryRejection(ex.Message))
+                {
+                    ClearExpiredOnlineEntitlement(settings, fingerprint);
+                    return Fail(LicenseSource.Expired, ex.Message);
+                }
+
                 return Fail(LicenseSource.Error, ex.Message);
             }
         }
@@ -533,8 +559,9 @@ namespace SolidWorksBodyExporter.AddIn.Services
         }
 
         /// <summary>
-        /// Rebuild stacked expiry from every UUID ever applied on this machine
-        /// (<see cref="AppSettings.GetAllKnownLicenseKeys"/>).
+        /// Re-read every UUID ever applied on this machine (<see cref="AppSettings.GetAllKnownLicenseKeys"/>)
+        /// from the Worker and keep the one that runs longest. The expiry always comes from a server
+        /// record, so the plugin badge and the CRM row can never disagree.
         /// </summary>
         public bool TryRecalculateStackedEntitlement(out string error, out int keysStacked)
         {
@@ -559,9 +586,9 @@ namespace SolidWorksBodyExporter.AddIn.Services
                 var fingerprint = GetMachineFingerprint();
                 var api = ResolveApiBaseUrl(settings);
                 var now = DateTime.UtcNow;
-                DateTime? stackedEnd = null;
-                LicenseValidationResponse lastResponse = null;
-                string lastKey = null;
+                DateTime? bestEnd = null;
+                LicenseValidationResponse bestResponse = null;
+                string bestKey = null;
 
                 foreach (var key in keys)
                 {
@@ -585,33 +612,30 @@ namespace SolidWorksBodyExporter.AddIn.Services
                         serverEnd = NormalizeUtc(response.ExpiresUtc).AddDays(365);
                     }
 
-                    var term = serverEnd > now ? serverEnd - now : TimeSpan.Zero;
-                    if (term <= TimeSpan.Zero)
+                    if (serverEnd <= now)
                     {
                         continue;
                     }
 
-                    var baseEnd = stackedEnd ?? now;
-                    if (baseEnd < now)
+                    keysStacked++;
+                    if (bestEnd.HasValue && serverEnd <= bestEnd.Value)
                     {
-                        baseEnd = now;
+                        continue;
                     }
 
-                    stackedEnd = baseEnd.Add(term);
-                    lastResponse = response;
-                    lastKey = key;
-                    keysStacked++;
+                    bestEnd = serverEnd;
+                    bestResponse = response;
+                    bestKey = key;
                 }
 
-                if (!stackedEnd.HasValue || string.IsNullOrEmpty(lastKey) || lastResponse == null)
+                if (!bestEnd.HasValue || string.IsNullOrEmpty(bestKey) || bestResponse == null)
                 {
-                    error = "Could not stack any valid license key (expired or server rejected).";
+                    error = "No valid license key left (expired or rejected by the server).";
                     return false;
                 }
 
-                settings.LicenseExpiresUtc = stackedEnd;
-                ApplyOnlineValidation(settings, lastKey, api, fingerprint, lastResponse);
-                settings.SetActiveLicenseKey(lastKey);
+                ApplyOnlineValidation(settings, bestKey, api, fingerprint, bestResponse);
+                settings.SetActiveLicenseKey(bestKey);
 
                 if (!SaveSettings(settings, fingerprint))
                 {
@@ -668,14 +692,8 @@ namespace SolidWorksBodyExporter.AddIn.Services
                 var settings = AppSettings.LoadOrCreate();
                 settings.NormalizeAppliedLicenseKeys();
 
-                if (settings.HasAppliedLicenseKey(key))
-                {
-                    return true;
-                }
-
                 var fingerprint = GetMachineFingerprint();
                 var api = ResolveApiBaseUrl(settings);
-                var priorEndUtc = GetCurrentEntitlementEndUtc();
 
                 var response = new LicenseApiClient(api)
                     .ValidateAsync(key, fingerprint)
@@ -683,13 +701,20 @@ namespace SolidWorksBodyExporter.AddIn.Services
                     .GetResult();
 
                 ApplyOnlineValidation(settings, key, api, fingerprint, response);
-                ExtendLicenseForNewKey(settings, priorEndUtc, response);
                 settings.SetActiveLicenseKey(key);
 
                 if (!SaveSettings(settings, fingerprint))
                 {
                     error = "Could not save license settings to " + AppSettings.GetPath();
                     return false;
+                }
+
+                // More than one key on this machine: keep the one whose server record runs longest.
+                if (settings.GetAllKnownLicenseKeys().Count() > 1)
+                {
+                    string recalcError;
+                    int recalcCount;
+                    TryRecalculateStackedEntitlement(out recalcError, out recalcCount);
                 }
 
                 var verify = AppSettings.LoadOrCreate();
@@ -723,80 +748,6 @@ namespace SolidWorksBodyExporter.AddIn.Services
         private static bool LooksLikeOnlineLicenseKey(string raw)
         {
             return !string.IsNullOrWhiteSpace(raw) && Guid.TryParse(raw.Trim(), out _);
-        }
-
-        /// <summary>Trial, offline .lic, or online subscription end — used when stacking a newly purchased key.</summary>
-        private DateTime? GetCurrentEntitlementEndUtc()
-        {
-            var now = DateTime.UtcNow;
-            var fingerprint = GetMachineFingerprint();
-
-            var licPath = Path.Combine(_dataDirectory, LicenseFileName);
-            if (File.Exists(licPath))
-            {
-                try
-                {
-                    var fileStatus = ValidateLicenseContent(File.ReadAllText(licPath));
-                    if (fileStatus.IsAllowed && fileStatus.ExpiresUtc.HasValue && fileStatus.ExpiresUtc.Value > now)
-                    {
-                        return fileStatus.ExpiresUtc.Value;
-                    }
-                }
-                catch
-                {
-                    /* ignore */
-                }
-            }
-
-            var settings = AppSettings.LoadOrCreate();
-            if (!string.IsNullOrWhiteSpace(settings.LicenseKey)
-                && settings.LicenseExpiresUtc.HasValue
-                && settings.LicenseExpiresUtc.Value > now)
-            {
-                return settings.LicenseExpiresUtc.Value;
-            }
-
-            var trialPath = Path.Combine(_dataDirectory, TrialFileName);
-            if (File.Exists(trialPath))
-            {
-                var firstRun = ReadTrialFile(trialPath, fingerprint);
-                if (firstRun != DateTime.MinValue)
-                {
-                    var trialEnd = firstRun.AddDays(TrialDurationDays);
-                    if (trialEnd > now)
-                    {
-                        return trialEnd;
-                    }
-                }
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Each activated key adds its remaining term onto the current entitlement end.
-        /// AppliedLicenseKeys is a list; LicenseExpiresUtc is the single stacked expiry shown in UI.
-        /// </summary>
-        private static void ExtendLicenseForNewKey(
-            AppSettings settings,
-            DateTime? priorEndUtc,
-            LicenseValidationResponse response)
-        {
-            var now = DateTime.UtcNow;
-            var serverEnd = NormalizeUtc(response.LicenseExpires);
-            if (serverEnd <= now.AddYears(-1))
-            {
-                serverEnd = NormalizeUtc(response.ExpiresUtc).AddDays(365);
-            }
-
-            var term = serverEnd > now ? serverEnd - now : TimeSpan.FromDays(365);
-            var baseEnd = priorEndUtc ?? settings.LicenseExpiresUtc ?? now;
-            if (baseEnd < now)
-            {
-                baseEnd = now;
-            }
-
-            settings.LicenseExpiresUtc = baseEnd.Add(term);
         }
 
         private static bool TryGetActiveOnlineStatus(AppSettings settings, string fingerprint, out LicenseStatus status)
@@ -882,6 +833,32 @@ namespace SolidWorksBodyExporter.AddIn.Services
             return (DateTime.UtcNow - settings.LastOnlineValidationUtc.Value).TotalDays <= OnlineOfflineGraceDays;
         }
 
+        private static bool IsServerExpiryRejection(string message)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                return false;
+            }
+
+            return message.IndexOf("license_expired", StringComparison.OrdinalIgnoreCase) >= 0
+                   || message.IndexOf("license expired", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static void ClearExpiredOnlineEntitlement(AppSettings settings, string fingerprint)
+        {
+            try
+            {
+                settings.LicenseExpiresUtc = DateTime.UtcNow.AddSeconds(-1);
+                settings.CachedToken = null;
+                settings.CachedTokenExpiresUtc = null;
+                SaveSettings(settings, fingerprint);
+            }
+            catch (Exception ex)
+            {
+                DiagnosticLog.Warn("ClearExpiredOnlineEntitlement: " + ex.Message);
+            }
+        }
+
         private static bool TryRefreshOnlineLicense(AppSettings settings, string fingerprint, string api)
         {
             if (string.IsNullOrWhiteSpace(settings.LicenseKey))
@@ -941,12 +918,10 @@ namespace SolidWorksBodyExporter.AddIn.Services
                 licenseEnd = NormalizeUtc(response.ExpiresUtc).AddDays(365);
             }
 
-            // ExtendLicenseForNewKey sets expiry on activate; online refresh only fills if missing.
-            var now = DateTime.UtcNow;
-            if (!settings.LicenseExpiresUtc.HasValue || settings.LicenseExpiresUtc.Value <= now)
-            {
-                settings.LicenseExpiresUtc = licenseEnd;
-            }
+            // The Worker record is the only source of truth for the entitlement end. Mirroring it on
+            // every validation keeps the plugin badge equal to the CRM date; a local end that only
+            // ever grows (the old stacking behaviour) drifted years past what the server had.
+            settings.LicenseExpiresUtc = licenseEnd;
 
             settings.OnlineOwner = response.Owner;
             settings.OnlinePlan = response.Plan;

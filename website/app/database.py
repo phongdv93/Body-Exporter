@@ -5,7 +5,7 @@ from sqlalchemy import create_engine, inspect, select, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from app import config
-from app.models import AdminUser, Base, BlogPost, ClientMachine, DownloadEvent, License, SiteContent
+from app.models import AdminUser, Base, BlogPost, ClientMachine, DownloadEvent, License, LicensePayment, SiteContent
 
 _BE_LICENSES_REQUIRED_COLUMNS = frozenset(
     {

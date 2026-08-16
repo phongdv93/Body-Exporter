@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 from app import config
 from app.database import SessionLocal, get_content
 from app.email_notify import send_license_key_email
-from app.license_service import find_license_by_sepay_tx, issue_license_record
+from app.license_service import find_license_by_sepay_tx, find_payment_by_sepay_tx, fulfill_paid_license
 from app.vn_discount import all_allowed_amounts_vnd, years_from_transfer_amount
 
 log = logging.getLogger("uvicorn.error")
@@ -173,16 +173,18 @@ async def sepay_webhook(request: Request):
             return Response(json.dumps({"success": True}), media_type="application/json")
 
         existing = find_license_by_sepay_tx(db, tx_int)
-        if existing:
+        existing_pay = None if existing else find_payment_by_sepay_tx(db, tx_int)
+        if existing or existing_pay:
             buyer = extract_email_from_transfer_text(
                 payload.get("content"),
                 payload.get("description"),
                 payload.get("code"),
-            ) or existing.buyer_email
-            if buyer:
+            ) or (existing.buyer_email if existing else existing_pay.buyer_email)
+            key = (existing.license_key if existing else existing_pay.license_key) or ""
+            if buyer and key and not (existing_pay and existing_pay.renewed):
                 send_license_key_email(
                     to=buyer,
-                    license_key=existing.license_key,
+                    license_key=key,
                     order_id=f"sepay-{tx_int}",
                     lang="vi",
                 )
@@ -207,7 +209,7 @@ async def sepay_webhook(request: Request):
         per_year = max(1, int(content.license_term_days or config.SEPAY_LICENSE_DAYS))
         days = per_year * years
         try:
-            issue_license_record(
+            lic, renewed = fulfill_paid_license(
                 db,
                 buyer_email=buyer_email,
                 plan="personal",
@@ -218,7 +220,13 @@ async def sepay_webhook(request: Request):
                 order_id_suffix=f"sepay-{tx_int}",
                 email_lang="vi",
             )
-            log.info("SePay tx %s minted for %s", tx_int, buyer_email)
+            log.info(
+                "SePay tx %s %s for %s key=%s…",
+                tx_int,
+                "renewed" if renewed else "minted",
+                buyer_email,
+                (lic.license_key or "")[:8],
+            )
         except IntegrityError:
             db.rollback()
             log.warning("SePay tx %s duplicate insert (ignored)", tx_int)

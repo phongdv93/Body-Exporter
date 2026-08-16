@@ -17,7 +17,7 @@ import os
 
 from app import config
 from app.database import get_content
-from app.license_service import find_license_by_paddle_tx, issue_license_record
+from app.license_service import find_license_by_paddle_tx, find_payment_by_paddle_tx, fulfill_paid_license
 
 log = logging.getLogger("uvicorn.error")
 
@@ -437,12 +437,12 @@ def _issue_paddle_license(
     years: int,
     notes: str,
 ) -> dict[str, str]:
-    if find_license_by_paddle_tx(db, dedup_id):
+    if find_payment_by_paddle_tx(db, dedup_id) or find_license_by_paddle_tx(db, dedup_id):
         return {"status": "ok", "reason": "duplicate"}
     content = get_content(db)
     term_days = max(1, int(content.license_term_days or config.SEPAY_LICENSE_DAYS)) * years
     try:
-        issue_license_record(
+        lic, renewed = fulfill_paid_license(
             db,
             buyer_email=email,
             days=term_days,
@@ -451,8 +451,14 @@ def _issue_paddle_license(
             order_id_suffix=f"paddle-{dedup_id}",
             email_lang="en",
         )
-        log.info("Paddle %s: license issued for %s", dedup_id, email)
-        return {"status": "ok"}
+        log.info(
+            "Paddle %s: license %s for %s key=%s…",
+            dedup_id,
+            "renewed" if renewed else "issued",
+            email,
+            (lic.license_key or "")[:8],
+        )
+        return {"status": "ok", "renewed": "1" if renewed else "0"}
     except ValueError as ex:
         log.error("Paddle %s: %s", dedup_id, ex)
         return {"status": "error", "reason": str(ex)[:200]}

@@ -77,6 +77,25 @@ class License(Base):
     notes: Mapped[str] = mapped_column(Text, default="")
 
 
+class LicensePayment(Base):
+    """One row per successful SePay/Paddle payment — supports renewals of the same license key."""
+
+    __tablename__ = "be_license_payments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    license_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    license_key: Mapped[str] = mapped_column(String(40), index=True, default="")
+    buyer_email: Mapped[str] = mapped_column(String(200), index=True, default="")
+    days_added: Mapped[int] = mapped_column(Integer, default=0)
+    previous_expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    new_expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    renewed: Mapped[bool] = mapped_column(Boolean, default=False)
+    sepay_transaction_id: Mapped[int | None] = mapped_column(BigInteger, unique=True, nullable=True)
+    paddle_transaction_id: Mapped[str | None] = mapped_column(String(80), unique=True, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    notes: Mapped[str] = mapped_column(Text, default="")
+
+
 class DownloadEvent(Base):
     """One row per successful redirect to the plugin ZIP (/download/go)."""
 

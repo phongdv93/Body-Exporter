@@ -158,9 +158,9 @@
                                Margin="0,0,0,10" />
                     <WrapPanel HorizontalAlignment="Right">
                         <Button x:Name="OpenBuyWebButton"
-                                Content="Buy license on web"
+                                Content="Buy / renew on web"
                                 Style="{StaticResource PrimaryButton}"
-                                Width="160"
+                                Width="168"
                                 Margin="0,0,8,4"
                                 Click="OpenBuyWeb_Click" />
                         <Button x:Name="CheckUpdateButton"
