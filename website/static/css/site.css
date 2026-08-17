@@ -1098,6 +1098,27 @@ body.paddle-checkout-open .site-footer {
 .license-grid-head span:nth-child(7) { flex: 0 0 52px; }
 .license-row { padding: 0.25rem 0; border-bottom: 1px solid var(--border); }
 .license-row:last-of-type { border-bottom: none; }
+.license-row-stack {
+  border-bottom: 1px solid var(--border);
+  padding: 0.35rem 0 0.55rem;
+}
+.license-row-stack:last-of-type { border-bottom: none; }
+.license-row-stack .license-row { border-bottom: none; padding: 0.15rem 0; }
+.license-extend-row {
+  margin-top: 0.15rem;
+  padding-left: 0.15rem;
+}
+.machine-extend-form {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.machine-extend-form input[type="number"] {
+  width: 4.2rem;
+  padding: 0.3rem 0.4rem;
+  font-size: 0.8rem;
+}
 .fine-print { font-size: 0.72rem; margin: 0.75rem 0 0; }
 .sr-only {
   position: absolute;

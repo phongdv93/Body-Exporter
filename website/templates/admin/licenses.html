@@ -24,6 +24,7 @@
     <h1>Danh sách license</h1>
 
     {% if saved %}<p class="flash-ok">Đã lưu / đã tạo license.</p>{% endif %}
+    {% if info %}<p class="flash-ok">{{ info }}</p>{% endif %}
     {% if sync_msg %}<p class="flash-ok">{{ sync_msg }}</p>{% endif %}
     {% if error %}<p class="flash-err">Lỗi: {{ error }}</p>{% endif %}
 
@@ -65,7 +66,10 @@
       {% if licenses %}
       <p style="margin:0 0 0.65rem">
         <button type="button" id="copy-all-keys" class="btn btn-secondary btn-compact">Copy tất cả key (1 dòng/key)</button>
-        <span class="muted" style="font-size:12px;margin-left:8px">Thanh toán lại cùng email = tự gia hạn key cũ trên Worker + CRM. Plugin bấm Refresh days là thấy số ngày mới, không cần dán key.</span>
+        <span class="muted" style="font-size:12px;margin-left:8px">
+          Thanh toán lại cùng email = tự gia hạn. Admin bấm <strong>Gia hạn</strong> cũng cộng ngày vào <em>cùng key</em>
+          — plugin chỉ cần mở lại SW / Refresh days, không dán key mới.
+        </span>
       </p>
       <div class="license-grid-head" aria-hidden="true">
         <span>Key</span>
@@ -78,6 +82,7 @@
       </div>
       {% for row in license_rows %}
       {% set lic = row.lic %}
+      <div class="license-row-stack">
       <form method="post" action="/admin/licenses/edit" class="admin-row-form license-row">
         <input type="hidden" name="license_id" value="{{ lic.id }}">
         <div class="col-key-wrap">
@@ -104,8 +109,19 @@
         </select>
         <button type="submit" class="btn btn-secondary btn-compact">Lưu</button>
       </form>
+      <form method="post" action="/admin/licenses/extend" class="admin-row-form license-extend-row"
+            onsubmit="return confirm('Gia hạn cùng key hiện tại cho {{ lic.buyer_email }}?');">
+        <input type="hidden" name="license_id" value="{{ lic.id }}">
+        <input type="hidden" name="next" value="/admin/licenses">
+        <input type="hidden" name="send_email" value="1">
+        <span class="muted fine-print" style="flex:1 1 180px">Gia hạn cùng key (không tạo key mới)</span>
+        <input type="number" name="days" value="{{ content.license_term_days or 365 }}" min="1" class="col-days" title="Số ngày cộng thêm">
+        <input type="text" name="notes" value="Admin gia hạn" placeholder="Ghi chú" class="col-notes">
+        <button type="submit" class="btn btn-primary btn-compact" {% if lic.revoked %}disabled title="Bỏ revoke trước"{% endif %}>Gia hạn</button>
+      </form>
+      </div>
       {% endfor %}
-      <p class="muted fine-print">Revoked chỉ ghi Postgres; chưa tự xóa key trên Worker KV.</p>
+      <p class="muted fine-print">Revoked chỉ ghi Postgres; chưa tự xóa key trên Worker KV. Gia hạn cập nhật Worker + CRM cùng lúc.</p>
       {% else %}
       <p class="muted">Chưa có license.</p>
       {% endif %}

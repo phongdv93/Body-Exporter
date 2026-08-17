@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app import config
 from app.auth import get_db, require_admin
-from app.license_service import issue_license_record
+from app.license_service import admin_extend_license, issue_license_record
 from app.license_sync import sync_fingerprints_from_worker
 from app.models import AdminUser, License
 from app.database import get_content
@@ -41,6 +41,7 @@ def _licenses_ctx(
     saved: bool,
     error: str | None,
     sync_msg: str | None = None,
+    info: str | None = None,
 ):
     rows = db.scalars(select(License).order_by(License.purchased_at.desc())).all()
     content = get_content(db)
@@ -74,6 +75,7 @@ def _licenses_ctx(
         "saved": saved,
         "error": error,
         "sync_msg": sync_msg,
+        "info": info,
         "env": _env_status(content),
     }
 
@@ -96,17 +98,26 @@ def list_licenses(
     saved: int = 0,
     err: str = "",
     sync: str = "",
+    info: str = "",
     nosync: int = 0,
     db: Session = Depends(get_db),
     _user: AdminUser = Depends(require_admin),
 ):
     sync_msg = unquote(sync).strip() if sync else None
+    info_msg = unquote(info).strip() if info else None
     if not sync_msg and not nosync and config.WORKER_API_BASE_URL and config.WORKER_ADMIN_TOKEN:
         sync_msg = _run_worker_fingerprint_sync(db)
     return html_response(
         templates,
         "admin/licenses.html",
-        _licenses_ctx(request, db, saved=bool(saved), error=err or None, sync_msg=sync_msg),
+        _licenses_ctx(
+            request,
+            db,
+            saved=bool(saved),
+            error=err or None,
+            sync_msg=sync_msg,
+            info=info_msg,
+        ),
     )
 
 
@@ -168,3 +179,41 @@ def edit_license(
         lic.revoked = revoked == "1"
         db.commit()
     return RedirectResponse("/admin/licenses?saved=1&nosync=1", status_code=303)
+
+
+@router.post("/extend")
+def extend_license(
+    license_id: int = Form(...),
+    days: int = Form(365),
+    notes: str = Form(""),
+    send_email: str = Form("1"),
+    next: str = Form(""),
+    db: Session = Depends(get_db),
+    _user: AdminUser = Depends(require_admin),
+):
+    """Extend the same Worker key — customer does not need a new key paste."""
+    dest = (next or "").strip()
+    if not dest.startswith("/admin"):
+        dest = "/admin/licenses"
+
+    try:
+        lic = admin_extend_license(
+            db,
+            license_id=int(license_id),
+            days=max(1, int(days)),
+            notes=(notes or "").strip() or "Admin gia hạn",
+            send_email=(send_email != "0"),
+        )
+        exp = lic.expires_at.strftime("%d/%m/%Y") if lic.expires_at else "?"
+        msg = f"Đã gia hạn {lic.buyer_email}: +{max(1, int(days))} ngày → hết hạn {exp}. Khách mở lại SW hoặc bấm Refresh days."
+        sep = "&" if "?" in dest else "?"
+        return RedirectResponse(
+            f"{dest}{sep}info={quote(msg, safe='')}&nosync=1",
+            status_code=303,
+        )
+    except Exception as ex:
+        sep = "&" if "?" in dest else "?"
+        return RedirectResponse(
+            f"{dest}{sep}err={quote(str(ex), safe='')}&nosync=1",
+            status_code=303,
+        )

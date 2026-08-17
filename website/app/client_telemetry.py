@@ -322,6 +322,7 @@ def list_machines_for_admin(db: Session) -> list[dict[str, Any]]:
                 "crm_days_left": days_left,
                 "crm_expiry_state": expiry_state,
                 "crm_key": (lic.license_key if lic else "") or "",
+                "crm_license_id": lic.id if lic else None,
             }
         )
     return out

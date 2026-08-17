@@ -64,7 +64,13 @@ def _env_status(content) -> dict:
 
 
 @router.get("")
-def dashboard(request: Request, db: Session = Depends(get_db), _user=Depends(require_admin)):
+def dashboard(
+    request: Request,
+    info: str = "",
+    err: str = "",
+    db: Session = Depends(get_db),
+    _user=Depends(require_admin),
+):
     try:
         sync_known_machines_from_crm(db)
     except Exception:
@@ -98,6 +104,8 @@ def dashboard(request: Request, db: Session = Depends(get_db), _user=Depends(req
             "unique_30d": 0,
             "recent": [],
         }
+    from urllib.parse import unquote
+
     return html_response(
         templates,
         "admin/dashboard.html",
@@ -107,6 +115,8 @@ def dashboard(request: Request, db: Session = Depends(get_db), _user=Depends(req
             "machines": machines,
             "machine_count": len(machines),
             "download_stats": download_stats,
+            "info": unquote(info).strip() if info else None,
+            "error": unquote(err).strip() if err else None,
             "pg_available": pg_checkout_available_for_content(content),
             "paddle_available": paddle_configured(),
             "paddle": paddle_admin_status(),

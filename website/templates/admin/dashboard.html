@@ -23,6 +23,9 @@
     </nav>
     <h1>Dashboard</h1>
 
+    {% if info %}<p class="flash-ok">{{ info }}</p>{% endif %}
+    {% if error %}<p class="flash-err">Lỗi: {{ error }}</p>{% endif %}
+
     <p class="admin-notice">
       <strong>Dashboard chỉ xem tóm tắt.</strong> Để đổi tiêu đề, giá, QR, <strong>mã giảm giá VietQR</strong>, link tải… vào
       <a href="/admin/content">Chỉnh nội dung &amp; thanh toán</a> → <strong>Lưu</strong> (không nhập mã trên Dashboard).
@@ -110,7 +113,8 @@
         Đang dùng = ping trong {{ telemetry_active_days }} ngày;
         có thể đã gỡ = không ping &gt; {{ telemetry_inactive_days }} ngày.
         Cột <strong>Hạn CRM</strong> lấy từ license gắn fingerprint trong /admin/licenses — so với badge
-        <code>Licensed • Nd</code> trên plugin. Thanh toán lại cùng email → webhook tự gia hạn key (không cần admin bấm).
+        <code>Licensed • Nd</code> trên plugin. Thanh toán lại cùng email → webhook tự gia hạn.
+        Admin cũng có nút <strong>Gia hạn</strong> ngay dưới đây (cộng ngày vào đúng key, không tạo key mới).
       </p>
       {% if machines %}
       <div class="machines-table-wrap">
@@ -126,6 +130,7 @@
               <th>Plugin báo</th>
               <th>Hạn CRM</th>
               <th>Email / plan</th>
+              <th>Gia hạn</th>
             </tr>
           </thead>
           <tbody>
@@ -166,6 +171,21 @@
               <td class="muted">
                 {% if row.crm_email %}{{ row.crm_email }}{% else %}—{% endif %}
                 {% if row.crm_plan %}<br><span class="fine-print">{{ row.crm_plan }}</span>{% endif %}
+              </td>
+              <td>
+                {% if row.crm_license_id %}
+                <form method="post" action="/admin/licenses/extend" class="machine-extend-form"
+                      onsubmit="return confirm('Gia hạn cùng key cho {{ row.crm_email }}?');">
+                  <input type="hidden" name="license_id" value="{{ row.crm_license_id }}">
+                  <input type="hidden" name="next" value="/admin">
+                  <input type="hidden" name="send_email" value="1">
+                  <input type="hidden" name="notes" value="Admin gia hạn từ dashboard">
+                  <input type="number" name="days" value="{{ content.license_term_days or 365 }}" min="1" title="Số ngày cộng thêm">
+                  <button type="submit" class="btn btn-primary btn-compact">Gia hạn</button>
+                </form>
+                {% else %}
+                <span class="muted">—</span>
+                {% endif %}
               </td>
             </tr>
             {% endfor %}

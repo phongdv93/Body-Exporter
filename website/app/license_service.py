@@ -254,6 +254,39 @@ def _renew_existing_license(
     return lic, True
 
 
+def admin_extend_license(
+    db: Session,
+    *,
+    license_id: int,
+    days: int,
+    notes: str = "",
+    send_email: bool = True,
+) -> License:
+    """
+    Admin gift/test renew: extend the same Worker key already on the customer's machine.
+    Plugin picks up the new expiresAt on the next online validate / Refresh days.
+    """
+    lic = db.get(License, license_id)
+    if lic is None:
+        raise ValueError("License không tồn tại")
+    if lic.revoked:
+        raise ValueError("License đã revoke — bỏ revoke trước khi gia hạn")
+    term = max(1, int(days))
+    note = (notes or "").strip() or "Admin gia hạn"
+    renewed_lic, _ = _renew_existing_license(
+        db,
+        lic=lic,
+        days=term,
+        sepay_transaction_id=None,
+        paddle_transaction_id=None,
+        notes=note,
+        send_email=send_email,
+        order_id_suffix=f"admin-extend-{lic.id}",
+        email_lang="vi",
+    )
+    return renewed_lic
+
+
 def find_renewable_license(db: Session, buyer_email: str) -> License | None:
     """Non-revoked license for this email with the latest expires_at (may already be expired)."""
     email = (buyer_email or "").strip().lower()
